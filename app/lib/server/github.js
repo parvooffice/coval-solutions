@@ -17,7 +17,7 @@ async function github(path, userToken = "") {
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     const message = response.status === 401 || response.status === 403
-      ? "GitHub rejected the configured token or its permissions. Check GITHUB_TOKEN and grant read access to the configured organization and repositories."
+      ? "GitHub rejected the configured token or its permissions. Check the GitHub token and requested read scopes."
       : body.message || `GitHub returned ${response.status} for ${path}.`;
     const error = new Error(message);
     error.status = response.status === 404 ? 400 : 502;
@@ -144,17 +144,7 @@ async function getRepositories(userToken = "", personalLogin = "") {
     return repositories.filter((repository) => !repository.private);
   }
   if (userToken) return pages("/user/repos?visibility=public&affiliation=owner&sort=updated&direction=desc", 10, userToken);
-  const configuredRepos = (process.env.GITHUB_REPOS || "").split(",").map((repo) => repo.trim()).filter(Boolean);
-  const org = process.env.GITHUB_ORG?.trim();
-  let repos;
-  if (configuredRepos.length) {
-    repos = await mapLimit(configuredRepos, 8, async (repo) => github(`/repos/${repo}`));
-  } else if (org) {
-    repos = await pages(`/orgs/${encodeURIComponent(org)}/repos?type=all&sort=updated`, Number(process.env.GITHUB_REPO_PAGES || 2));
-  } else {
-    throw Object.assign(new Error("Connect GitHub by setting GITHUB_ORG or a comma-separated GITHUB_REPOS list in .env.local."), { status: 503 });
-  }
-  return repos.slice(0, Number(process.env.GITHUB_MAX_REPOS || 100));
+  throw Object.assign(new Error("Connect your GitHub account in Settings to load your personal repositories."), { status: 503 });
 }
 
 async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "", personalWorkspace = false, { includePrimaryProfile = true, publicOnly = false, allowSharedGraphqlToken = true } = {}) {
@@ -183,8 +173,6 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
         avatar: contributor.avatar_url,
         url: contributor.html_url,
         role: "GitHub contributor",
-        team: "",
-        teams: [],
         location: "",
         bio: "",
         color: colorFor(contributor.login),
@@ -223,76 +211,6 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
       languageBreakdown: languages,
     };
   });
-
-  const org = userToken || personalWorkspace ? "" : process.env.GITHUB_ORG?.trim();
-  let teams = [];
-  if (org) {
-    try {
-      const organizationMembers = await pages(`/orgs/${encodeURIComponent(org)}/members`, Number(process.env.GITHUB_MEMBER_PAGES || 2));
-      organizationMembers.forEach((member) => {
-        if (!member.login || peopleMap.has(member.login)) return;
-        peopleMap.set(member.login, {
-          id: member.login,
-          login: member.login,
-          name: member.login,
-          initials: initialsFor(member.login, member.login),
-          avatar: member.avatar_url,
-          url: member.html_url,
-          role: "Organization member",
-          team: "",
-          teams: [],
-          location: "",
-          bio: "",
-          color: colorFor(member.login),
-          commits: 0,
-          prs: 0,
-          reviews: 0,
-          status: "Organization member",
-          repositories: [],
-        });
-      });
-    } catch {
-      // Organization membership requires an appropriate token permission.
-    }
-    try {
-      const orgTeams = await pages(`/orgs/${encodeURIComponent(org)}/teams`, 1);
-      const teamMemberships = await mapLimit(orgTeams, 8, async (team) => ({
-        team,
-        members: await pages(`/orgs/${encodeURIComponent(org)}/teams/${encodeURIComponent(team.slug)}/members`, 1),
-      }));
-      teamMemberships.forEach(({ team, members }) => {
-        const ids = [];
-        members.forEach((member) => {
-          const person = peopleMap.get(member.login) || {
-            id: member.login,
-            login: member.login,
-            name: member.login,
-            initials: initialsFor(member.login, member.login),
-            avatar: member.avatar_url,
-            url: member.html_url,
-            role: "Organization member",
-            team: "",
-            teams: [],
-            location: "",
-            bio: "",
-            color: colorFor(member.login),
-            commits: 0,
-            prs: 0,
-            reviews: 0,
-            status: "Organization member",
-            repositories: [],
-          };
-          person.teams.push(team.name);
-          person.team = person.teams.join(", ");
-          peopleMap.set(member.login, person);
-          ids.push(member.login);
-        });
-        teams.push({ id: team.id, name: team.name, slug: team.slug, description: team.description || "", color: colorFor(team.slug), count: ids.length, memberIds: ids, url: team.html_url });
-      });
-    } catch {
-      // Organization team data requires read:org; repo and contributor data can still load.
-    }
-  }
 
   const memberList = [...peopleMap.values()].slice(0, Number(process.env.GITHUB_MAX_PEOPLE || 100));
   const details = await mapLimit(memberList, 8, async (person) => {
@@ -341,24 +259,15 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
 
   let activity = [];
   try {
-    let eventRows = [];
-    if (org) {
-      const events = await github(`/orgs/${encodeURIComponent(org)}/events?per_page=100`, userToken);
-      const visibleRepositories = new Set(repoRows.map((repo) => repo.full_name.toLowerCase()));
-      eventRows = events
-        .filter((event) => !publicOnly || visibleRepositories.has((event.repo?.name || "").toLowerCase()))
-        .map((event) => ({ event, repository: event.repo?.name || "" }));
-    } else {
-      const activityRepoLimit = Math.max(1, Math.min(50, Number(process.env.GITHUB_ACTIVITY_REPOS || 20)));
-      const activeRepos = [...repoData]
-        .sort((left, right) => new Date(right.repo.pushed_at || right.repo.updated_at) - new Date(left.repo.pushed_at || left.repo.updated_at))
-        .slice(0, activityRepoLimit);
-      const repoEvents = await mapLimit(activeRepos, 6, async ({ repo }) => {
-        const events = await github(`/repos/${repo.full_name}/events?per_page=100`, userToken).catch(() => []);
-        return events.map((event) => ({ event, repository: repo.full_name }));
-      });
-      eventRows = repoEvents.flat();
-    }
+    const activityRepoLimit = Math.max(1, Math.min(50, Number(process.env.GITHUB_ACTIVITY_REPOS || 20)));
+    const activeRepos = [...repoData]
+      .sort((left, right) => new Date(right.repo.pushed_at || right.repo.updated_at) - new Date(left.repo.pushed_at || left.repo.updated_at))
+      .slice(0, activityRepoLimit);
+    const repoEvents = await mapLimit(activeRepos, 6, async ({ repo }) => {
+      const events = await github(`/repos/${repo.full_name}/events?per_page=100`, userToken).catch(() => []);
+      return events.map((event) => ({ event, repository: repo.full_name }));
+    });
+    const eventRows = repoEvents.flat();
     activity = eventRows
       .sort((left, right) => new Date(right.event.created_at) - new Date(left.event.created_at))
       .slice(0, 100)
@@ -393,7 +302,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
     activity = [];
   }
 
-  const primaryLogin = includePrimaryProfile ? (primaryLoginOverride || process.env.GITHUB_USERNAME || "").trim() : "";
+  const primaryLogin = includePrimaryProfile ? primaryLoginOverride.trim() : "";
   let primaryProfile = null;
   let contributions = { total: 0, commits: 0, pullRequests: 0, reviews: 0, issues: 0, days: [], current: 0, best: 0 };
   if (primaryLogin) {
@@ -406,7 +315,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
           peopleMap.set(primaryLogin, {
             id: primaryLogin, login: primaryLogin, name: data.profile.name,
             initials: initialsFor(data.profile.name, primaryLogin), avatar: data.profile.avatarUrl,
-            url: data.profile.url, role: "GitHub account", team: "", teams: [],
+            url: data.profile.url, role: "GitHub account",
             location: data.profile.location, bio: data.profile.bio, color: colorFor(primaryLogin),
             commits: contributions.commits, prs: contributions.pullRequests,
             reviews: contributions.reviews, status: "GitHub account", repositories: [],
@@ -431,30 +340,6 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
   }
 
   const people = memberList.map((person) => peopleMap.get(person.login)).filter(Boolean);
-  const includedLogins = new Set(people.map((person) => person.login));
-  teams = teams.map((team) => ({ ...team, members: team.memberIds.filter((id) => includedLogins.has(id)).map((id) => peopleMap.get(id)).filter(Boolean) }));
-  const orgPullRequestMetrics = {};
-  if (org && !publicOnly) {
-    try {
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      const queries = [
-        `org:${org} type:pr is:merged`,
-        `org:${org} type:pr is:merged merged:>=${monthStart.toISOString().slice(0, 10)}`,
-        `org:${org} type:pr is:open`,
-      ];
-      const counts = await Promise.all(queries.map(async (query) => {
-        const params = new URLSearchParams({ q: query, per_page: "1" });
-        const result = await github(`/search/issues?${params}`, userToken);
-        return result.total_count || 0;
-      }));
-      orgPullRequestMetrics.mergedPullRequests = counts[0];
-      orgPullRequestMetrics.mergedThisMonth = counts[1];
-      orgPullRequestMetrics.openPullRequests = counts[2];
-    } catch {
-      // Search rate limits should not take down repository and contribution data.
-    }
-  }
 
   const reviewEvents = activity.filter((item) => item.type === "PULL REQUEST REVIEW").length;
   const hasContributionCalendar = contributions.days.length > 0;
@@ -464,15 +349,14 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
     commits: hasContributionCalendar ? contributions.commits : repositoryCommits,
     repositoryCommits,
     pullRequests: hasContributionCalendar ? contributions.pullRequests : pullRequests.length,
-    mergedPullRequests: orgPullRequestMetrics.mergedPullRequests ?? pullRequests.filter((pull) => pull.state === "merged").length,
-    mergedThisMonth: orgPullRequestMetrics.mergedThisMonth || 0,
-    openPullRequests: orgPullRequestMetrics.openPullRequests ?? pullRequests.filter((pull) => pull.state === "open").length,
+    mergedPullRequests: pullRequests.filter((pull) => pull.state === "merged").length,
+    mergedThisMonth: 0,
+    openPullRequests: pullRequests.filter((pull) => pull.state === "open").length,
     reviews: hasContributionCalendar ? contributions.reviews : reviewEvents,
     streak: contributions.current,
     bestStreak: contributions.best,
     people: people.length,
-    teams: teams.length,
-    activeTeams: teams.filter((team) => team.members.length > 0).length,
+    activeRepositories: projects.filter((project) => project.status === "Active").length,
     repositories: projects.length,
     collaborators: people.filter((person) => person.repositories.length > 0).length,
   };
@@ -480,12 +364,11 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
   return {
     configured: true,
     source: "github",
-    organization: userToken || personalWorkspace ? `${primaryLoginOverride}'s repositories` : org || "Configured repositories",
+    workspaceName: primaryLoginOverride ? `@${primaryLoginOverride}` : "COVAL community",
     primaryProfile,
     metrics,
     contributions,
     people,
-    teams,
     projects,
     activity: activity.slice(0, 100),
     pullRequests,
@@ -500,7 +383,7 @@ export async function getDashboardData(primaryLoginOverride = "", userToken = ""
     ? `user:${primaryLoginOverride.toLowerCase()}:${includePrimaryProfile}:${publicOnly}:${allowSharedGraphqlToken}`
     : personalWorkspace
       ? `personal:${primaryLoginOverride.toLowerCase()}:${includePrimaryProfile}:${publicOnly}:${allowSharedGraphqlToken}`
-      : `${process.env.GITHUB_ORG || process.env.GITHUB_REPOS || ""}:${includePrimaryProfile ? primaryLoginOverride || process.env.GITHUB_USERNAME || "" : ""}:${publicOnly}:${allowSharedGraphqlToken}`;
+      : `personal:${primaryLoginOverride.toLowerCase()}:${includePrimaryProfile}:${publicOnly}:${allowSharedGraphqlToken}`;
   const cache = globalThis.__covalGithubDashboards || (globalThis.__covalGithubDashboards = new Map());
   const entry = cache.get(configKey);
   if (entry?.expiresAt > now) return entry.value;
@@ -579,8 +462,6 @@ export async function getGitHubProfile(login, userToken = "", includeContributio
     avatar: user.avatar_url,
     url: user.html_url,
     role: "GitHub account",
-    team: "",
-    teams: [],
     bio: user.bio || "",
     company: user.company || "",
     location: user.location || "",
@@ -597,6 +478,62 @@ export async function getGitHubProfile(login, userToken = "", includeContributio
   };
   cache.set(cacheKey, { value: profile, expiresAt: Date.now() + CACHE_MS });
   return profile;
+}
+
+export async function getGitHubPublicMemberStats(logins, userToken = "") {
+  const validLogins = [...new Set((logins || []).filter((login) => /^[A-Za-z0-9-]{1,39}$/.test(login || "")))];
+  const cache = globalThis.__covalGithubMemberStats || (globalThis.__covalGithubMemberStats = new Map());
+  const result = {};
+  const pending = [];
+  for (const login of validLogins) {
+    const cached = cache.get(login.toLowerCase());
+    if (cached?.expiresAt > Date.now()) result[login.toLowerCase()] = cached.value;
+    else pending.push(login);
+  }
+
+  const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+  const to = new Date().toISOString();
+  let unauthenticatedFallbacks = 60;
+  for (let offset = 0; offset < pending.length; offset += 10) {
+    const batch = pending.slice(offset, offset + 10);
+    const aliases = batch.map((login, index) => `u${index}:user(login:${JSON.stringify(login)}){login followers{totalCount} repositories(first:1,privacy:PUBLIC,ownerAffiliations:OWNER){totalCount} contributionsCollection(from:$from,to:$to){totalCommitContributions totalPullRequestContributions totalPullRequestReviewContributions contributionCalendar{totalContributions}}}`).join("\n");
+    let users = null;
+    try { users = await graphQL(`query($from:DateTime!,$to:DateTime!){${aliases}}`, { from, to }, userToken); } catch {}
+
+    const hasAuthenticatedToken = Boolean(userToken || process.env.GITHUB_TOKEN);
+    const fallback = users ? [] : hasAuthenticatedToken ? batch : batch.slice(0, unauthenticatedFallbacks);
+    if (!hasAuthenticatedToken) unauthenticatedFallbacks -= fallback.length;
+    const fallbackRows = await mapLimit(fallback, 6, async (login) => {
+      try { return [login.toLowerCase(), await github(`/users/${encodeURIComponent(login)}`, userToken)]; }
+      catch { return [login.toLowerCase(), null]; }
+    });
+    const fallbackByLogin = new Map(fallbackRows);
+    batch.forEach((login, index) => {
+      const githubUser = users?.[`u${index}`];
+      const fallbackUser = fallbackByLogin.get(login.toLowerCase());
+      const collection = githubUser?.contributionsCollection;
+      const stats = githubUser ? {
+        publicRepositories: githubUser.repositories?.totalCount ?? fallbackUser?.public_repos ?? null,
+        followers: githubUser.followers?.totalCount ?? fallbackUser?.followers ?? null,
+        contributions: collection?.contributionCalendar?.totalContributions ?? null,
+        commits: collection?.totalCommitContributions ?? null,
+        pullRequests: collection?.totalPullRequestContributions ?? null,
+        reviews: collection?.totalPullRequestReviewContributions ?? null,
+      } : fallbackUser ? {
+        publicRepositories: fallbackUser.public_repos ?? null,
+        followers: fallbackUser.followers ?? null,
+        contributions: null,
+        commits: null,
+        pullRequests: null,
+        reviews: null,
+      } : null;
+      if (stats) {
+        result[login.toLowerCase()] = stats;
+        cache.set(login.toLowerCase(), { value: stats, expiresAt: Date.now() + 10 * 60 * 1000 });
+      }
+    });
+  }
+  return result;
 }
 
 export function getGitHubErrorStatus(error) {

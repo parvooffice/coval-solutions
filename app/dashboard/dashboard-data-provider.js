@@ -5,12 +5,11 @@ import { apiRequest } from "../lib/client-api";
 
 const emptyDashboard = {
   configured: false,
-  organization: "",
+  workspaceName: "COVAL community",
   primaryProfile: null,
   metrics: {},
   contributions: { days: [] },
   people: [],
-  teams: [],
   projects: [],
   activity: [],
   pullRequests: [],
@@ -114,7 +113,6 @@ export function DashboardDataProvider({ children }) {
     codeEvaluation,
     updateCodeEvaluation,
     people: dashboard.people || [],
-    teams: dashboard.teams || [],
     projects: dashboard.projects || [],
     activity: dashboard.activity || [],
     pullRequests: dashboard.pullRequests || [],

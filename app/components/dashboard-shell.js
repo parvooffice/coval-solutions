@@ -39,7 +39,7 @@ export default function DashboardShell({
   dataError,
   onDataRefresh,
 }) {
-  const { people, projects, teams, dashboard, currentUser } = useDashboardData();
+  const { people, projects, dashboard, currentUser } = useDashboardData();
   const [search, setSearch] = useState("");
   const [selectedSearchResult, setSelectedSearchResult] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
@@ -105,7 +105,7 @@ export default function DashboardShell({
   const activeRoute = route === "profile" ? "engineering" : route;
   const sidebarOpen = isMobile ? drawerOpen : desktopSidebarOpen;
   const overlayOpen = isMobile ? drawerOpen : desktopOverlayOpen;
-  const workspaceName = dashboard.organization || "GitHub workspace";
+  const workspaceName = dashboard.workspaceName || "COVAL community";
   const githubIdentity = currentUser?.identities?.find((identity) => identity.provider === "github");
   const profileLogin = dashboard.primaryProfile?.login || githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || "";
   const profilePerson = people.find((person) => person.login === profileLogin) || null;
@@ -184,13 +184,6 @@ export default function DashboardShell({
               {!projects.length && <p className="sidebar-empty">Repositories appear after GitHub is connected.</p>}
             </div>
           </div>
-          <div className="sidebar-section sidebar-collection teams-collection">
-            <div className="sidebar-section-heading"><span className="sidebar-caption">TEAMS & GUILDS</span><button type="button" className="quiet-icon" aria-label="Explore network" onClick={() => navigateFromSidebar("network")}><Icon name="plus" size={16} /></button></div>
-            <div className="sidebar-quick-list">
-              {teams.map((team) => <button key={team.id} type="button" className="team-link" onClick={() => navigateFromSidebar("network")}><span className={`team-dot team-${team.color}`} /><span>{team.name}</span><small>{team.count}</small></button>)}
-              {!teams.length && <p className="sidebar-empty">GitHub organization teams will appear here.</p>}
-            </div>
-          </div>
         </div>
         <div className="sidebar-bottom">
           <div className="sidebar-actions">
@@ -198,7 +191,7 @@ export default function DashboardShell({
           </div>
           <button type="button" className="profile-chip" onClick={() => profileLogin && navigateFromSidebar(`profile/${profileLogin}`)} disabled={!profileLogin}>
             <Avatar initials={profilePerson?.initials || "GH"} name={profilePerson?.name || "GitHub profile"} color={profilePerson?.color || "mint"} size="sm" src={profilePerson?.avatar} />
-            <span><strong>{profilePerson?.name || "GitHub profile"}</strong><small>{profilePerson?.team || profilePerson?.role || "Connected account"}</small></span>
+            <span><strong>{profilePerson?.name || "GitHub profile"}</strong><small>{profilePerson?.role || "Connected account"}</small></span>
             <Icon name="chevronRight" size={17} />
           </button>
         </div>
@@ -215,7 +208,7 @@ export default function DashboardShell({
           <div className="topbar-center">
             <button type="button" className="topbar-search-btn" onClick={onSearchOpen} aria-label="Search directory (Press ⌘K)">
               <span className="search-btn-icon"><Icon name="search" size={17} /></span>
-              <span className="search-btn-text">Search directory, projects, teams…</span>
+              <span className="search-btn-text">Search people, projects, connections…</span>
               <span className="search-btn-kbd"><kbd>⌘</kbd><kbd>K</kbd></span>
             </button>
           </div>
@@ -236,7 +229,7 @@ export default function DashboardShell({
           <div className="workspace-context" aria-label="Current workspace">
             <span className="workspace-context-mark" aria-hidden="true">A</span>
             <strong>{workspaceName}</strong>
-            <small>{dashboard.organization ? "SHARED WORKSPACE" : "COVAL WORKSPACE"}</small>
+            <small>{dashboard.primaryProfile ? "PERSONAL GITHUB" : "COVAL COMMUNITY"}</small>
           </div>
           {dataError && <section className="backend-status-banner" role="status"><div><strong>GitHub data is not connected yet.</strong><p>{dataError} Add the server-only GitHub settings from <code>.env.example</code>, then refresh this dashboard.</p></div><button type="button" className="button" onClick={onDataRefresh}>Retry connection</button></section>}
           {dataLoading && <p className="backend-loading" role="status">Loading live GitHub data…</p>}

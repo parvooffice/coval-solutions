@@ -4,7 +4,7 @@ const supabaseKey = () => process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || pr
 export async function requireUser(request) {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) {
-    if (process.env.NODE_ENV === "development") return { id: "local-development-user", token: null, login: process.env.GITHUB_USERNAME || "local" };
+    if (process.env.NODE_ENV === "development") return { id: "local-development-user", token: null, login: "local" };
     throw Object.assign(new Error("Sign in to use this feature."), { status: 401 });
   }
   if (!supabaseUrl() || !supabaseKey()) {
@@ -48,14 +48,6 @@ export async function requireUser(request) {
     githubConnected,
     githubToken,
   };
-}
-
-export async function authorizeGitHubWorkspace() {
-  if (process.env.NODE_ENV === "development") return;
-  const org = process.env.GITHUB_ORG?.trim();
-  const configuredRepos = (process.env.GITHUB_REPOS || "").split(",").map((repo) => repo.trim()).filter(Boolean);
-  if (org || configuredRepos.length) return;
-  throw Object.assign(new Error("Configure GITHUB_ORG or GITHUB_REPOS to show the public team workspace."), { status: 503 });
 }
 
 export async function supabaseRest(user, path, init = {}) {

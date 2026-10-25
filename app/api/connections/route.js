@@ -6,9 +6,24 @@ export async function GET(request) {
     if (!user.token) return Response.json({ connections: [], memberConnections: [] });
     const [connections, memberConnections] = await Promise.all([
       supabaseRest(user, `coval_connections?select=target_github_login,created_at&user_id=eq.${user.id}&order=created_at.desc`),
-      supabaseRest(user, `coval_member_connections?select=target_user_id,created_at&user_id=eq.${user.id}&order=created_at.desc`),
+      supabaseRest(user, `coval_member_connections?select=target_user_id,created_at,show_in_network&user_id=eq.${user.id}&order=created_at.desc`),
     ]);
     return Response.json({ connections, memberConnections });
+  } catch (error) { return apiError(error); }
+}
+
+export async function PATCH(request) {
+  try {
+    const user = await requireUser(request);
+    const { userId, showInNetwork } = await request.json();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(userId || "") || typeof showInNetwork !== "boolean") {
+      return Response.json({ error: "Choose a connected member and whether to show them in your network tree." }, { status: 400 });
+    }
+    await supabaseRest(user, `coval_member_connections?user_id=eq.${encodeURIComponent(user.id)}&target_user_id=eq.${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ show_in_network: showInNetwork }),
+    });
+    return Response.json({ updated: true, showInNetwork });
   } catch (error) { return apiError(error); }
 }
 

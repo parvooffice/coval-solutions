@@ -124,7 +124,7 @@ function DashboardContent() {
       case "projects":
         return <ProjectsPage navigate={navigate} />;
       case "network":
-        return <NetworkPage navigate={navigate} />;
+        return <NetworkPage navigate={navigate} notify={notify} />;
       case "activity":
         return <ActivityPage navigate={navigate} />;
       case "chat":

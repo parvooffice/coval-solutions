@@ -1,11 +1,25 @@
-import { requireUser, authorizeGitHubWorkspace, apiError } from "../../lib/server/auth";
+import { requireUser, apiError } from "../../lib/server/auth";
 import { getDashboardData, getGitHubErrorStatus } from "../../lib/server/github";
 
 export async function GET(request) {
   try {
     const user = await requireUser(request);
     const personalWorkspace = user.githubConnected;
-    if (!personalWorkspace) await authorizeGitHubWorkspace();
+    if (!personalWorkspace || !user.login) {
+      return Response.json({
+        configured: false,
+        source: "personal-github",
+        workspaceName: "COVAL community",
+        primaryProfile: null,
+        metrics: {},
+        contributions: { total: 0, commits: 0, pullRequests: 0, reviews: 0, issues: 0, days: [], current: 0, best: 0 },
+        people: [],
+        projects: [],
+        activity: [],
+        pullRequests: [],
+        updatedAt: null,
+      }, { headers: { "Cache-Control": "private, no-store" } });
+    }
     const dashboard = await getDashboardData(
       personalWorkspace ? user.login : "",
       user.githubToken,

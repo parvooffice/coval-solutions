@@ -86,11 +86,11 @@ export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClo
         <section className="settings-group" aria-labelledby="settings-workspace">
           <h3 id="settings-workspace">ACTIVE WORKSPACE</h3>
           <div className="settings-option">
-            <div><strong>Shared workspace</strong><p>{dashboard.organization || "No public team workspace configured"} · {dashboard.projects?.length || 0} public repositories loaded</p></div>
-            <span className="settings-tag">{dashboard.configured ? "AVAILABLE" : "SETUP REQUIRED"}</span>
+            <div><strong>Community network</strong><p>People and connections come from COVAL member accounts. {dashboard.projects?.length || 0} of your public repositories are loaded.</p></div>
+            <span className="settings-tag">{dashboard.primaryProfile ? "GITHUB LINKED" : "COMMUNITY"}</span>
           </div>
           <div className="settings-option">
-            <div><strong>Your GitHub account</strong><p>{githubConnected ? `Connected${githubLogin ? ` as @${githubLogin}` : ""} · your repositories, contribution graph, and activity load in your personal dashboard.` : "Connect GitHub to load your own repositories, contribution graph, pull requests, reviews, and streak. Your team directory remains available."}</p></div>
+            <div><strong>Your GitHub account</strong><p>{githubConnected ? `Connected${githubLogin ? ` as @${githubLogin}` : ""} · your repositories, contribution graph, and activity load in your personal dashboard.` : "Connect GitHub to load your own repositories, contribution graph, pull requests, reviews, and streak. COVAL people and connection features remain available."}</p></div>
             {githubConnected
               ? <span className="settings-tag">CONNECTED</span>
               : <button type="button" className="button" onClick={connectGitHub} disabled={connectingGitHub}><Icon name="git" size={15} /> {connectingGitHub ? "Connecting…" : "Connect GitHub"}</button>}

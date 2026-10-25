@@ -12,7 +12,7 @@ export default function OverviewPage({ navigate, notify, onConnectGitHub }) {
   const [connected, setConnected] = useState(false);
   const [connectionBusy, setConnectionBusy] = useState(false);
   const person = dashboard.primaryProfile
-    ? people.find((item) => item.login === dashboard.primaryProfile.login) || { ...dashboard.primaryProfile, id: dashboard.primaryProfile.login, initials: dashboard.primaryProfile.name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase(), color: "mint", team: "", repositories: [] }
+    ? people.find((item) => item.login === dashboard.primaryProfile.login) || { ...dashboard.primaryProfile, id: dashboard.primaryProfile.login, initials: dashboard.primaryProfile.name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase(), color: "mint", repositories: [] }
     : null;
 
   useEffect(() => {
@@ -46,21 +46,16 @@ export default function OverviewPage({ navigate, notify, onConnectGitHub }) {
     const accountName = currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.email?.split("@")[0] || "there";
     return <>
       <header className="overview-greeting-section">
-        <div className="overview-greeting-text"><span className="eyebrow">COVAL COMMUNITY WORKSPACE</span><h1 className="overview-heading">Welcome, {accountName.split(" ")[0]}</h1><p className="overview-subtext">Browse the team directory, explore shared repositories, and connect with people. Your personal GitHub dashboard appears after you connect GitHub.</p></div>
-        <div className="overview-greeting-actions"><button type="button" className="button button-primary" onClick={onConnectGitHub}><Icon name="git" size={16} /> Connect GitHub</button><button type="button" className="button button-quiet" onClick={() => navigate("engineering")}><Icon name="users" size={17} /> Explore team</button></div>
+        <div className="overview-greeting-text"><span className="eyebrow">COVAL COMMUNITY</span><h1 className="overview-heading">Welcome, {accountName.split(" ")[0]}</h1><p className="overview-subtext">Browse COVAL members, connect with people, and build your network tree. Connect GitHub to add your own repositories and contribution data.</p></div>
+        <div className="overview-greeting-actions"><button type="button" className="button button-primary" onClick={onConnectGitHub}><Icon name="git" size={16} /> Connect GitHub</button><button type="button" className="button button-quiet" onClick={() => navigate("engineering")}><Icon name="users" size={17} /> Browse people</button></div>
       </header>
-      <section className="summary-grid" aria-label="Shared workspace overview">
-        <MetricCard label="TEAM MEMBERS" value={fmt(metrics.people || 0)} detail="People in the shared GitHub workspace" />
-        <MetricCard label="PUBLIC REPOSITORIES" value={fmt(projects.length)} detail="Public repositories and project details" />
-        <MetricCard label="ACTIVE TEAMS" value={fmt(metrics.activeTeams || 0)} detail="Teams in the shared workspace" />
-      </section>
-      <div className="empty-state"><Icon name="activity" size={22} /><strong>Your contribution graph is private to your connected account</strong><p>Connect GitHub to load your repositories, contribution calendar, pull requests, reviews, and streak.</p><button type="button" className="button" onClick={onConnectGitHub}>Connect GitHub</button></div>
+      <div className="empty-state"><Icon name="network" size={22} /><strong>Your COVAL people network is ready</strong><p>Connect with members in People, then choose who to include in your Network tree. GitHub metrics appear after you link GitHub.</p><button type="button" className="button button-quiet" onClick={() => navigate("network")}>Open network tree</button></div>
       <EvaluationSummary targets={evaluationTargets} navigate={navigate} />
     </>;
   }
 
   if (!person) return <>
-    <div className="empty-state"><Icon name="repo" size={22} /><strong>Connect GitHub to load your workspace</strong><p>Add a GitHub organization or repository list to the server environment, then use Retry connection above.</p><button type="button" className="button" onClick={() => navigate("projects")}>View projects</button></div>
+    <div className="empty-state"><Icon name="repo" size={22} /><strong>Your GitHub profile could not be loaded</strong><p>Reconnect GitHub in Settings, then refresh your personal data.</p><button type="button" className="button" onClick={onConnectGitHub}>Reconnect GitHub</button></div>
     <EvaluationSummary targets={evaluationTargets} navigate={navigate} />
   </>;
 
@@ -68,14 +63,14 @@ export default function OverviewPage({ navigate, notify, onConnectGitHub }) {
     <>
       <header className="overview-greeting-section">
         <div className="overview-greeting-text"><span className="eyebrow">GITHUB ENGINEERING INTELLIGENCE</span><h1 className="overview-heading">Welcome, {person.name.split(" ")[0]}</h1><p className="overview-subtext">A live view of repositories and contributions from GitHub.</p></div>
-        <div className="overview-greeting-actions"><button type="button" className="button button-quiet" onClick={() => navigate("engineering")}><Icon name="users" size={17} /> Explore team</button></div>
+        <div className="overview-greeting-actions"><button type="button" className="button button-quiet" onClick={() => navigate("engineering")}><Icon name="users" size={17} /> Browse people</button></div>
       </header>
 
       <article className="overview-profile-hero">
         <div className="hero-header">
           <Avatar initials={person.initials} name={person.name} color={person.color} size="xl" src={person.avatar} />
           <div className="hero-identity"><div className="hero-name-row"><h2>{person.name}</h2><a className="team-tag" href={person.url} target="_blank" rel="noreferrer">GitHub profile</a></div>
-            <div className="hero-meta"><span><Icon name="briefcase" size={15} /> @{person.login}</span>{person.team && <><i>·</i><span><Icon name="users" size={15} /> {person.team}</span></>}{person.location && <><i>·</i><span><Icon name="activity" size={15} /> {person.location}</span></>}</div>
+            <div className="hero-meta"><span><Icon name="briefcase" size={15} /> @{person.login}</span>{person.location && <><i>·</i><span><Icon name="activity" size={15} /> {person.location}</span></>}</div>
           </div>
           <div className="hero-actions"><button type="button" className="button button-quiet" onClick={() => navigate(`chat/${person.login}`)}><Icon name="message" size={16} /> Message</button><button type="button" className={`button ${connected ? "button-connected" : "button-quiet"}`} disabled={connectionBusy || person.login === dashboard.primaryProfile?.login} onClick={toggleConnection}><Icon name={connected ? "check" : "plus"} size={17} /> {connectionBusy ? "Saving…" : connected ? "Connected" : "Connect"}</button><button type="button" className="button button-primary" onClick={() => navigate(`profile/${person.id}`)}><Icon name="users" size={16} /> Full profile</button></div>
         </div>
@@ -87,9 +82,9 @@ export default function OverviewPage({ navigate, notify, onConnectGitHub }) {
 
       <section className="overview-metrics-grid" aria-label="GitHub engineering metrics">
         <MetricCard label="CONTRIBUTIONS / YEAR" value={fmt(profileContributionCount)} detail={`Active streak: ${metrics.streak || 0} days · ${metrics.commits || 0} commits`} />
-        <MetricCard label="OPEN PULL REQUESTS" value={fmt(metrics.openPullRequests || 0)} detail="Across configured GitHub organization" />
+        <MetricCard label="OPEN PULL REQUESTS" value={fmt(metrics.openPullRequests || 0)} detail="Across your public repositories" />
         <MetricCard label="CONNECTED REPOSITORIES" value={fmt(projects.length)} detail="Repository metadata fetched from GitHub" />
-        <MetricCard label="CONTRIBUTORS" value={fmt(metrics.collaborators || 0)} detail={`Across ${metrics.teams || 0} GitHub teams`} />
+        <MetricCard label="CONTRIBUTORS" value={fmt(metrics.collaborators || 0)} detail="Across your public repositories" />
         <MetricCard label="MERGED PULL REQUESTS" value={fmt(metrics.mergedPullRequests || 0)} detail={`${fmt(metrics.mergedThisMonth || 0)} merged this month`} />
       </section>
 
@@ -100,7 +95,7 @@ export default function OverviewPage({ navigate, notify, onConnectGitHub }) {
       </section>
 
       <div className="overview-lower-grid"><article className="overview-timeline-card"><div className="overview-card-heading"><div><span className="eyebrow">GITHUB ACTIVITY</span><h2 className="overview-card-title">Recent activity</h2></div><button type="button" className="text-button" onClick={() => navigate("activity")}>VIEW ALL <Icon name="arrowUpRight" size={14} /></button></div>
-        <div className="overview-timeline-list">{recentWork.map((item) => <div className="overview-timeline-item" key={item.id}><button type="button" className="activity-avatar-button" aria-label={`View ${item.person} profile`} onClick={() => navigate(`profile/${item.login}`)}><Avatar initials={item.initials} name={item.person} color={item.color} size="sm" src={item.avatar} /></button><div className="overview-timeline-content"><div className="overview-timeline-meta"><span>{item.type}</span><strong>{item.person}</strong><small>{item.repo} · {item.time}</small></div><h3>{item.subject}</h3><p>{item.action}</p></div></div>)}{!recentWork.length && <p className="conversation-empty">No organization events are currently available.</p>}</div>
+        <div className="overview-timeline-list">{recentWork.map((item) => <div className="overview-timeline-item" key={item.id}><button type="button" className="activity-avatar-button" aria-label={`View ${item.person} profile`} onClick={() => navigate(`profile/${item.login}`)}><Avatar initials={item.initials} name={item.person} color={item.color} size="sm" src={item.avatar} /></button><div className="overview-timeline-content"><div className="overview-timeline-meta"><span>{item.type}</span><strong>{item.person}</strong><small>{item.repo} · {item.time}</small></div><h3>{item.subject}</h3><p>{item.action}</p></div></div>)}{!recentWork.length && <p className="conversation-empty">No recent public repository events are available.</p>}</div>
       </article>
       <article className="overview-skills-card"><div className="overview-card-heading"><div><span className="eyebrow">LANGUAGE BREAKDOWN</span><h2 className="overview-card-title">Repository technology</h2></div><button type="button" className="text-button" onClick={() => navigate("projects")}>VIEW REPOSITORIES <Icon name="arrowUpRight" size={14} /></button></div><section className="skills-section-block"><span className="skills-section-label">LANGUAGES BY REPOSITORY BYTES</span>{languages.map(([language, value]) => <div className="language-meter" key={language}><span>{language}</span><i><b style={{ width: `${value}%` }} /></i><strong>{value}%</strong></div>)}{!languages.length && <p className="conversation-empty">GitHub language data will appear when repositories are connected.</p>}</section><section className="skills-section-block"><span className="skills-section-label">CONTRIBUTION CALENDAR</span><p>{fmt(contributions.total || 0)} contributions in the last year across {fmt(projects.length)} repositories.</p><button type="button" className="text-button" onClick={() => navigate("activity")}>OPEN ACTIVITY <Icon name="arrowUpRight" size={14} /></button></section></article></div>
     </>

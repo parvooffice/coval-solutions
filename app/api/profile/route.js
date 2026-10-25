@@ -22,8 +22,6 @@ export async function GET(request) {
           avatar: member.avatar_url || "",
           url: "",
           role: "COVAL member",
-          team: "",
-          teams: [],
           bio: "COVAL community member. Connect GitHub to share public repositories and contribution activity.",
           color: "mint",
           commits: 0,

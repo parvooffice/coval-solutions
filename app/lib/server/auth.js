@@ -18,10 +18,33 @@ export async function requireUser(request) {
   const user = await response.json();
   const githubIdentity = user.identities?.find((identity) => identity.provider === "github");
   const githubProfile = githubIdentity?.identity_data || {};
+  const login = githubProfile.user_name || githubProfile.login || user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.nickname || "";
+  const githubConnected = Boolean(githubIdentity || user.app_metadata?.providers?.includes("github"));
+  let githubToken = request.headers.get("x-github-provider-token")?.trim() || "";
+  let verifiedLogin = "";
+  if (githubToken) {
+    if (!githubConnected) throw Object.assign(new Error("Connect GitHub to this COVAL account before using a GitHub access token."), { status: 403 });
+    if (githubToken.length > 8192) throw Object.assign(new Error("GitHub authorization token is invalid."), { status: 400 });
+    const githubResponse = await fetch("https://api.github.com/user", {
+      headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${githubToken}`, "X-GitHub-Api-Version": "2022-11-28" },
+      cache: "no-store",
+    });
+    if (!githubResponse.ok) {
+      githubToken = "";
+    } else {
+      const githubUser = await githubResponse.json();
+      verifiedLogin = githubUser.login || "";
+      if (!verifiedLogin || (login && verifiedLogin.toLowerCase() !== login.toLowerCase())) {
+        throw Object.assign(new Error("The connected GitHub account does not match your COVAL account. Reconnect the matching GitHub identity."), { status: 403 });
+      }
+    }
+  }
   return {
     id: user.id,
     token,
-    login: githubProfile.user_name || githubProfile.login || user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.nickname || "",
+    login: verifiedLogin || login,
+    githubConnected,
+    githubToken,
   };
 }
 

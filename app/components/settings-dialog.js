@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "./dashboard-icon";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 
@@ -8,6 +8,11 @@ export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClo
   const { dashboard, people, currentUser } = useDashboardData();
   const login = dashboard.primaryProfile?.login || currentUser?.user_metadata?.user_name || currentUser?.user_metadata?.preferred_username || people[0]?.login || "";
   const profile = people.find((person) => person.login === login) || people[0];
+  const githubIdentity = currentUser?.identities?.find((identity) => identity.provider === "github");
+  const githubLogin = githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || "";
+  const githubConnected = Boolean(githubIdentity || currentUser?.app_metadata?.providers?.includes("github"));
+  const [connectingGitHub, setConnectingGitHub] = useState(false);
+  const [githubConnectMessage, setGithubConnectMessage] = useState("");
   const dialogRef = useRef(null);
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -37,6 +42,28 @@ export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClo
     };
   }, []);
 
+  async function connectGitHub() {
+    const client = window.covalSupabase;
+    if (!client) {
+      setGithubConnectMessage("COVAL authentication is still loading. Close Settings and try again.");
+      return;
+    }
+    setConnectingGitHub(true);
+    setGithubConnectMessage("");
+    try {
+      const { data, error } = await client.auth.linkIdentity({
+        provider: "github",
+        options: { redirectTo: `${window.location.origin}/dashboard`, skipBrowserRedirect: true },
+      });
+      if (error) throw error;
+      if (!data?.url) throw new Error("Supabase did not return a GitHub authorization URL.");
+      window.location.assign(data.url);
+    } catch (error) {
+      setGithubConnectMessage(error.message || "Could not start GitHub connection.");
+      setConnectingGitHub(false);
+    }
+  }
+
   return (
     <div className="settings-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section ref={dialogRef} className="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title" tabIndex="-1">
@@ -63,7 +90,14 @@ export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClo
             <span className="settings-tag">{dashboard.configured ? "CONNECTED" : "SETUP REQUIRED"}</span>
           </div>
           <div className="settings-option">
-            <div><strong>GitHub profile</strong><p>{profile ? `${profile.name} (@${profile.login})` : "Sign in with GitHub"}</p></div>
+            <div><strong>Your GitHub account</strong><p>{githubConnected ? `Connected${githubLogin ? ` as @${githubLogin}` : ""} · your public repositories and activity load in this workspace.` : "Connect your GitHub identity to load your own public repositories, collaborators, pull requests, and activity."}</p></div>
+            {githubConnected
+              ? <span className="settings-tag">CONNECTED</span>
+              : <button type="button" className="button" onClick={connectGitHub} disabled={connectingGitHub}><Icon name="git" size={15} /> {connectingGitHub ? "Connecting…" : "Connect GitHub"}</button>}
+          </div>
+          {githubConnectMessage && <p className="settings-connect-message" role="alert">{githubConnectMessage} If Supabase reports that linking is disabled, enable manual identity linking in Authentication settings, then try again.</p>}
+          <div className="settings-option">
+            <div><strong>GitHub profile</strong><p>{profile ? `${profile.name} (@${profile.login})` : "Connect a GitHub identity to view your profile"}</p></div>
             <button type="button" className="button" disabled={!login} onClick={() => { onNavigate(`profile/${login}`); onClose(); }}>View profile <Icon name="arrowUpRight" size={15} /></button>
           </div>
         </section>

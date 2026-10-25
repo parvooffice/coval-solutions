@@ -55,13 +55,16 @@ If the workspace uses a fixed repository list rather than an organization, confi
 
 ### 3. Connect GitHub sign-in through Supabase
 
-GitHub sign-in identifies the user to COVAL. The separate server-side `GITHUB_TOKEN` fetches repository and organization data; OAuth login does not automatically grant that token to the backend.
+GitHub sign-in identifies the user to COVAL. A linked GitHub identity lets the dashboard load that user's public repositories and repository activity. `GITHUB_TOKEN` remains a server-only token for configured organization data, GraphQL contribution details, and API rate limits; it is not used to expose private repositories to other COVAL users.
 
 1. In Supabase, open **Authentication → Sign In / Providers → GitHub** and enable GitHub.
 2. Create a GitHub OAuth App under **GitHub → Settings → Developer settings → OAuth Apps**. Set its homepage URL to the dashboard's Vercel URL. Set its authorization callback URL to `https://<supabase-project-ref>.supabase.co/auth/v1/callback`.
 3. Copy the OAuth app's client ID and client secret into the Supabase GitHub provider settings. Keep the client secret in Supabase; do not add it to Vercel or frontend code.
 4. In Supabase **Authentication → URL Configuration**, set the Site URL to the dashboard's Vercel URL and add the production dashboard redirect, such as `https://<dashboard-project>.vercel.app/dashboard`, to the redirect allow list. Add Preview URLs if users need to sign in on preview deployments.
-5. In Vercel, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` on the dashboard project, then redeploy.
+5. In Supabase Authentication settings, enable **manual identity linking** so a user who signed in with Google can attach GitHub to the same COVAL account.
+6. In Vercel, set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` on the dashboard project, then redeploy.
+
+After deployment, sign in, open **Settings → Active workspace → Connect GitHub**, and authorize the GitHub account. The dashboard then loads that account's public repositories, contributors, pull requests, repository activity, and profile. Private repositories are not included in this per-user connection. A dashboard `GITHUB_TOKEN` can supply GraphQL contribution details and higher GitHub API rate limits.
 
 For private repository access, create a GitHub token with read-only access to the required repositories. Organization people/teams also require permission to read organization membership. Set the token as `GITHUB_TOKEN` in the dashboard project and the analyzer project when private repositories are evaluated. The token is only read by server functions.
 
@@ -87,7 +90,7 @@ The Python service downloads source archives into temporary storage and removes 
 
 ## GitHub data and workspace behavior
 
-The dashboard reads repository stars, descriptions, last push dates, language byte counts, contributors, organization teams/members, activity, and pull requests from GitHub. With an organization configured, activity comes from its event feed. With a repository list, activity comes from the most recently updated repositories, limited by `GITHUB_ACTIVITY_REPOS`. GitHub GraphQL supplies the primary account's one-year contribution calendar, pull-request/review contributions, and active/best streak. Organization merged/open pull-request counts come from GitHub search. The recent pull-request list is limited to the ten most recently updated pull requests per configured repository.
+When a user connects GitHub in Settings, the dashboard uses that user's public repositories and their contributors, stars, languages, update times, activity, and pull requests. Otherwise, it uses the configured `GITHUB_ORG` or `GITHUB_REPOS` workspace, which may require organization membership or the `COVAL_ALLOWED_GITHUB_USERS` allowlist. GitHub GraphQL supplies the primary account's one-year contribution calendar, pull-request/review contributions, and active/best streak when `GITHUB_TOKEN` is configured. Organization merged/open pull-request counts come from GitHub search. The recent pull-request list is limited to the ten most recently updated pull requests per repository.
 
 GitHub does not provide online presence, job titles, career history, or private messages for arbitrary users. Those values are not fabricated. Direct messages require both people to sign into COVAL with GitHub.
 

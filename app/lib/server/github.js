@@ -2,17 +2,18 @@ const API_BASE = "https://api.github.com";
 const GRAPHQL_URL = "https://api.github.com/graphql";
 const CACHE_MS = 5 * 60 * 1000;
 
-function githubHeaders() {
+function githubHeaders(userToken = "") {
   const headers = {
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };
-  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  const token = userToken || process.env.GITHUB_TOKEN;
+  if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
 
-async function github(path) {
-  const response = await fetch(`${API_BASE}${path}`, { headers: githubHeaders(), cache: "no-store" });
+async function github(path, userToken = "") {
+  const response = await fetch(`${API_BASE}${path}`, { headers: githubHeaders(userToken), cache: "no-store" });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
     const message = response.status === 401 || response.status === 403
@@ -25,11 +26,12 @@ async function github(path) {
   return response.json();
 }
 
-async function graphQL(query, variables) {
-  if (!process.env.GITHUB_TOKEN) return null;
+async function graphQL(query, variables, userToken = "") {
+  const token = userToken || process.env.GITHUB_TOKEN;
+  if (!token) return null;
   const response = await fetch(GRAPHQL_URL, {
     method: "POST",
-    headers: { ...githubHeaders(), "Content-Type": "application/json" },
+    headers: { ...githubHeaders(userToken), "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
     cache: "no-store",
   });
@@ -40,10 +42,10 @@ async function graphQL(query, variables) {
   return payload.data;
 }
 
-async function pages(path, maxPages = 2) {
+async function pages(path, maxPages = 2, userToken = "") {
   const results = [];
   for (let page = 1; page <= maxPages; page += 1) {
-    const batch = await github(`${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`);
+    const batch = await github(`${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`, userToken);
     if (!Array.isArray(batch)) break;
     results.push(...batch);
     if (batch.length < 100) break;
@@ -99,12 +101,12 @@ function streaks(days) {
   return { current: active, best };
 }
 
-async function getContributionProfile(login) {
-  if (!login || !process.env.GITHUB_TOKEN) return null;
+async function getContributionProfile(login, userToken = "") {
+  if (!login || (!userToken && !process.env.GITHUB_TOKEN)) return null;
   const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
   const to = new Date().toISOString();
   const query = `query($login:String!,$from:DateTime!,$to:DateTime!){user(login:$login){login name bio company location avatarUrl url followers{totalCount} contributionsCollection(from:$from,to:$to){totalCommitContributions totalPullRequestContributions totalPullRequestReviewContributions totalIssueContributions contributionCalendar{totalContributions weeks{contributionDays{date contributionCount}}}}}}`;
-  const data = await graphQL(query, { login, from, to });
+  const data = await graphQL(query, { login, from, to }, userToken);
   const user = data?.user;
   if (!user) return null;
   const collection = user.contributionsCollection;
@@ -136,7 +138,12 @@ async function getContributionProfile(login) {
   };
 }
 
-async function getRepositories() {
+async function getRepositories(userToken = "", personalLogin = "") {
+  if (userToken) return pages("/user/repos?visibility=public&affiliation=owner&sort=updated&direction=desc", 10, userToken);
+  if (personalLogin) {
+    const repositories = await pages(`/users/${encodeURIComponent(personalLogin)}/repos?type=owner&sort=updated&direction=desc`, 10);
+    return repositories.filter((repository) => !repository.private);
+  }
   const configuredRepos = (process.env.GITHUB_REPOS || "").split(",").map((repo) => repo.trim()).filter(Boolean);
   const org = process.env.GITHUB_ORG?.trim();
   let repos;
@@ -150,13 +157,13 @@ async function getRepositories() {
   return repos.slice(0, Number(process.env.GITHUB_MAX_REPOS || 100));
 }
 
-async function getDashboardFromGitHub(primaryLoginOverride = "") {
-  const repoRows = await getRepositories();
+async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "", personalWorkspace = false) {
+  const repoRows = await getRepositories(userToken, personalWorkspace ? primaryLoginOverride : "");
   const repoData = await mapLimit(repoRows, 8, async (repo) => {
     const [languages, contributors, pulls] = await Promise.all([
-      github(`/repos/${repo.full_name}/languages`).catch(() => ({})),
-      github(`/repos/${repo.full_name}/contributors?per_page=100`).catch(() => []),
-      github(`/repos/${repo.full_name}/pulls?state=all&sort=updated&direction=desc&per_page=10`).catch(() => []),
+      github(`/repos/${repo.full_name}/languages`, userToken).catch(() => ({})),
+      github(`/repos/${repo.full_name}/contributors?per_page=100`, userToken).catch(() => []),
+      github(`/repos/${repo.full_name}/pulls?state=all&sort=updated&direction=desc&per_page=10`, userToken).catch(() => []),
     ]);
     return { repo, languages, contributors, pulls };
   });
@@ -216,7 +223,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "") {
     };
   });
 
-  const org = process.env.GITHUB_ORG?.trim();
+  const org = userToken || personalWorkspace ? "" : process.env.GITHUB_ORG?.trim();
   let teams = [];
   if (org) {
     try {
@@ -289,7 +296,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "") {
   const memberList = [...peopleMap.values()].slice(0, Number(process.env.GITHUB_MAX_PEOPLE || 100));
   const details = await mapLimit(memberList, 8, async (person) => {
     try {
-      const user = await github(`/users/${encodeURIComponent(person.login)}`);
+      const user = await github(`/users/${encodeURIComponent(person.login)}`, userToken);
       return [person.login, user];
     } catch { return [person.login, null]; }
   });
@@ -335,7 +342,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "") {
   try {
     let eventRows = [];
     if (org) {
-      const events = await github(`/orgs/${encodeURIComponent(org)}/events?per_page=100`);
+      const events = await github(`/orgs/${encodeURIComponent(org)}/events?per_page=100`, userToken);
       eventRows = events.map((event) => ({ event, repository: event.repo?.name || "" }));
     } else {
       const activityRepoLimit = Math.max(1, Math.min(50, Number(process.env.GITHUB_ACTIVITY_REPOS || 20)));
@@ -343,7 +350,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "") {
         .sort((left, right) => new Date(right.repo.pushed_at || right.repo.updated_at) - new Date(left.repo.pushed_at || left.repo.updated_at))
         .slice(0, activityRepoLimit);
       const repoEvents = await mapLimit(activeRepos, 6, async ({ repo }) => {
-        const events = await github(`/repos/${repo.full_name}/events?per_page=100`).catch(() => []);
+        const events = await github(`/repos/${repo.full_name}/events?per_page=100`, userToken).catch(() => []);
         return events.map((event) => ({ event, repository: repo.full_name }));
       });
       eventRows = repoEvents.flat();
@@ -387,7 +394,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "") {
   let contributions = { total: 0, commits: 0, pullRequests: 0, reviews: 0, issues: 0, days: [], current: 0, best: 0 };
   if (primaryLogin) {
     try {
-      const data = await getContributionProfile(primaryLogin);
+      const data = await getContributionProfile(primaryLogin, userToken);
       if (data) {
         primaryProfile = data.profile;
         contributions = data.contributions;
@@ -434,7 +441,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "") {
       ];
       const counts = await Promise.all(queries.map(async (query) => {
         const params = new URLSearchParams({ q: query, per_page: "1" });
-        const result = await github(`/search/issues?${params}`);
+        const result = await github(`/search/issues?${params}`, userToken);
         return result.total_count || 0;
       }));
       orgPullRequestMetrics.mergedPullRequests = counts[0];
@@ -469,7 +476,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "") {
   return {
     configured: true,
     source: "github",
-    organization: org || "Configured repositories",
+    organization: userToken || personalWorkspace ? `${primaryLoginOverride}'s repositories` : org || "Configured repositories",
     primaryProfile,
     metrics,
     contributions,
@@ -482,14 +489,18 @@ async function getDashboardFromGitHub(primaryLoginOverride = "") {
   };
 }
 
-export async function getDashboardData(primaryLoginOverride = "") {
+export async function getDashboardData(primaryLoginOverride = "", userToken = "", personalWorkspace = false) {
   const now = Date.now();
-  const configKey = `${process.env.GITHUB_ORG || process.env.GITHUB_REPOS || ""}:${primaryLoginOverride || process.env.GITHUB_USERNAME || ""}`;
+  const configKey = userToken
+    ? `user:${primaryLoginOverride.toLowerCase()}`
+    : personalWorkspace
+      ? `personal:${primaryLoginOverride.toLowerCase()}`
+      : `${process.env.GITHUB_ORG || process.env.GITHUB_REPOS || ""}:${primaryLoginOverride || process.env.GITHUB_USERNAME || ""}`;
   const cache = globalThis.__covalGithubDashboards || (globalThis.__covalGithubDashboards = new Map());
   const entry = cache.get(configKey);
   if (entry?.expiresAt > now) return entry.value;
   if (entry?.promise) return entry.promise;
-  const promise = getDashboardFromGitHub(primaryLoginOverride).then((value) => {
+  const promise = getDashboardFromGitHub(primaryLoginOverride, userToken, personalWorkspace).then((value) => {
     cache.set(configKey, { value, expiresAt: Date.now() + CACHE_MS });
     return value;
   }).finally(() => {

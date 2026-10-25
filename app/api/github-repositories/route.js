@@ -8,8 +8,15 @@ export async function GET(request) {
     }
     if (!user.login || user.login === "local") return Response.json({ repositories: [] });
 
-    const response = await fetch(`https://api.github.com/users/${encodeURIComponent(user.login)}/repos?type=owner&sort=updated&direction=desc&per_page=100`, {
-      headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
+    const endpoint = user.githubToken
+      ? "https://api.github.com/user/repos?visibility=public&affiliation=owner&sort=updated&direction=desc&per_page=100"
+      : `https://api.github.com/users/${encodeURIComponent(user.login)}/repos?type=owner&sort=updated&direction=desc&per_page=100`;
+    const response = await fetch(endpoint, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(user.githubToken ? { Authorization: `Bearer ${user.githubToken}` } : {}),
+      },
       cache: "no-store",
     });
     if (!response.ok) {

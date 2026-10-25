@@ -1,0 +1,4 @@
+# One evaluation target per line: a public GitHub URL or local checkout path.
+# Replace/add GitHub URLs here to score remote repositories.
+# The dot below scores this COVAL workspace locally.
+.

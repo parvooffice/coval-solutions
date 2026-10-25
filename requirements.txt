@@ -1,0 +1,7 @@
+# Runtime dependencies for the existing Security analyzer.
+GitPython>=3.1.0
+langgraph>=0.2.0
+langchain-core>=0.3.0
+pydantic>=2.8.0
+rich>=13.0.0
+typer>=0.12.0

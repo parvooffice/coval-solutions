@@ -1,0 +1,390 @@
+#!/usr/bin/env python3
+"""Run the existing repository analyzers for each target in code-evaluation-urls.txt."""
+
+from __future__ import annotations
+
+import json
+import io
+import os
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import argparse
+import tempfile
+import urllib.error
+import urllib.request
+import zipfile
+from dataclasses import asdict
+from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import urlparse
+
+
+ROOT = Path(__file__).resolve().parents[1]
+URL_FILE = ROOT / "code-evaluation-urls.txt"
+OUTPUT_FILE = ROOT / "app" / "data" / "code-evaluation.json"
+DOCS_DIR = ROOT / "documentation"
+MODULARITY_DIR = ROOT / "modularity"
+SECURITY_DIR = ROOT / "security"
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def safe_name(value: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9._-]+", "-", value).strip("-.") or "repository"
+
+
+def read_targets(values: list[str] | None = None) -> list[dict[str, str]]:
+    targets = []
+    source_values = values if values is not None else (URL_FILE.read_text(encoding="utf-8").splitlines() if URL_FILE.exists() else [])
+    for raw_value in source_values:
+        value = raw_value.strip()
+        if not value or value.startswith("#"):
+            continue
+        parsed = urlparse(value)
+        if parsed.scheme == "https" and parsed.hostname and parsed.hostname.lower() == "github.com":
+            parts = [part for part in parsed.path.strip("/").split("/") if part]
+            if len(parts) != 2 or parsed.username or parsed.password or parsed.query or parsed.fragment:
+                raise ValueError(f"Target must be a repository URL such as https://github.com/owner/repo: {value}")
+            owner, repo = parts
+            repo = repo.removesuffix(".git")
+            canonical = f"https://github.com/{owner}/{repo}"
+            name = safe_name(f"{owner}-{repo}")
+            targets.append({"input": canonical, "name": name, "source": "github", "argument": canonical})
+            continue
+        if values is not None:
+            raise ValueError(f"Dynamic evaluations accept GitHub repository URLs only: {value}")
+        path = Path(value)
+        if not path.is_absolute():
+            path = ROOT / path
+        path = path.resolve()
+        if not path.is_dir():
+            raise ValueError(f"Target is not a GitHub URL or local directory: {value}")
+        targets.append({"input": value, "name": safe_name(path.name), "source": "local", "argument": str(path), "path": str(path)})
+    return targets
+
+
+def write_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def security_summary(value: object) -> str:
+    if isinstance(value, dict):
+        ordered = ("Critical", "High", "Medium", "Low", "Info")
+        counts = [f"{key}: {value[key]}" for key in ordered if key in value]
+        return "Findings by severity · " + " · ".join(counts) if counts else json.dumps(value)
+    return str(value or "")
+
+
+def run_process(command: list[str], *, cwd: Path, env: dict[str, str] | None = None) -> None:
+    result = subprocess.run(command, cwd=cwd, env=env, text=True, capture_output=True, check=False)
+    if result.returncode != 0:
+        details = (result.stderr or result.stdout or "Analyzer exited unsuccessfully.").strip()
+        raise RuntimeError(details[-2500:])
+
+
+def docs_report(target: dict[str, str], report_path: Path, env: dict[str, str] | None = None) -> dict:
+    if target.get("workspace_path"):
+        sys.path.insert(0, str(DOCS_DIR))
+        from docs_scorer import analyze_repository
+
+        local_path = Path(target["workspace_path"])
+        report = asdict(analyze_repository(local_path, target["input"]))
+        write_json(report_path, report)
+    elif target["source"] == "github":
+        run_process(
+            [sys.executable, str(DOCS_DIR / "docs_scorer.py"), target["argument"], "--output", str(report_path)],
+            cwd=ROOT,
+            env=env,
+        )
+    else:
+        sys.path.insert(0, str(DOCS_DIR))
+        from docs_scorer import analyze_repository
+
+        local_path = Path(target["path"])
+        report = asdict(analyze_repository(local_path, local_path.as_uri()))
+        write_json(report_path, report)
+    return json.loads(report_path.read_text(encoding="utf-8"))
+
+
+MAX_ARCHIVE_BYTES = 75 * 1024 * 1024
+MAX_EXTRACTED_BYTES = 150 * 1024 * 1024
+MAX_ARCHIVE_FILES = 20_000
+
+
+def download_repository_archive(target: dict[str, str], destination: Path, env: dict[str, str]) -> Path:
+    """Download a GitHub zipball, then extract only safe, bounded regular files."""
+    parsed = urlparse(target["input"])
+    owner, repository = parsed.path.strip("/").split("/")
+    endpoint = f"https://api.github.com/repos/{owner}/{repository}/zipball"
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "COVAL-code-evaluation",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    token = env.get("GITHUB_TOKEN", "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    request = urllib.request.Request(endpoint, headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=35) as response:
+            final_host = (urlparse(response.geturl()).hostname or "").lower()
+            if final_host not in {"api.github.com", "codeload.github.com", "github.com"}:
+                raise RuntimeError("GitHub returned an unexpected archive host.")
+            chunks = []
+            size = 0
+            while True:
+                chunk = response.read(1024 * 1024)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > MAX_ARCHIVE_BYTES:
+                    raise RuntimeError("Repository archive exceeds the 75 MB download limit.")
+                chunks.append(chunk)
+    except urllib.error.HTTPError as error:
+        if error.code in {401, 403, 404}:
+            raise RuntimeError(
+                f"GitHub could not read {owner}/{repository} (HTTP {error.code}). Check that the repository is accessible and GITHUB_TOKEN has read access for private repositories."
+            ) from error
+        raise RuntimeError(f"GitHub archive download failed with HTTP {error.code}.") from error
+    except urllib.error.URLError as error:
+        raise RuntimeError(f"Could not connect to GitHub: {error.reason}") from error
+
+    archive = b"".join(chunks)
+    extract_root = destination / "repository"
+    extract_root.mkdir(parents=True, exist_ok=True)
+    try:
+        with zipfile.ZipFile(io.BytesIO(archive)) as zipped:
+            entries = zipped.infolist()
+            if len(entries) > MAX_ARCHIVE_FILES:
+                raise RuntimeError(f"Repository archive contains more than {MAX_ARCHIVE_FILES} files.")
+            uncompressed_size = sum(entry.file_size for entry in entries)
+            if uncompressed_size > MAX_EXTRACTED_BYTES:
+                raise RuntimeError("Repository archive expands beyond the 150 MB analysis limit.")
+            for entry in entries:
+                member = entry.filename
+                parts = member.rstrip("/").split("/")
+                if not member or member.startswith("/") or "\\" in member or any(part in {"", ".", ".."} for part in parts):
+                    raise RuntimeError("GitHub returned an archive with an unsafe file path.")
+                mode = entry.external_attr >> 16
+                if stat.S_ISLNK(mode):
+                    continue
+                output = extract_root.joinpath(*parts)
+                resolved = output.resolve()
+                if extract_root.resolve() not in resolved.parents and resolved != extract_root.resolve():
+                    raise RuntimeError("GitHub returned an archive with an unsafe file path.")
+                if entry.is_dir():
+                    output.mkdir(parents=True, exist_ok=True)
+                    continue
+                output.parent.mkdir(parents=True, exist_ok=True)
+                with zipped.open(entry) as source, output.open("wb") as target_file:
+                    shutil.copyfileobj(source, target_file, length=1024 * 1024)
+    except zipfile.BadZipFile as error:
+        raise RuntimeError("GitHub returned an invalid repository archive.") from error
+
+    roots = [path for path in extract_root.iterdir() if path.is_dir()]
+    if len(roots) == 1:
+        return roots[0]
+    if any(extract_root.iterdir()):
+        return extract_root
+    raise RuntimeError("The repository archive did not contain any files.")
+
+
+def run_remote_targets(urls: list[str]) -> dict:
+    """Run the existing analyzers against downloaded GitHub source in Vercel /tmp."""
+    if not isinstance(urls, list) or any(not isinstance(value, str) for value in urls):
+        raise ValueError("Submit repository URLs as a list of strings.")
+    targets = read_targets(urls)
+    if not targets:
+        raise ValueError("Add at least one GitHub repository URL.")
+    if len(targets) > 5:
+        raise ValueError("Evaluate up to five repositories per run.")
+
+    env = os.environ.copy()
+    token = env.get("GITHUB_TOKEN", "").strip()
+    if token:
+        import base64
+
+        credential = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+        env["GIT_CONFIG_COUNT"] = "1"
+        env["GIT_CONFIG_KEY_0"] = "http.https://github.com/.extraheader"
+        env["GIT_CONFIG_VALUE_0"] = f"AUTHORIZATION: basic {credential}"
+
+    results = []
+    for target in targets:
+        with tempfile.TemporaryDirectory(prefix="coval-vercel-evaluation-") as temporary:
+            work_dir = Path(temporary)
+            workspace = download_repository_archive(target, work_dir, env)
+            analyzed_target = {
+                **target,
+                "argument": str(workspace),
+                "path": str(workspace),
+                "workspace_path": str(workspace),
+                "url": target["input"],
+            }
+            results.append(run_one(analyzed_target, work_dir / "reports", env))
+
+    return {
+        "schemaVersion": 1,
+        "generatedAt": now(),
+        "urlFile": "submitted repository URLs",
+        "targets": results,
+    }
+
+
+def modularity_report(target: dict[str, str], report_path: Path, env: dict[str, str] | None = None) -> dict:
+    run_process(
+        [sys.executable, str(MODULARITY_DIR / "analyze_modularity.py"), target["argument"], "--output", str(report_path), "--quiet"],
+        cwd=ROOT,
+        env=env,
+    )
+    return json.loads(report_path.read_text(encoding="utf-8"))
+
+
+def security_report(target: dict[str, str], report_dir: Path, env: dict[str, str] | None = None) -> tuple[dict, Path]:
+    source_dir = SECURITY_DIR / "src"
+    process_env = dict(env or os.environ)
+    existing_path = process_env.get("PYTHONPATH", "")
+    process_env["PYTHONPATH"] = str(source_dir) + (os.pathsep + existing_path if existing_path else "")
+    report_dir.mkdir(parents=True, exist_ok=True)
+    run_process(
+        [sys.executable, "-m", "repo_security_auditor", target["argument"], "--output-dir", str(report_dir)],
+        cwd=SECURITY_DIR if report_dir.resolve() == (SECURITY_DIR / "reports").resolve() else report_dir.parent,
+        env=process_env,
+    )
+    report_files = sorted(
+        report_dir.glob("*-security-report.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    if not report_files:
+        raise RuntimeError("The security analyzer did not write a JSON report.")
+    report_path = report_files[0]
+    return json.loads(report_path.read_text(encoding="utf-8")), report_path
+
+
+def run_one(target: dict[str, str], report_root: Path | None = None, env: dict[str, str] | None = None) -> dict:
+    stem = target["name"]
+    docs_path = (report_root / "documentation" if report_root else ROOT / "documentation" / "reports") / f"{stem}-documentation-report.json"
+    modularity_path = (report_root / "modularity" if report_root else ROOT / "modularity" / "reports") / f"{stem}-modularity-report.json"
+    security_dir = report_root / "security" / stem if report_root else SECURITY_DIR / "reports"
+    evaluations = []
+
+    try:
+        report = docs_report(target, docs_path, env)
+        evaluations.append({
+            "id": "documentation", "label": "Documentation", "status": "complete",
+            "score": report.get("score"), "summary": report.get("summary", ""),
+            "breakdown": report.get("breakdown", {}),
+            "reportPath": docs_path.name if report_root else docs_path.relative_to(ROOT).as_posix(),
+        })
+    except Exception as error:  # Keep other analyzer reports even if one tool fails.
+        write_json(docs_path, {"tool": "documentation", "status": "failed", "error": str(error), "generated_at": now()})
+        evaluations.append({"id": "documentation", "label": "Documentation", "status": "failed", "score": None, "error": str(error), "reportPath": docs_path.name if report_root else docs_path.relative_to(ROOT).as_posix()})
+
+    try:
+        report = modularity_report(target, modularity_path, env)
+        overall = report.get("overall", {})
+        dimensions = report.get("dimensions", {})
+        breakdown = {key: {"label": value.get("label", key), "score": value.get("score")} for key, value in dimensions.items()}
+        evaluations.append({
+            "id": "modularity", "label": "Modularity", "status": "complete",
+            "score": overall.get("score"), "grade": overall.get("grade"),
+            "summary": overall.get("interpretation", ""), "breakdown": breakdown,
+            "reportPath": modularity_path.name if report_root else modularity_path.relative_to(ROOT).as_posix(),
+        })
+    except Exception as error:
+        write_json(modularity_path, {"tool": "modularity", "status": "failed", "error": str(error), "generated_at": now()})
+        evaluations.append({"id": "modularity", "label": "Modularity", "status": "failed", "score": None, "error": str(error), "reportPath": modularity_path.name if report_root else modularity_path.relative_to(ROOT).as_posix()})
+
+    try:
+        report, source_report_path = security_report(target, security_dir, env)
+        expected_report_path = security_dir / f"{safe_name(report.get('repo_name', stem))}-security-report.json"
+        evaluations.append({
+            "id": "security", "label": "Security", "status": "complete",
+            "score": report.get("overall_score"), "summary": security_summary(report.get("severity_summary")),
+            "breakdown": report.get("domain_scores", {}),
+            "findingCount": len(report.get("findings", [])),
+            "reportPath": expected_report_path.name if report_root else expected_report_path.relative_to(ROOT).as_posix(),
+            "generatedAt": report.get("generated_at"),
+        })
+        if source_report_path != expected_report_path:
+            expected_report_path.parent.mkdir(parents=True, exist_ok=True)
+            expected_report_path.write_text(source_report_path.read_text(encoding="utf-8"), encoding="utf-8")
+    except Exception as error:
+        evaluations.append({"id": "security", "label": "Security", "status": "failed", "score": None, "error": str(error)})
+
+    error_handling_path = (report_root / "error-handling" if report_root else ROOT / "error-handling" / "reports") / f"{stem}-error-handling-report.json"
+    error_handling_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        error_handling_runner = ROOT / "error-handling" / "error_handling_scorer.py"
+        run_process(
+            [sys.executable, str(error_handling_runner), target.get("workspace_path", target["argument"]), "--output", str(error_handling_path), "--quiet", "--no-progress"],
+            cwd=ROOT,
+            env=env,
+        )
+        error_report = json.loads(error_handling_path.read_text(encoding="utf-8"))
+        final_score = error_report.get("final_score", {})
+        categories = error_report.get("categories", {})
+        evaluations.append({
+            "id": "error_handling", "label": "Error handling", "status": "complete",
+            "score": final_score.get("score"), "grade": final_score.get("grade"),
+            "summary": error_report.get("summary", final_score.get("interpretation", "")),
+            "confidence": final_score.get("confidence"),
+            "breakdown": {key: {"label": value.get("label", key), "score": value.get("score")} for key, value in categories.items()},
+            "reportPath": error_handling_path.name if report_root else error_handling_path.relative_to(ROOT).as_posix(),
+        })
+    except Exception as error:
+        evaluations.append({"id": "error_handling", "label": "Error handling", "status": "failed", "score": None, "error": str(error)})
+
+    local_uri = Path(target["path"]).as_uri() if target["source"] == "local" else target.get("url", target["argument"])
+    return {
+        "name": "COVAL workspace" if target["source"] == "local" and Path(target["path"]) == ROOT else target["name"],
+        "input": target["input"], "source": target["source"], "url": local_uri,
+        "generatedAt": now(), "evaluations": evaluations,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--targets-json", help="JSON array of GitHub repository URLs; reads the URL dump when omitted.")
+    parser.add_argument("--output", help="Aggregate JSON output path (defaults to app/data/code-evaluation.json).")
+    parser.add_argument("--report-dir", help="Directory for this run's analyzer reports; isolates reports from other users and runs.")
+    args = parser.parse_args()
+
+    values = json.loads(args.targets_json) if args.targets_json else None
+    if values is not None and (not isinstance(values, list) or any(not isinstance(value, str) for value in values)):
+        raise ValueError("--targets-json must be a JSON array of strings.")
+    targets = read_targets(values)
+    report_root = Path(args.report_dir).resolve() if args.report_dir else None
+    analyzer_env = os.environ.copy()
+    token = analyzer_env.get("GITHUB_TOKEN", "").strip()
+    if token:
+        import base64
+        credential = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+        analyzer_env["GIT_CONFIG_COUNT"] = "1"
+        analyzer_env["GIT_CONFIG_KEY_0"] = "http.https://github.com/.extraheader"
+        analyzer_env["GIT_CONFIG_VALUE_0"] = f"AUTHORIZATION: basic {credential}"
+    bundle = {
+        "schemaVersion": 1,
+        "generatedAt": now(),
+        "urlFile": "submitted repository URLs" if values is not None else URL_FILE.name,
+        "targets": [run_one(target, report_root, analyzer_env) for target in targets],
+    }
+    output_path = Path(args.output).resolve() if args.output else OUTPUT_FILE
+    write_json(output_path, bundle)
+    print(f"Wrote analyzer scores to {output_path}")
+    for target in bundle["targets"]:
+        scores = ", ".join(f"{item['label']}: {item['score'] if item['score'] is not None else 'unavailable'}" for item in target["evaluations"])
+        print(f"{target['name']}: {scores}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-25T07:52:59+05:30",
+  "urlFile": "code-evaluation-urls.txt",
+  "targets": [
+    {
+      "name": "COVAL workspace",
+      "input": ".",
+      "source": "local",
+      "url": "https://github.com/parvooffice/coval-solutions",
+      "generatedAt": "2026-10-25T07:53:23+05:30",
+      "evaluations": [
+        {
+          "id": "documentation",
+          "label": "Documentation",
+          "status": "complete",
+          "score": 48.5,
+          "summary": "Overall documentation quality score: 48.5/100 (Poor). Weighted from README (75.0), docstring coverage (35.0), comment density (40.0), docs folder (60.0), and supporting files (15.0).",
+          "breakdown": {
+            "readme": 75.0,
+            "docstrings": 35.0,
+            "comments": 40.0,
+            "docs_folder": 60.0,
+            "supporting_docs": 15.0
+          },
+          "reportPath": "documentation/reports/coval-master-documentation-report.json"
+        },
+        {
+          "id": "modularity",
+          "label": "Modularity",
+          "status": "complete",
+          "score": 87.3,
+          "grade": "A",
+          "summary": "Highly modular: small focused units, low coupling, clear boundaries.",
+          "breakdown": {
+            "file_level": {
+              "label": "File-level modularity",
+              "score": 93.6
+            },
+            "function_cohesion": {
+              "label": "Function / method cohesion",
+              "score": 64.9
+            },
+            "coupling": {
+              "label": "Coupling",
+              "score": 100.0
+            },
+            "package_structure": {
+              "label": "Package / module structure",
+              "score": 91.2
+            },
+            "encapsulation": {
+              "label": "Encapsulation",
+              "score": 92.6
+            },
+            "code_organization": {
+              "label": "Code organization signals",
+              "score": 82.1
+            }
+          },
+          "reportPath": "modularity/reports/coval-master-modularity-report.json"
+        },
+        {
+          "id": "security",
+          "label": "Security",
+          "status": "complete",
+          "score": 78.7,
+          "summary": "Findings by severity · Critical: 0 · High: 173 · Medium: 13 · Low: 26 · Info: 0",
+          "breakdown": {
+            "Input Validation": 100.0,
+            "Injection": 0.0,
+            "Authentication": 100.0,
+            "Authorization": 100.0,
+            "Session & Tokens": 41.648,
+            "Secrets & Credentials": 0.0,
+            "Cryptography": 0.0,
+            "Sensitive Data Exposure": 100.0,
+            "File & Path Security": 100.0,
+            "Command & Code Execution": 0.0,
+            "Unsafe Deserialization": 100.0,
+            "XSS & Output Encoding": 100.0,
+            "CSRF & Request Integrity": 100.0,
+            "SSRF & URL Handling": 100.0,
+            "Database Security": 100.0,
+            "API Security": 100.0,
+            "Business Logic": 100.0,
+            "Race Conditions & Concurrency": 100.0,
+            "Error Handling": 100.0,
+            "Logging & Security Data": 100.0,
+            "Dependency Security": 100.0,
+            "Configuration Security": 100.0,
+            "Resource & DoS Security": 100.0,
+            "Regex & Parser Security": 100.0,
+            "Permissions & Privilege Use": 100.0,
+            "Third-Party Integrations": 100.0,
+            "Serialization & Data Integrity": 100.0,
+            "Security-Critical Assumptions": 100.0,
+            "Dead / Unused Security Controls": 100.0,
+            "Security-Relevant Complexity": 100.0,
+            "Security-Test Evidence": 100.0,
+            "Runtime Assumptions": 100.0,
+            "Data-Flow Integrity": 100.0,
+            "Attack Surface": 100.0,
+            "General Security": 59.04
+          },
+          "findingCount": 212,
+          "reportPath": "security/reports/coval-master-security-report.json",
+          "generatedAt": "2026-10-25T07:53:23.439355+05:30"
+        }
+      ]
+    }
+  ]
+}

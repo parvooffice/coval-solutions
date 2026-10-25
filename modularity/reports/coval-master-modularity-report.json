@@ -1,0 +1,700 @@
+{
+  "tool": {
+    "name": "modularity-analyzer",
+    "version": "1.0.0"
+  },
+  "repository": {
+    "input": ".",
+    "url": null,
+    "commit": null,
+    "branch": null,
+    "source": "local",
+    "analysis_timestamp": "2026-10-25T07:53:00+05:30"
+  },
+  "overall": {
+    "score": 87.3,
+    "grade": "A",
+    "interpretation": "Highly modular: small focused units, low coupling, clear boundaries."
+  },
+  "dimensions": {
+    "file_level": {
+      "label": "File-level modularity",
+      "score": 93.6,
+      "weight": 0.15,
+      "effective_weight": 0.15,
+      "weighted_contribution": 14.04,
+      "components": {
+        "size_and_density": {
+          "score": 0.908,
+          "weight": 0.7,
+          "value": null
+        },
+        "god_file_penalty": {
+          "score": 1.0,
+          "weight": 0.3,
+          "value": 0.0
+        }
+      },
+      "details": {
+        "avg_loc": 121.3,
+        "median_loc": 63,
+        "p90_loc": 305,
+        "max_loc": 724,
+        "avg_definitions_per_file": 5.7,
+        "god_files": 0,
+        "god_file_examples": []
+      }
+    },
+    "function_cohesion": {
+      "label": "Function / method cohesion",
+      "score": 64.9,
+      "weight": 0.2,
+      "effective_weight": 0.2,
+      "weighted_contribution": 12.98,
+      "components": {
+        "length_complexity_params": {
+          "score": 0.846,
+          "weight": 0.6,
+          "value": null
+        },
+        "oversized_or_complex_penalty": {
+          "score": 0.354,
+          "weight": 0.4,
+          "value": 0.0646
+        }
+      },
+      "details": {
+        "functions_analyzed": 263,
+        "avg_function_lines": 21.9,
+        "p90_function_lines": 51,
+        "avg_cyclomatic_complexity": 7.65,
+        "p90_cyclomatic_complexity": 17,
+        "functions_over_100_lines": 6,
+        "functions_complexity_over_20": 17,
+        "avg_parameters": 1.41
+      }
+    },
+    "coupling": {
+      "label": "Coupling",
+      "score": 100.0,
+      "weight": 0.25,
+      "effective_weight": 0.25,
+      "weighted_contribution": 25.0,
+      "components": {
+        "avg_internal_fan_out": {
+          "score": 1.0,
+          "weight": 0.3,
+          "value": 1.84
+        },
+        "excessive_fan_out_files": {
+          "score": 1.0,
+          "weight": 0.1,
+          "value": 0.0
+        },
+        "import_cycles": {
+          "score": 1.0,
+          "weight": 0.3,
+          "value": {
+            "files_in_cycles": 0,
+            "cycles": 0
+          }
+        },
+        "dependency_depth": {
+          "score": 1.0,
+          "weight": 0.15,
+          "value": 7
+        },
+        "god_dependency": {
+          "score": 1.0,
+          "weight": 0.05,
+          "value": 0.216
+        },
+        "external_dependency_density": {
+          "score": 1.0,
+          "weight": 0.1,
+          "value": 0.49
+        }
+      },
+      "details": {
+        "graph_nodes": 51,
+        "graph_edges": 94,
+        "avg_fan_out": 1.84,
+        "max_fan_out": 10,
+        "max_fan_in": 11,
+        "circular_dependency_groups": 0,
+        "files_in_cycles": 0,
+        "largest_cycle_size": 0,
+        "max_import_depth": 7
+      }
+    },
+    "package_structure": {
+      "label": "Package / module structure",
+      "score": 91.2,
+      "weight": 0.15,
+      "effective_weight": 0.15,
+      "weighted_contribution": 13.68,
+      "components": {
+        "directory_nesting": {
+          "score": 1.0,
+          "weight": 0.25,
+          "value": {
+            "avg_depth": 2.16,
+            "p95_depth": 3
+          }
+        },
+        "avoids_flat_dumping_ground": {
+          "score": 1.0,
+          "weight": 0.25,
+          "value": 0.0
+        },
+        "layer_separation": {
+          "score": 0.5,
+          "weight": 0.15,
+          "value": [
+            "presentation"
+          ]
+        },
+        "layer_dependency_direction": {
+          "score": null,
+          "weight": 0.15,
+          "value": null
+        },
+        "intra_package_cohesion": {
+          "score": 1.0,
+          "weight": 0.2,
+          "value": 0.617
+        }
+      },
+      "details": {
+        "directories_with_code": 18,
+        "avg_files_per_directory": 2.8,
+        "max_files_in_directory": 12,
+        "layers_detected": [
+          "presentation"
+        ],
+        "layer_violations": 0,
+        "layered_edges": 0,
+        "components_not_evaluated": [
+          "layer_dependency_direction"
+        ]
+      }
+    },
+    "encapsulation": {
+      "label": "Encapsulation",
+      "score": 92.6,
+      "weight": 0.1,
+      "effective_weight": 0.1,
+      "weighted_contribution": 9.26,
+      "components": {
+        "private_member_ratio": {
+          "score": 0.889,
+          "weight": 0.5,
+          "value": 0.405
+        },
+        "narrow_public_surface": {
+          "score": 1.0,
+          "weight": 0.25,
+          "value": 0.0
+        },
+        "interface_segregation": {
+          "score": null,
+          "weight": 0.25,
+          "value": null
+        }
+      },
+      "details": {
+        "files_with_classified_members": 29,
+        "interfaces_found": 0,
+        "fat_interfaces_over_10_members": 0,
+        "components_not_evaluated": [
+          "interface_segregation"
+        ]
+      }
+    },
+    "code_organization": {
+      "label": "Code organization signals",
+      "score": 82.1,
+      "weight": 0.15,
+      "effective_weight": 0.15,
+      "weighted_contribution": 12.31,
+      "components": {
+        "naming_consistency": {
+          "score": 1.0,
+          "weight": 0.25,
+          "value": {
+            "file_name_dominance": 1.0,
+            "function_name_dominance": 1.0
+          }
+        },
+        "separation_of_concerns": {
+          "score": 1.0,
+          "weight": 0.25,
+          "value": 0.0
+        },
+        "clear_entry_points": {
+          "score": 0.982,
+          "weight": 0.2,
+          "value": {
+            "entry_points": 5,
+            "avg_entry_loc": 158.2
+          }
+        },
+        "package_boundaries": {
+          "score": 0.122,
+          "weight": 0.2,
+          "value": 0.286
+        },
+        "tests_present": {
+          "score": 1.0,
+          "weight": 0.1,
+          "value": true
+        }
+      },
+      "details": {
+        "mixed_concern_files": 0,
+        "mixed_concern_examples": [],
+        "entry_point_files": [
+          "documentation/docs_scorer.py",
+          "modularity/analyze_modularity.py",
+          "scripts/run-code-evaluation.py",
+          "security/src/repo_security_auditor/__main__.py",
+          "security/src/repo_security_auditor/cli.py"
+        ],
+        "named_files": 14,
+        "named_functions": 199
+      }
+    }
+  },
+  "metrics": {
+    "source_files_found": 53,
+    "files_analyzed": 52,
+    "files_scored": 51,
+    "test_files": 1,
+    "tests_included_in_scoring": false,
+    "total_lines": 7210,
+    "lines_of_code": 6185,
+    "avg_file_loc": 121.3,
+    "median_file_loc": 63,
+    "largest_file_loc": 724,
+    "functions": 263,
+    "classes": 30,
+    "avg_function_lines": 21.9,
+    "modules": 51,
+    "packages_directories": 18,
+    "dependency_graph": {
+      "nodes": 51,
+      "edges": 94,
+      "max_depth": 7,
+      "circular_dependency_groups": 0,
+      "files_in_cycles": 0
+    },
+    "languages": {
+      "javascript": {
+        "files": 29,
+        "loc": 2140
+      },
+      "python": {
+        "files": 22,
+        "loc": 4045
+      }
+    }
+  },
+  "top_offenders": {
+    "files": [
+      {
+        "path": "modularity/modularity/analyzers.py",
+        "language": "python",
+        "severity": 0.395,
+        "loc": 724,
+        "functions": 34,
+        "classes": 3,
+        "fan_out": 1,
+        "fan_in": 1,
+        "reasons": [
+          "Large file: 724 LOC",
+          "3 function(s) with cyclomatic complexity > 20"
+        ]
+      },
+      {
+        "path": "app/lib/server/github.js",
+        "language": "javascript",
+        "severity": 0.287,
+        "loc": 511,
+        "functions": 15,
+        "classes": 0,
+        "fan_out": 0,
+        "fan_in": 2,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20",
+          "1 function(s) longer than 100 lines"
+        ]
+      },
+      {
+        "path": "modularity/modularity/scoring.py",
+        "language": "python",
+        "severity": 0.282,
+        "loc": 522,
+        "functions": 25,
+        "classes": 1,
+        "fan_out": 2,
+        "fan_in": 2,
+        "reasons": [
+          "2 function(s) with cyclomatic complexity > 20"
+        ]
+      },
+      {
+        "path": "modularity/modularity/report.py",
+        "language": "python",
+        "severity": 0.197,
+        "loc": 213,
+        "functions": 4,
+        "classes": 0,
+        "fan_out": 6,
+        "fan_in": 2,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20",
+          "1 function(s) longer than 100 lines"
+        ]
+      },
+      {
+        "path": "app/components/dashboard-shell.js",
+        "language": "javascript",
+        "severity": 0.173,
+        "loc": 208,
+        "functions": 6,
+        "classes": 0,
+        "fan_out": 5,
+        "fan_in": 1,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20",
+          "1 function(s) longer than 100 lines"
+        ]
+      },
+      {
+        "path": "app/components/messages-page.js",
+        "language": "javascript",
+        "severity": 0.17,
+        "loc": 180,
+        "functions": 8,
+        "classes": 0,
+        "fan_out": 4,
+        "fan_in": 1,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20",
+          "1 function(s) longer than 100 lines"
+        ]
+      },
+      {
+        "path": "modularity/modularity/graph.py",
+        "language": "python",
+        "severity": 0.139,
+        "loc": 331,
+        "functions": 15,
+        "classes": 3,
+        "fan_out": 1,
+        "fan_in": 3,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20"
+        ]
+      },
+      {
+        "path": "app/components/profile-page.js",
+        "language": "javascript",
+        "severity": 0.137,
+        "loc": 99,
+        "functions": 4,
+        "classes": 0,
+        "fan_out": 5,
+        "fan_in": 1,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20",
+          "1 function(s) longer than 100 lines"
+        ]
+      },
+      {
+        "path": "security/src/repo_security_auditor/workspace.py",
+        "language": "python",
+        "severity": 0.132,
+        "loc": 134,
+        "functions": 5,
+        "classes": 0,
+        "fan_out": 1,
+        "fan_in": 1,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20"
+        ]
+      },
+      {
+        "path": "app/components/overview-page.js",
+        "language": "javascript",
+        "severity": 0.125,
+        "loc": 94,
+        "functions": 3,
+        "classes": 0,
+        "fan_out": 5,
+        "fan_in": 1,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20"
+        ]
+      },
+      {
+        "path": "app/dashboard/page.js",
+        "language": "javascript",
+        "severity": 0.123,
+        "loc": 155,
+        "functions": 14,
+        "classes": 0,
+        "fan_out": 10,
+        "fan_in": 0,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20",
+          "1 function(s) longer than 100 lines"
+        ]
+      },
+      {
+        "path": "modularity/modularity/scanner.py",
+        "language": "python",
+        "severity": 0.108,
+        "loc": 139,
+        "functions": 3,
+        "classes": 1,
+        "fan_out": 1,
+        "fan_in": 2,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20"
+        ]
+      },
+      {
+        "path": "app/components/activity-page.js",
+        "language": "javascript",
+        "severity": 0.073,
+        "loc": 54,
+        "functions": 2,
+        "classes": 0,
+        "fan_out": 4,
+        "fan_in": 1,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20"
+        ]
+      },
+      {
+        "path": "app/components/projects-page.js",
+        "language": "javascript",
+        "severity": 0.071,
+        "loc": 49,
+        "functions": 1,
+        "classes": 0,
+        "fan_out": 3,
+        "fan_in": 1,
+        "reasons": [
+          "1 function(s) with cyclomatic complexity > 20"
+        ]
+      }
+    ],
+    "functions": [
+      {
+        "path": "modularity/modularity/report.py",
+        "function": "build_report",
+        "line": 42,
+        "lines": 138,
+        "cyclomatic_complexity": 45,
+        "parameters": 11,
+        "severity": 0.96
+      },
+      {
+        "path": "app/lib/server/github.js",
+        "function": "getDashboardFromGitHub",
+        "line": 153,
+        "lines": 331,
+        "cyclomatic_complexity": 84,
+        "parameters": 1,
+        "severity": 0.85
+      },
+      {
+        "path": "app/components/dashboard-shell.js",
+        "function": "DashboardShell",
+        "line": 20,
+        "lines": 198,
+        "cyclomatic_complexity": 54,
+        "parameters": 1,
+        "severity": 0.85
+      },
+      {
+        "path": "app/components/messages-page.js",
+        "function": "MessagesPage",
+        "line": 18,
+        "lines": 168,
+        "cyclomatic_complexity": 74,
+        "parameters": 1,
+        "severity": 0.85
+      },
+      {
+        "path": "app/components/profile-page.js",
+        "function": "ProfilePage",
+        "line": 17,
+        "lines": 101,
+        "cyclomatic_complexity": 88,
+        "parameters": 1,
+        "severity": 0.687
+      },
+      {
+        "path": "security/src/repo_security_auditor/workspace.py",
+        "function": "collect_repository_metadata",
+        "line": 63,
+        "lines": 93,
+        "cyclomatic_complexity": 55,
+        "parameters": 1,
+        "severity": 0.66
+      },
+      {
+        "path": "modularity/modularity/analyzers.py",
+        "function": "_analyze_js",
+        "line": 558,
+        "lines": 95,
+        "cyclomatic_complexity": 28,
+        "parameters": 4,
+        "severity": 0.626
+      },
+      {
+        "path": "app/components/overview-page.js",
+        "function": "OverviewPage",
+        "line": 10,
+        "lines": 82,
+        "cyclomatic_complexity": 33,
+        "parameters": 1,
+        "severity": 0.623
+      },
+      {
+        "path": "modularity/modularity/scoring.py",
+        "function": "score_code_organization",
+        "line": 445,
+        "lines": 82,
+        "cyclomatic_complexity": 33,
+        "parameters": 3,
+        "severity": 0.623
+      },
+      {
+        "path": "modularity/modularity/scanner.py",
+        "function": "scan_repository",
+        "line": 88,
+        "lines": 75,
+        "cyclomatic_complexity": 27,
+        "parameters": 2,
+        "severity": 0.539
+      },
+      {
+        "path": "app/dashboard/page.js",
+        "function": "DashboardContent",
+        "line": 65,
+        "lines": 107,
+        "cyclomatic_complexity": 21,
+        "parameters": 0,
+        "severity": 0.523
+      },
+      {
+        "path": "modularity/modularity/scoring.py",
+        "function": "score_package_structure",
+        "line": 290,
+        "lines": 68,
+        "cyclomatic_complexity": 26,
+        "parameters": 2,
+        "severity": 0.495
+      },
+      {
+        "path": "security/src/repo_security_auditor/scanners.py",
+        "function": "external_tool_scan",
+        "line": 195,
+        "lines": 92,
+        "cyclomatic_complexity": 19,
+        "parameters": 2,
+        "severity": 0.432
+      },
+      {
+        "path": "app/dashboard/dashboard-data-provider.js",
+        "function": "DashboardDataProvider",
+        "line": 21,
+        "lines": 86,
+        "cyclomatic_complexity": 20,
+        "parameters": 1,
+        "severity": 0.432
+      },
+      {
+        "path": "modularity/modularity/analyzers.py",
+        "function": "_analyze_python",
+        "line": 258,
+        "lines": 50,
+        "cyclomatic_complexity": 25,
+        "parameters": 3,
+        "severity": 0.414
+      }
+    ],
+    "circular_dependencies": [],
+    "most_depended_on": [
+      {
+        "path": "app/dashboard/dashboard-data-provider.js",
+        "dependents": 11
+      },
+      {
+        "path": "app/components/dashboard-icon.js",
+        "dependents": 10
+      },
+      {
+        "path": "app/components/ui.js",
+        "dependents": 8
+      },
+      {
+        "path": "modularity/modularity/models.py",
+        "dependents": 7
+      },
+      {
+        "path": "app/lib/server/auth.js",
+        "dependents": 6
+      }
+    ],
+    "highest_fan_out": [
+      {
+        "path": "app/dashboard/page.js",
+        "dependencies": 10
+      },
+      {
+        "path": "modularity/modularity/pipeline.py",
+        "dependencies": 7
+      },
+      {
+        "path": "modularity/modularity/report.py",
+        "dependencies": 6
+      },
+      {
+        "path": "app/components/dashboard-shell.js",
+        "dependencies": 5
+      },
+      {
+        "path": "app/components/overview-page.js",
+        "dependencies": 5
+      }
+    ]
+  },
+  "analysis": {
+    "duration_seconds": 0.23,
+    "files_skipped": {
+      "generated": 1
+    },
+    "parse_modes": {
+      "heuristic": 29,
+      "ast": 23
+    },
+    "ignored_directories": 7
+  },
+  "warnings": [],
+  "limitations": [
+    "Python is analyzed with the standard-library ast module. JavaScript/TypeScript, Java, Go and C/C++ use comment/string-aware heuristics rather than full parsers, so function boundaries and complexity are approximate for unusual syntax or heavy macro use.",
+    "Import resolution is static: dynamic imports, build-tool aliases, Java same-package references and C/C++ include-path configuration are not fully modeled, so coupling tends to be under-reported.",
+    "Layer, naming and separation-of-concern checks are directory-name and import-name heuristics, not architectural proof.",
+    "Test files, generated code, vendored/build directories, binaries and files over the size limit are excluded from scoring.",
+    "Scores are relative indicators for comparing repositories and tracking trends, not an absolute measure of design quality."
+  ],
+  "cleanup": {
+    "temporary_clone_used": false,
+    "temporary_clone_removed": null
+  }
+}

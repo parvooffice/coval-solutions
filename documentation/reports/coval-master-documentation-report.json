@@ -1,0 +1,64 @@
+{
+  "repo_url": "https://github.com/parvooffice/coval-solutions",
+  "repo_name": "coval-master",
+  "analyzed_at": "2026-10-25T07:52:59.556387+05:30",
+  "score": 48.5,
+  "max_score": 100.0,
+  "breakdown": {
+    "readme": 75.0,
+    "docstrings": 35.0,
+    "comments": 40.0,
+    "docs_folder": 60.0,
+    "supporting_docs": 15.0
+  },
+  "summary": "Overall documentation quality score: 48.5/100 (Poor). Weighted from README (75.0), docstring coverage (35.0), comment density (40.0), docs folder (60.0), and supporting files (15.0).",
+  "highlights": [
+    "README is substantial (5021 characters)."
+  ],
+  "issues": [
+    "README appears to lack common sections (Installation, Usage, Contributing, License, etc.).",
+    "Low docstring coverage (35%): only 39/202 functions and 16/39 classes have docstrings.",
+    "Very low comment density (1.6%). Consider adding explanatory comments for complex logic.",
+    "Missing common supporting files (LICENSE, CONTRIBUTING.md, CHANGELOG.md, etc.).",
+    "No LICENSE file detected.",
+    "No CONTRIBUTING guide found."
+  ],
+  "details": {
+    "weights": {
+      "readme": 0.3,
+      "docstrings": 0.25,
+      "comments": 0.15,
+      "docs_folder": 0.15,
+      "supporting_docs": 0.15
+    },
+    "readme": {
+      "path": "README.md",
+      "length_chars": 5021,
+      "length_lines": 52,
+      "sections_found": 1,
+      "expected_sections": 8
+    },
+    "docstrings": {
+      "python_files": 23,
+      "functions_total": 202,
+      "functions_documented": 39,
+      "classes_total": 39,
+      "classes_documented": 16,
+      "modules_with_docstring": 15
+    },
+    "comments": {
+      "source_files": 51,
+      "total_lines": 7696,
+      "comment_lines": 123,
+      "comment_ratio": 0.016
+    },
+    "docs_folder": {
+      "path": "documentation",
+      "doc_files": 1
+    },
+    "supporting_docs": {
+      "found": []
+    },
+    "files_analyzed": 64
+  }
+}

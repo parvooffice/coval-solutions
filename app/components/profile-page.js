@@ -83,7 +83,8 @@ export default function ProfilePage({ personId, navigate, notify }) {
   const contributionData = profile?.contributions || directoryPerson?.contributionDetails || (dashboard.primaryProfile?.login === person.login ? dashboard.contributions : null);
   const contributionTotal = contributionData?.total || person.commits || 0;
   const personPRs = contributionData?.pullRequests || person.prs || 0;
-  const currentLogin = currentUser?.user_metadata?.user_name || currentUser?.user_metadata?.preferred_username || dashboard.primaryProfile?.login || "";
+  const githubIdentity = currentUser?.identities?.find((identity) => identity.provider === "github");
+  const currentLogin = dashboard.primaryProfile?.login || githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || "";
 
   return <>
     <div className="developer-profile">

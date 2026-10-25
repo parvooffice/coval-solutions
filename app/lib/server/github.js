@@ -101,8 +101,8 @@ function streaks(days) {
   return { current: active, best };
 }
 
-async function getContributionProfile(login, userToken = "") {
-  if (!login || (!userToken && !process.env.GITHUB_TOKEN)) return null;
+async function getContributionProfile(login, userToken = "", allowSharedToken = true) {
+  if (!login || (!userToken && (!allowSharedToken || !process.env.GITHUB_TOKEN))) return null;
   const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
   const to = new Date().toISOString();
   const query = `query($login:String!,$from:DateTime!,$to:DateTime!){user(login:$login){login name bio company location avatarUrl url followers{totalCount} contributionsCollection(from:$from,to:$to){totalCommitContributions totalPullRequestContributions totalPullRequestReviewContributions totalIssueContributions contributionCalendar{totalContributions weeks{contributionDays{date contributionCount}}}}}}`;
@@ -139,11 +139,11 @@ async function getContributionProfile(login, userToken = "") {
 }
 
 async function getRepositories(userToken = "", personalLogin = "") {
-  if (userToken) return pages("/user/repos?visibility=public&affiliation=owner&sort=updated&direction=desc", 10, userToken);
   if (personalLogin) {
-    const repositories = await pages(`/users/${encodeURIComponent(personalLogin)}/repos?type=owner&sort=updated&direction=desc`, 10);
+    const repositories = await pages(`/users/${encodeURIComponent(personalLogin)}/repos?type=owner&sort=updated&direction=desc`, 10, userToken);
     return repositories.filter((repository) => !repository.private);
   }
+  if (userToken) return pages("/user/repos?visibility=public&affiliation=owner&sort=updated&direction=desc", 10, userToken);
   const configuredRepos = (process.env.GITHUB_REPOS || "").split(",").map((repo) => repo.trim()).filter(Boolean);
   const org = process.env.GITHUB_ORG?.trim();
   let repos;
@@ -157,8 +157,9 @@ async function getRepositories(userToken = "", personalLogin = "") {
   return repos.slice(0, Number(process.env.GITHUB_MAX_REPOS || 100));
 }
 
-async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "", personalWorkspace = false) {
-  const repoRows = await getRepositories(userToken, personalWorkspace ? primaryLoginOverride : "");
+async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "", personalWorkspace = false, { includePrimaryProfile = true, publicOnly = false, allowSharedGraphqlToken = true } = {}) {
+  const fetchedRepoRows = await getRepositories(userToken, personalWorkspace ? primaryLoginOverride : "");
+  const repoRows = publicOnly ? fetchedRepoRows.filter((repo) => !repo.private) : fetchedRepoRows;
   const repoData = await mapLimit(repoRows, 8, async (repo) => {
     const [languages, contributors, pulls] = await Promise.all([
       github(`/repos/${repo.full_name}/languages`, userToken).catch(() => ({})),
@@ -343,7 +344,10 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
     let eventRows = [];
     if (org) {
       const events = await github(`/orgs/${encodeURIComponent(org)}/events?per_page=100`, userToken);
-      eventRows = events.map((event) => ({ event, repository: event.repo?.name || "" }));
+      const visibleRepositories = new Set(repoRows.map((repo) => repo.full_name.toLowerCase()));
+      eventRows = events
+        .filter((event) => !publicOnly || visibleRepositories.has((event.repo?.name || "").toLowerCase()))
+        .map((event) => ({ event, repository: event.repo?.name || "" }));
     } else {
       const activityRepoLimit = Math.max(1, Math.min(50, Number(process.env.GITHUB_ACTIVITY_REPOS || 20)));
       const activeRepos = [...repoData]
@@ -389,12 +393,12 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
     activity = [];
   }
 
-  const primaryLogin = (primaryLoginOverride || process.env.GITHUB_USERNAME || "").trim();
+  const primaryLogin = includePrimaryProfile ? (primaryLoginOverride || process.env.GITHUB_USERNAME || "").trim() : "";
   let primaryProfile = null;
   let contributions = { total: 0, commits: 0, pullRequests: 0, reviews: 0, issues: 0, days: [], current: 0, best: 0 };
   if (primaryLogin) {
     try {
-      const data = await getContributionProfile(primaryLogin, userToken);
+      const data = await getContributionProfile(primaryLogin, userToken, allowSharedGraphqlToken);
       if (data) {
         primaryProfile = data.profile;
         contributions = data.contributions;
@@ -430,7 +434,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
   const includedLogins = new Set(people.map((person) => person.login));
   teams = teams.map((team) => ({ ...team, members: team.memberIds.filter((id) => includedLogins.has(id)).map((id) => peopleMap.get(id)).filter(Boolean) }));
   const orgPullRequestMetrics = {};
-  if (org) {
+  if (org && !publicOnly) {
     try {
       const monthStart = new Date();
       monthStart.setDate(1);
@@ -489,18 +493,19 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
   };
 }
 
-export async function getDashboardData(primaryLoginOverride = "", userToken = "", personalWorkspace = false) {
+export async function getDashboardData(primaryLoginOverride = "", userToken = "", personalWorkspace = false, options = {}) {
   const now = Date.now();
+  const { includePrimaryProfile = true, publicOnly = false, allowSharedGraphqlToken = true } = options;
   const configKey = userToken
-    ? `user:${primaryLoginOverride.toLowerCase()}`
+    ? `user:${primaryLoginOverride.toLowerCase()}:${includePrimaryProfile}:${publicOnly}:${allowSharedGraphqlToken}`
     : personalWorkspace
-      ? `personal:${primaryLoginOverride.toLowerCase()}`
-      : `${process.env.GITHUB_ORG || process.env.GITHUB_REPOS || ""}:${primaryLoginOverride || process.env.GITHUB_USERNAME || ""}`;
+      ? `personal:${primaryLoginOverride.toLowerCase()}:${includePrimaryProfile}:${publicOnly}:${allowSharedGraphqlToken}`
+      : `${process.env.GITHUB_ORG || process.env.GITHUB_REPOS || ""}:${includePrimaryProfile ? primaryLoginOverride || process.env.GITHUB_USERNAME || "" : ""}:${publicOnly}:${allowSharedGraphqlToken}`;
   const cache = globalThis.__covalGithubDashboards || (globalThis.__covalGithubDashboards = new Map());
   const entry = cache.get(configKey);
   if (entry?.expiresAt > now) return entry.value;
   if (entry?.promise) return entry.promise;
-  const promise = getDashboardFromGitHub(primaryLoginOverride, userToken, personalWorkspace).then((value) => {
+  const promise = getDashboardFromGitHub(primaryLoginOverride, userToken, personalWorkspace, options).then((value) => {
     cache.set(configKey, { value, expiresAt: Date.now() + CACHE_MS });
     return value;
   }).finally(() => {
@@ -511,14 +516,17 @@ export async function getDashboardData(primaryLoginOverride = "", userToken = ""
   return promise;
 }
 
-export async function getGitHubProfile(login) {
+export async function getGitHubProfile(login, userToken = "", includeContributions = false) {
   if (!/^[A-Za-z0-9-]{1,39}$/.test(login || "")) throw Object.assign(new Error("Enter a valid GitHub username."), { status: 400 });
   const cache = globalThis.__covalGithubProfiles || (globalThis.__covalGithubProfiles = new Map());
-  const cached = cache.get(login.toLowerCase());
+  const cacheKey = `${login.toLowerCase()}:${includeContributions && userToken ? "owner-contributions" : "public-profile"}`;
+  const cached = cache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
   const user = await github(`/users/${encodeURIComponent(login)}`);
   let contributionData = null;
-  try { contributionData = await getContributionProfile(login); } catch { contributionData = null; }
+  if (includeContributions && userToken) {
+    try { contributionData = await getContributionProfile(login, userToken, false); } catch { contributionData = null; }
+  }
   const profile = {
     id: user.login,
     login: user.login,
@@ -541,7 +549,7 @@ export async function getGitHubProfile(login) {
     publicRepositories: user.public_repos,
     contributions: contributionData?.contributions || null,
   };
-  cache.set(login.toLowerCase(), { value: profile, expiresAt: Date.now() + CACHE_MS });
+  cache.set(cacheKey, { value: profile, expiresAt: Date.now() + CACHE_MS });
   return profile;
 }
 

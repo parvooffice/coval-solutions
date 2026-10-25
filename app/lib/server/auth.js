@@ -18,8 +18,10 @@ export async function requireUser(request) {
   const user = await response.json();
   const githubIdentity = user.identities?.find((identity) => identity.provider === "github");
   const githubProfile = githubIdentity?.identity_data || {};
-  const login = githubProfile.user_name || githubProfile.login || user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.nickname || "";
   const githubConnected = Boolean(githubIdentity || user.app_metadata?.providers?.includes("github"));
+  const login = githubProfile.user_name || githubProfile.login || (githubConnected
+    ? user.user_metadata?.user_name || user.user_metadata?.preferred_username || user.user_metadata?.nickname || ""
+    : "");
   let githubToken = request.headers.get("x-github-provider-token")?.trim() || "";
   let verifiedLogin = "";
   if (githubToken) {
@@ -48,30 +50,12 @@ export async function requireUser(request) {
   };
 }
 
-export async function authorizeGitHubWorkspace(user) {
+export async function authorizeGitHubWorkspace() {
   if (process.env.NODE_ENV === "development") return;
-  if (!user.login) throw Object.assign(new Error("Sign in with GitHub to view this workspace."), { status: 403 });
   const org = process.env.GITHUB_ORG?.trim();
-  if (!org) {
-    const allowedLogins = (process.env.COVAL_ALLOWED_GITHUB_USERS || "").split(",").map((login) => login.trim().toLowerCase()).filter(Boolean);
-    if (!allowedLogins.includes(user.login.toLowerCase())) {
-      throw Object.assign(new Error("Your GitHub account is not on the workspace allowlist."), { status: 403 });
-    }
-    return;
-  }
-  if (!process.env.GITHUB_TOKEN) throw Object.assign(new Error("GITHUB_TOKEN is required to verify workspace organization membership."), { status: 503 });
-  const response = await fetch(`https://api.github.com/orgs/${encodeURIComponent(org)}/members/${encodeURIComponent(user.login)}`, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-    cache: "no-store",
-    redirect: "manual",
-  });
-  if (response.status === 204 || response.status === 302) return;
-  if (response.status === 404) throw Object.assign(new Error("Your GitHub account is not a member of the configured organization."), { status: 403 });
-  throw Object.assign(new Error("COVAL could not verify your GitHub organization membership. Check the token's read:org permission."), { status: 503 });
+  const configuredRepos = (process.env.GITHUB_REPOS || "").split(",").map((repo) => repo.trim()).filter(Boolean);
+  if (org || configuredRepos.length) return;
+  throw Object.assign(new Error("Configure GITHUB_ORG or GITHUB_REPOS to show the public team workspace."), { status: 503 });
 }
 
 export async function supabaseRest(user, path, init = {}) {

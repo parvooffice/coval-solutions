@@ -15,7 +15,7 @@ function activityIcon(type) {
 }
 
 export default function ActivityPage({ navigate }) {
-  const { activity, pullRequests, people, metrics, contributions } = useDashboardData();
+  const { activity, pullRequests, people, metrics, contributions, dashboard } = useDashboardData();
   const [period, setPeriod] = useState("Last 12 months");
   const [kind, setKind] = useState("All activity");
   const days = contributions.days || [];
@@ -28,10 +28,10 @@ export default function ActivityPage({ navigate }) {
     <>
       <PageHeading eyebrow="GITHUB SIGNAL / ACTIVITY" title="A steady pulse of progress." description="Contribution calendar, pull requests, and organization events fetched from GitHub." action={<button type="button" className="button button-quiet" onClick={() => setPeriod((value) => value === "Last 12 months" ? "Last 30 days" : "Last 12 months")}><Icon name="calendar" size={16} /> {period} <Icon name="chevronDown" size={15} /></button>} />
       <section className="summary-grid activity-metrics" aria-label="GitHub activity metrics">
-        <MetricCard label="CONTRIBUTIONS" value={fmt(metrics.contributions || 0)} detail="Configured GitHub account, past year" />
+        <MetricCard label={dashboard.primaryProfile ? "CONTRIBUTIONS" : "REPOSITORY CONTRIBUTIONS"} value={fmt(metrics.contributions || 0)} detail={dashboard.primaryProfile ? "Your GitHub account, past year" : "Shared workspace contributor totals"} />
         <MetricCard label="MERGED PULL REQUESTS" value={fmt(merged)} detail={`${fmt(metrics.mergedThisMonth || 0)} merged this month`} />
-        <MetricCard label="PULL REQUEST REVIEWS" value={fmt(metrics.reviews || 0)} detail="Account contribution total or recent org review events" />
-        <MetricCard label="ACTIVE STREAK" value={fmt(metrics.streak || 0)} unit="days" detail={`Best streak: ${fmt(metrics.bestStreak || 0)} days`} badge={metrics.streak ? "ACTIVE" : undefined} />
+        <MetricCard label={dashboard.primaryProfile ? "PULL REQUEST REVIEWS" : "WORKSPACE REVIEWS"} value={fmt(metrics.reviews || 0)} detail={dashboard.primaryProfile ? "Your GitHub account contribution total" : "Reviews in the shared workspace activity feed"} />
+        <MetricCard label="YOUR ACTIVE STREAK" value={dashboard.primaryProfile ? fmt(metrics.streak || 0) : "—"} unit={dashboard.primaryProfile ? "days" : undefined} detail={dashboard.primaryProfile ? `Best streak: ${fmt(metrics.bestStreak || 0)} days` : "Connect GitHub to load your personal streak"} badge={dashboard.primaryProfile && metrics.streak ? "ACTIVE" : undefined} />
       </section>
       <section className="contribution-card surface-card">
         <div className="section-title-row"><div><span className="eyebrow">GITHUB CONTRIBUTION CALENDAR</span><h2>Consistency over time</h2></div><span className="contribution-total"><strong>{fmt(contributions.total || 0)}</strong> contributions</span></div>
@@ -39,7 +39,7 @@ export default function ActivityPage({ navigate }) {
           <div className="weekday-labels"><span>Mon</span><span>Wed</span><span>Fri</span></div>
           <div className={`contribution-grid${period === "Last 30 days" ? " contribution-grid-month" : ""}`} role="img" aria-label={`GitHub contribution activity for ${period.toLowerCase()}`}>{visibleDays.map((day) => <span key={day.date} className={`contribution-cell level-${day.level}`} title={`${day.date}: ${day.count} contribution${day.count === 1 ? "" : "s"}`} />)}{period === "Last 30 days" && Array.from({ length: Math.max(0, 35 - visibleDays.length) }, (_, index) => <span key={`empty-${index}`} className="contribution-cell contribution-cell-empty" aria-hidden="true" />)}</div>
           <div className="month-labels"><span>{visibleDays[0]?.date}</span><span>{visibleDays.at(-1)?.date}</span></div>
-        </div></div> : <div className="empty-state"><Icon name="activity" size={22} /><strong>No contribution calendar available</strong><p>Set GITHUB_USERNAME and a token with GitHub GraphQL access to load this account&apos;s contribution streak.</p></div>}
+        </div></div> : <div className="empty-state"><Icon name="activity" size={22} /><strong>{dashboard.primaryProfile ? "No contribution calendar available" : "Connect GitHub to see your contribution calendar"}</strong><p>{dashboard.primaryProfile ? "Reconnect GitHub and approve the requested read:user scope to load your personal contribution history." : "Your workspace view shows team activity. Connect your GitHub account in Settings to load your own calendar and streak."}</p></div>}
         <div className="contribution-legend"><span>Less</span>{[0, 1, 2, 3, 4].map((level) => <i key={level} className={`contribution-cell level-${level}`} />)}<span>More</span><small>Counts are from GitHub&apos;s contribution calendar.</small></div>
       </section>
       <section className="activity-feed-section"><div className="section-title-row"><div><span className="eyebrow">ORGANIZATION ACTIVITY</span><h2>Recent work</h2></div><div className="filter-pills">{types.slice(0, 6).map((type) => <button key={type} type="button" className={`filter-pill${kind === type ? " selected" : ""}`} aria-pressed={kind === type} onClick={() => setKind(type)}>{type}</button>)}</div></div><div className="activity-feed surface-card">

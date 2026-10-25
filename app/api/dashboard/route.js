@@ -5,8 +5,13 @@ export async function GET(request) {
   try {
     const user = await requireUser(request);
     const personalWorkspace = user.githubConnected;
-    if (!personalWorkspace) await authorizeGitHubWorkspace(user);
-    const dashboard = await getDashboardData(user.login === "local" ? "" : user.login, user.githubToken, personalWorkspace);
+    if (!personalWorkspace) await authorizeGitHubWorkspace();
+    const dashboard = await getDashboardData(
+      personalWorkspace ? user.login : "",
+      user.githubToken,
+      personalWorkspace,
+      { includePrimaryProfile: personalWorkspace, publicOnly: !personalWorkspace, allowSharedGraphqlToken: false },
+    );
     return Response.json(dashboard, {
       headers: { "Cache-Control": "private, no-store" },
     });

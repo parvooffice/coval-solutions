@@ -77,8 +77,10 @@ export default function DashboardShell({
   const sidebarOpen = isMobile ? drawerOpen : desktopSidebarOpen;
   const overlayOpen = isMobile ? drawerOpen : desktopOverlayOpen;
   const workspaceName = dashboard.organization || "GitHub workspace";
-  const profileLogin = dashboard.primaryProfile?.login || currentUser?.user_metadata?.user_name || currentUser?.user_metadata?.preferred_username || people[0]?.login || "";
-  const profilePerson = people.find((person) => person.login === profileLogin) || people[0];
+  const githubIdentity = currentUser?.identities?.find((identity) => identity.provider === "github");
+  const profileLogin = dashboard.primaryProfile?.login || githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || "";
+  const profilePerson = people.find((person) => person.login === profileLogin) || null;
+  const accountName = currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.email?.split("@")[0] || "COVAL member";
   const toggleSidebar = () => {
     if (isMobile) {
       onDrawerToggle();
@@ -180,7 +182,7 @@ export default function DashboardShell({
             <button type="button" className="icon-button theme-button" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title="Toggle theme" onClick={onThemeToggle}><Icon name={theme === "dark" ? "sun" : "moon"} size={19} /></button>
             <span className="top-divider" aria-hidden="true" />
             {dashboard.updatedAt && <span className="topbar-date" aria-label="GitHub data last synced">SYNCED {dashboard.updatedAt.slice(0, 10)}</span>}
-            <button type="button" className="topbar-avatar" aria-label={`${profilePerson?.name || "GitHub"} profile`} onClick={() => profileLogin && onNavigate(`profile/${profileLogin}`)} disabled={!profileLogin}><Avatar initials={profilePerson?.initials || "GH"} name={profilePerson?.name || "GitHub profile"} color={profilePerson?.color || "mint"} size="xs" src={profilePerson?.avatar} /></button>
+            <button type="button" className="topbar-avatar" aria-label={profileLogin ? `${profilePerson?.name || accountName} GitHub profile` : `${accountName} account settings`} onClick={() => profileLogin ? onNavigate(`profile/${profileLogin}`) : onSettingsOpen()}><Avatar initials={profilePerson?.initials || accountName.slice(0, 2).toUpperCase()} name={profilePerson?.name || accountName} color={profilePerson?.color || "mint"} size="xs" src={profilePerson?.avatar || currentUser?.user_metadata?.avatar_url} /></button>
           </div>
         </header>
 
@@ -188,7 +190,7 @@ export default function DashboardShell({
           <div className="workspace-context" aria-label="Current workspace">
             <span className="workspace-context-mark" aria-hidden="true">A</span>
             <strong>{workspaceName}</strong>
-            <small>GITHUB ORGANIZATION</small>
+            <small>{dashboard.organization ? "SHARED WORKSPACE" : "COVAL WORKSPACE"}</small>
           </div>
           {dataError && <section className="backend-status-banner" role="status"><div><strong>GitHub data is not connected yet.</strong><p>{dataError} Add the server-only GitHub settings from <code>.env.example</code>, then refresh this dashboard.</p></div><button type="button" className="button" onClick={onDataRefresh}>Retry connection</button></section>}
           {dataLoading && <p className="backend-loading" role="status">Loading live GitHub data…</p>}

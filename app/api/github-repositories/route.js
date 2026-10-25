@@ -3,7 +3,7 @@ import { apiError, requireUser } from "../../lib/server/auth";
 export async function GET(request) {
   try {
     const user = await requireUser(request);
-    if (process.env.NODE_ENV !== "development" && !user.login) {
+    if (process.env.NODE_ENV !== "development" && !user.githubConnected) {
       throw Object.assign(new Error("Sign in with GitHub to import your repositories."), { status: 403 });
     }
     if (!user.login || user.login === "local") return Response.json({ repositories: [] });

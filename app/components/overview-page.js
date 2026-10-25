@@ -7,13 +7,13 @@ import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { fmt } from "../data/dashboard-data";
 import { apiRequest } from "../lib/client-api";
 
-export default function OverviewPage({ navigate, notify }) {
-  const { dashboard, codeEvaluation, people, projects, activity, metrics, contributions } = useDashboardData();
+export default function OverviewPage({ navigate, notify, onConnectGitHub }) {
+  const { dashboard, codeEvaluation, people, projects, activity, metrics, contributions, currentUser } = useDashboardData();
   const [connected, setConnected] = useState(false);
   const [connectionBusy, setConnectionBusy] = useState(false);
   const person = dashboard.primaryProfile
     ? people.find((item) => item.login === dashboard.primaryProfile.login) || { ...dashboard.primaryProfile, id: dashboard.primaryProfile.login, initials: dashboard.primaryProfile.name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase(), color: "mint", team: "", repositories: [] }
-    : people[0];
+    : null;
 
   useEffect(() => {
     if (!person?.login) return;
@@ -41,6 +41,23 @@ export default function OverviewPage({ navigate, notify }) {
   const recentWork = activity.slice(0, 5);
   const evaluationTargets = codeEvaluation?.targets || [];
   const profileContributionCount = dashboard.primaryProfile ? contributions.total || 0 : metrics.contributions || 0;
+
+  if (!dashboard.primaryProfile) {
+    const accountName = currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.email?.split("@")[0] || "there";
+    return <>
+      <header className="overview-greeting-section">
+        <div className="overview-greeting-text"><span className="eyebrow">COVAL COMMUNITY WORKSPACE</span><h1 className="overview-heading">Welcome, {accountName.split(" ")[0]}</h1><p className="overview-subtext">Browse the team directory, explore shared repositories, and connect with people. Your personal GitHub dashboard appears after you connect GitHub.</p></div>
+        <div className="overview-greeting-actions"><button type="button" className="button button-primary" onClick={onConnectGitHub}><Icon name="git" size={16} /> Connect GitHub</button><button type="button" className="button button-quiet" onClick={() => navigate("engineering")}><Icon name="users" size={17} /> Explore team</button></div>
+      </header>
+      <section className="summary-grid" aria-label="Shared workspace overview">
+        <MetricCard label="TEAM MEMBERS" value={fmt(metrics.people || 0)} detail="People in the shared GitHub workspace" />
+        <MetricCard label="PUBLIC REPOSITORIES" value={fmt(projects.length)} detail="Public repositories and project details" />
+        <MetricCard label="ACTIVE TEAMS" value={fmt(metrics.activeTeams || 0)} detail="Teams in the shared workspace" />
+      </section>
+      <div className="empty-state"><Icon name="activity" size={22} /><strong>Your contribution graph is private to your connected account</strong><p>Connect GitHub to load your repositories, contribution calendar, pull requests, reviews, and streak.</p><button type="button" className="button" onClick={onConnectGitHub}>Connect GitHub</button></div>
+      <EvaluationSummary targets={evaluationTargets} navigate={navigate} />
+    </>;
+  }
 
   if (!person) return <>
     <div className="empty-state"><Icon name="repo" size={22} /><strong>Connect GitHub to load your workspace</strong><p>Add a GitHub organization or repository list to the server environment, then use Retry connection above.</p><button type="button" className="button" onClick={() => navigate("projects")}>View projects</button></div>

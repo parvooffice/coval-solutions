@@ -3,9 +3,10 @@ import { getGitHubErrorStatus, getGitHubProfile } from "../../lib/server/github"
 
 export async function GET(request) {
   try {
-    await requireUser(request);
+    const user = await requireUser(request);
     const login = new URL(request.url).searchParams.get("login");
-    const profile = await getGitHubProfile(login);
+    const isOwnGitHubProfile = user.githubConnected && user.login?.toLowerCase() === login?.toLowerCase();
+    const profile = await getGitHubProfile(login, isOwnGitHubProfile ? user.githubToken : "", isOwnGitHubProfile);
     return Response.json(profile, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     if (!error.status) error.status = getGitHubErrorStatus(error);

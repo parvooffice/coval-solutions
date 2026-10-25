@@ -838,6 +838,7 @@
               provider,
               options: {
                 redirectTo: `${window.location.origin}/dashboard`,
+                ...(provider === "github" ? { scopes: "read:user user:email" } : {}),
                 skipBrowserRedirect: true
               }
             });

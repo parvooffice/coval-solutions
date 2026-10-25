@@ -6,9 +6,9 @@ import { useDashboardData } from "../dashboard/dashboard-data-provider";
 
 export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClose }) {
   const { dashboard, people, currentUser } = useDashboardData();
-  const login = dashboard.primaryProfile?.login || currentUser?.user_metadata?.user_name || currentUser?.user_metadata?.preferred_username || people[0]?.login || "";
-  const profile = people.find((person) => person.login === login) || people[0];
   const githubIdentity = currentUser?.identities?.find((identity) => identity.provider === "github");
+  const login = dashboard.primaryProfile?.login || githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || "";
+  const profile = people.find((person) => person.login === login) || null;
   const githubLogin = githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || "";
   const githubConnected = Boolean(githubIdentity || currentUser?.app_metadata?.providers?.includes("github"));
   const [connectingGitHub, setConnectingGitHub] = useState(false);
@@ -53,7 +53,7 @@ export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClo
     try {
       const { data, error } = await client.auth.linkIdentity({
         provider: "github",
-        options: { redirectTo: `${window.location.origin}/dashboard`, skipBrowserRedirect: true },
+        options: { redirectTo: `${window.location.origin}/dashboard`, scopes: "read:user user:email", skipBrowserRedirect: true },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("Supabase did not return a GitHub authorization URL.");
@@ -86,18 +86,18 @@ export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClo
         <section className="settings-group" aria-labelledby="settings-workspace">
           <h3 id="settings-workspace">ACTIVE WORKSPACE</h3>
           <div className="settings-option">
-            <div><strong>GitHub organization</strong><p>{dashboard.organization || "Not connected"} · {dashboard.projects?.length || 0} repositories loaded</p></div>
-            <span className="settings-tag">{dashboard.configured ? "CONNECTED" : "SETUP REQUIRED"}</span>
+            <div><strong>Shared workspace</strong><p>{dashboard.organization || "No public team workspace configured"} · {dashboard.projects?.length || 0} public repositories loaded</p></div>
+            <span className="settings-tag">{dashboard.configured ? "AVAILABLE" : "SETUP REQUIRED"}</span>
           </div>
           <div className="settings-option">
-            <div><strong>Your GitHub account</strong><p>{githubConnected ? `Connected${githubLogin ? ` as @${githubLogin}` : ""} · your public repositories and activity load in this workspace.` : "Connect your GitHub identity to load your own public repositories, collaborators, pull requests, and activity."}</p></div>
+            <div><strong>Your GitHub account</strong><p>{githubConnected ? `Connected${githubLogin ? ` as @${githubLogin}` : ""} · your repositories, contribution graph, and activity load in your personal dashboard.` : "Connect GitHub to load your own repositories, contribution graph, pull requests, reviews, and streak. Your team directory remains available."}</p></div>
             {githubConnected
               ? <span className="settings-tag">CONNECTED</span>
               : <button type="button" className="button" onClick={connectGitHub} disabled={connectingGitHub}><Icon name="git" size={15} /> {connectingGitHub ? "Connecting…" : "Connect GitHub"}</button>}
           </div>
           {githubConnectMessage && <p className="settings-connect-message" role="alert">{githubConnectMessage} If Supabase reports that linking is disabled, enable manual identity linking in Authentication settings, then try again.</p>}
           <div className="settings-option">
-            <div><strong>GitHub profile</strong><p>{profile ? `${profile.name} (@${profile.login})` : "Connect a GitHub identity to view your profile"}</p></div>
+            <div><strong>GitHub profile</strong><p>{profile ? `${profile.name} (@${profile.login})` : "Connect GitHub to view your personal profile"}</p></div>
             <button type="button" className="button" disabled={!login} onClick={() => { onNavigate(`profile/${login}`); onClose(); }}>View profile <Icon name="arrowUpRight" size={15} /></button>
           </div>
         </section>

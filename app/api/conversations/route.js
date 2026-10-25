@@ -38,7 +38,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const user = await requireUser(request);
-    if (!user.token) return Response.json({ error: "Sign in with GitHub to start a persistent conversation." }, { status: 503 });
+    if (!user.token) return Response.json({ error: "Sign in to start a persistent conversation." }, { status: 503 });
     const { recipientLogin, title } = await request.json();
     if (!/^[A-Za-z0-9-]{1,39}$/.test(recipientLogin || "")) return Response.json({ error: "Choose a valid GitHub teammate." }, { status: 400 });
     const result = await supabaseRest(user, "rpc/coval_create_conversation", {

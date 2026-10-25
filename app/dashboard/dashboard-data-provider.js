@@ -84,6 +84,21 @@ export function DashboardDataProvider({ children }) {
   }, [loadDashboard]);
 
   useEffect(() => {
+    if (!currentUser?.id) return undefined;
+    const sendPresence = () => {
+      if (document.visibilityState !== "visible") return;
+      apiRequest("/api/presence", { method: "POST" }).catch(() => {});
+    };
+    sendPresence();
+    const timer = window.setInterval(sendPresence, 60_000);
+    document.addEventListener("visibilitychange", sendPresence);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", sendPresence);
+    };
+  }, [currentUser?.id]);
+
+  useEffect(() => {
     let active = true;
     const refreshEvaluation = () => loadCodeEvaluation()
       .then((report) => { if (active) setCodeEvaluation(report); })

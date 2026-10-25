@@ -132,7 +132,7 @@ function DashboardContent() {
       case "profile":
         return <ProfilePage personId={profileId} navigate={navigate} notify={notify} />;
       default:
-        return <OverviewPage navigate={navigate} notify={notify} />;
+        return <OverviewPage navigate={navigate} notify={notify} onConnectGitHub={() => setSettingsOpen(true)} />;
     }
   }, [chatLogin, navigate, profileId, route]);
 

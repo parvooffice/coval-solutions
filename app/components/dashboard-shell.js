@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Brand from "./brand";
 import Icon from "./dashboard-icon";
 import SettingsDialog from "./settings-dialog";
 import { Avatar } from "./ui";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
+import { apiRequest } from "../lib/client-api";
 
 const navItems = [
   { id: "overview", label: "Overview", icon: "grid", shortcut: "⌘1" },
@@ -44,6 +45,10 @@ export default function DashboardShell({
   const [isMobile, setIsMobile] = useState(false);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(false);
   const [desktopOverlayOpen, setDesktopOverlayOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const notificationRef = useRef(null);
+  const unreadNotifications = notifications.filter((notification) => !notification.readAt).length;
   useEffect(() => {
     const media = window.matchMedia("(max-width: 900px)");
     const update = () => setIsMobile(media.matches);
@@ -62,6 +67,30 @@ export default function DashboardShell({
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [desktopOverlayOpen]);
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setNotifications([]);
+      return undefined;
+    }
+    let active = true;
+    const refreshNotifications = () => apiRequest("/api/notifications")
+      .then(({ notifications: next = [] }) => { if (active) setNotifications(next); })
+      .catch(() => {});
+    refreshNotifications();
+    const timer = window.setInterval(refreshNotifications, 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [currentUser?.id]);
+  useEffect(() => {
+    if (!notificationsOpen) return undefined;
+    const closeOutside = (event) => {
+      if (!notificationRef.current?.contains(event.target)) setNotificationsOpen(false);
+    };
+    window.addEventListener("pointerdown", closeOutside);
+    return () => window.removeEventListener("pointerdown", closeOutside);
+  }, [notificationsOpen]);
   const results = useMemo(() => {
     const query = search.trim().toLowerCase();
     const routeResults = navItems.map((item) => ({ type: "Section", title: item.label, route: item.id, icon: item.icon }));
@@ -100,6 +129,20 @@ export default function DashboardShell({
     setDesktopSidebarOpen(false);
     setDesktopOverlayOpen(false);
   };
+  async function toggleNotifications() {
+    const opening = !notificationsOpen;
+    setNotificationsOpen(opening);
+    if (!opening) return;
+    try {
+      const { notifications: next = [] } = await apiRequest("/api/notifications");
+      setNotifications(next);
+      if (next.some((notification) => !notification.readAt)) {
+        await apiRequest("/api/notifications", { method: "PATCH", body: JSON.stringify({ all: true }) });
+        const readAt = new Date().toISOString();
+        setNotifications(next.map((notification) => ({ ...notification, readAt: notification.readAt || readAt })));
+      }
+    } catch {}
+  }
 
   return (
     <div className={`app-frame${overlayOpen ? " navigation-open" : ""}${!sidebarOpen ? " sidebar-collapsed" : ""}${!isMobile && desktopOverlayOpen ? " sidebar-overlay-open" : ""}`}>
@@ -178,7 +221,10 @@ export default function DashboardShell({
           </div>
           <div className="topbar-right">
             <span className="system-status"><i /> {dataError ? "CONNECT DATA" : dataLoading ? "SYNCING" : "LIVE"}</span>
-            <button type="button" className="icon-button notifications-button" aria-label={`Recent activity, ${dashboard.activity?.length || 0} items`} title="Open GitHub activity" onClick={() => onNavigate("activity")}><Icon name="bell" size={19} /><i className="notification-indicator" /></button>
+            <div className="notifications-wrap" ref={notificationRef}>
+              <button type="button" className="icon-button notifications-button" aria-label={`Notifications${unreadNotifications ? `, ${unreadNotifications} unread` : ""}`} title="Notifications" aria-expanded={notificationsOpen} onClick={toggleNotifications}><Icon name="bell" size={19} />{unreadNotifications > 0 && <i className="notification-indicator" />}</button>
+              {notificationsOpen && <section className="notifications-popover" role="dialog" aria-label="Notifications"><div className="notifications-popover-heading"><span><b>Notifications</b><small>{unreadNotifications ? `${unreadNotifications} new` : "You're all caught up"}</small></span><button type="button" className="text-button" onClick={() => { setNotificationsOpen(false); onNavigate("engineering"); }}>PEOPLE</button></div>{notifications.length ? <div className="notifications-list">{notifications.map((notification) => <button key={notification.id} type="button" className={`notification-item${notification.readAt ? " is-read" : ""}`} onClick={() => { setNotificationsOpen(false); onNavigate(`profile/member-${notification.actor.covalUserId}`); }}><Avatar initials={notification.actor.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()} name={notification.actor.name} size="sm" src={notification.actor.avatar} /><span><strong>{notification.actor.name}</strong><small>connected with you</small><time>{new Date(notification.createdAt).toLocaleString()}</time></span><i /></button>)}</div> : <p className="notifications-empty">Connection updates will appear here.</p>}</section>}
+            </div>
             <button type="button" className="icon-button theme-button" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title="Toggle theme" onClick={onThemeToggle}><Icon name={theme === "dark" ? "sun" : "moon"} size={19} /></button>
             <span className="top-divider" aria-hidden="true" />
             {dashboard.updatedAt && <span className="topbar-date" aria-label="GitHub data last synced">SYNCED {dashboard.updatedAt.slice(0, 10)}</span>}

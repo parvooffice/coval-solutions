@@ -78,8 +78,9 @@ In the Supabase SQL Editor, apply these migrations in filename order:
 - [`202610250003_coval_shared_evaluations.sql`](./supabase/migrations/202610250003_coval_shared_evaluations.sql) — opt-in sharing of scores for public repositories with signed-in COVAL members.
 - [`202610250004_coval_linked_github_profiles.sql`](./supabase/migrations/202610250004_coval_linked_github_profiles.sql) — syncs COVAL member profiles when a GitHub identity is linked or unlinked.
 - [`202610250005_coval_member_presence.sql`](./supabase/migrations/202610250005_coval_member_presence.sql) — records recent member presence and lets users follow any COVAL member, including Google-only accounts.
+- [`202610250006_coval_social_notifications.sql`](./supabase/migrations/202610250006_coval_social_notifications.sql) — makes COVAL member connections mutual, backfills existing follows, and adds connection notifications.
 
-The migrations enable row-level security and use the user's Supabase session for reads and writes. Migration 004 backfills existing accounts from linked GitHub identities, including Google-first accounts that later connected GitHub. Migration 005 adds those COVAL accounts to the directory and stores recent activity so members can see who is active.
+The migrations enable row-level security and use the user's Supabase session for reads and writes. Migration 004 backfills existing accounts from linked GitHub identities, including Google-first accounts that later connected GitHub. Migration 005 adds those COVAL accounts to the directory and stores recent activity so members can see who is active. Migration 006 backfills existing connections as mutual links; new links notify the other member and make both members' COVAL profiles available to each other. Existing deployments only need to run migration 006 after 001–005 have already been applied.
 
 ### 5. Verify the deployment
 

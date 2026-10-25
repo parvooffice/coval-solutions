@@ -40,7 +40,7 @@ export default function PeoplePage({ navigate, notify }) {
     }
     refreshDirectory();
     loadConnections();
-    const timer = window.setInterval(refreshDirectory, 30_000);
+    const timer = window.setInterval(() => { refreshDirectory(); loadConnections(); }, 30_000);
     return () => {
       active = false;
       window.clearInterval(timer);
@@ -61,7 +61,7 @@ export default function PeoplePage({ navigate, notify }) {
         else next.add(key);
         return next;
       });
-      notify?.(isConnected ? `Removed ${person.name} from your connections.` : `Connected to ${person.name}.`);
+      notify?.(isConnected ? `Disconnected from ${person.name}.` : `You're now connected with ${person.name}.`);
     } catch (error) { notify?.(error.message); }
     finally { setConnectionBusy(""); }
   }
@@ -125,7 +125,7 @@ export default function PeoplePage({ navigate, notify }) {
       </div>
       {filtered.length ? <div className="people-grid">
         {filtered.map((person) => <article className="person-card" key={person.id}>
-          <div className="person-card-head">{person.login ? <button type="button" className="person-card-avatar-button" aria-label={`View ${person.name} profile`} onClick={() => navigate(`profile/${person.id}`)}><Avatar initials={person.initials} name={person.name} color={person.color} size="lg" src={person.avatar} online={person.isActive} /></button> : <span className="person-card-avatar-button"><Avatar initials={person.initials} name={person.name} color={person.color} size="lg" src={person.avatar} online={person.isActive} /></span>}<span className={`person-status${person.isActive ? " is-active" : ""}`}><i />{person.isActive ? "Active now" : person.login ? "GitHub" : "COVAL member"}</span></div>
+          <div className="person-card-head"><button type="button" className="person-card-avatar-button" aria-label={`View ${person.name} profile`} onClick={() => navigate(`profile/${person.id}`)}><Avatar initials={person.initials} name={person.name} color={person.color} size="lg" src={person.avatar} online={person.isActive} /></button><span className={`person-status${person.isActive ? " is-active" : ""}`}><i />{person.isActive ? "Active now" : person.login ? "GitHub" : "COVAL member"}</span></div>
           <div className="person-card-identity"><h2>{person.name}</h2><p className="person-role">{person.login ? `@${person.login}` : "COVAL community member"}</p>{person.teams?.map((name) => <span className="team-tag" key={name}>{name}</span>)}</div>
           {person.login ? <div className="person-card-stats"><span><b>{fmt(person.commits || 0)}</b><small>repo commits</small></span><span><b>{fmt(person.prs || 0)}</b><small>merged PRs seen</small></span><span><b>{person.repositories.length}</b><small>repositories</small></span></div> : <div className="person-card-stats person-community-note"><span><small>Joined COVAL {person.memberSince ? new Date(person.memberSince).toLocaleDateString() : ""}</small></span></div>}
           <div className="person-card-footer"><span><Icon name="activity" size={14} />{person.location || person.company || (person.login ? "GitHub" : "COVAL")}</span>{(person.login || person.covalUserId) && <button type="button" className={`button person-connect-button${connections.has(connectionKey(person)) ? " button-connected" : " button-quiet"}`} disabled={connectionBusy === connectionKey(person) || person.covalUserId === currentUser?.id || (!person.covalUserId && person.login.toLowerCase() === ownLogin.toLowerCase())} onClick={() => toggleConnection(person)}><Icon name={connections.has(connectionKey(person)) ? "check" : "plus"} size={14} />{connectionBusy === connectionKey(person) ? "Saving…" : connections.has(connectionKey(person)) ? "Connected" : "Connect"}</button>}{person.url && <a className="quiet-icon" href={person.url} target="_blank" rel="noreferrer" aria-label={`Open ${person.name} on GitHub`}><Icon name="arrowUpRight" size={16} /></a>}</div>

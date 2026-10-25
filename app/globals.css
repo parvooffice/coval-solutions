@@ -88,6 +88,21 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
 .quiet-icon { width: 30px; height: 30px; }
 .icon-button:hover, .quiet-icon:hover, .quiet-icon.selected { border-color: var(--border); background: var(--surface-2); color: var(--text); }
 .notification-indicator { position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border: 2px solid var(--surface); border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 1px var(--surface); }
+.notifications-wrap { position: relative; display: flex; align-items: center; }
+.notifications-popover { position: absolute; z-index: 60; top: calc(100% + 10px); right: -48px; width: min(360px, calc(100vw - 28px)); overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+.notifications-popover-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.notifications-popover-heading > span, .notification-item > span { display: grid; min-width: 0; gap: 4px; text-align: left; }
+.notifications-popover-heading b { color: var(--text); font-size: 12px; }
+.notifications-popover-heading small, .notification-item small, .notification-item time { color: var(--muted); font-size: 9px; }
+.notifications-list { max-height: min(360px, 65vh); overflow-y: auto; }
+.notification-item { display: flex; width: 100%; align-items: center; gap: 10px; padding: 12px 15px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.notification-item:hover, .notification-item:not(.is-read) { background: var(--surface-2); }
+.notification-item > span { flex: 1; }
+.notification-item strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.notification-item time { font-size: 8px; }
+.notification-item > i { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--accent); }
+.notification-item.is-read > i { background: transparent; }
+.notifications-empty { margin: 0; padding: 24px 16px; color: var(--muted); font-size: 10px; text-align: center; }
 .topbar-date { color: var(--subtle); font-size: 9px; font-weight: 700; letter-spacing: .08em; white-space: nowrap; }
 .topbar-avatar { border: 0; background: transparent; cursor: pointer; }
 .menu-button { display: inline-grid; width: 36px; height: 36px; place-items: center; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); cursor: pointer; }

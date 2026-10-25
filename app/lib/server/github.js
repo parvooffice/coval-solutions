@@ -523,9 +523,53 @@ export async function getGitHubProfile(login, userToken = "", includeContributio
   const cached = cache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
   const user = await github(`/users/${encodeURIComponent(login)}`);
+  const repositoryRows = await pages(`/users/${encodeURIComponent(login)}/repos?type=owner&sort=updated&direction=desc`, 1)
+    .then((rows) => rows.filter((repository) => !repository.private).slice(0, 30))
+    .catch(() => []);
+  const repositoryContributors = await mapLimit(repositoryRows.slice(0, 12), 6, async (repository) => {
+    const contributors = await github(`/repos/${repository.full_name}/contributors?per_page=100`).catch(() => []);
+    const owner = contributors.find((contributor) => contributor.login?.toLowerCase() === login.toLowerCase());
+    return [repository.full_name, {
+      commits: owner?.contributions || 0,
+      contributors: contributors.map((contributor) => contributor.login).filter(Boolean),
+    }];
+  });
+  const contributorsByRepository = new Map(repositoryContributors);
+  const languageRows = await mapLimit(repositoryRows, 6, async (repository) => [
+    repository.full_name,
+    await github(`/repos/${repository.full_name}/languages`).catch(() => ({})),
+  ]);
+  const languagesByRepository = new Map(languageRows);
+  const repositories = repositoryRows.map((repository) => {
+    const contributorData = contributorsByRepository.get(repository.full_name) || { commits: 0, contributors: [] };
+    const languageBreakdown = languagesByRepository.get(repository.full_name) || {};
+    return {
+      id: repository.full_name,
+      repo: repository.full_name,
+      name: repository.name,
+      description: repository.description || "",
+      status: repository.archived ? "Archived" : new Date(repository.pushed_at || repository.updated_at).getTime() > Date.now() - 30 * 86400000 ? "Active" : "Quiet",
+      stars: repository.stargazers_count,
+      updated: timeAgo(repository.pushed_at || repository.updated_at),
+      updatedAt: repository.pushed_at || repository.updated_at,
+      stack: Object.entries(languageBreakdown).sort((left, right) => right[1] - left[1]).map(([language]) => language),
+      team: contributorData.contributors,
+      contributors: contributorData.contributors.map((contributor) => ({ login: contributor })),
+      url: repository.html_url,
+      defaultBranch: repository.default_branch,
+      archived: repository.archived,
+      private: false,
+      forks: repository.forks_count,
+      openIssues: repository.open_issues_count,
+      languageBreakdown,
+    };
+  });
+  const publicRepoCommits = repositoryContributors.reduce((total, [, stats]) => total + stats.commits, 0);
   let contributionData = null;
   if (includeContributions && userToken) {
     try { contributionData = await getContributionProfile(login, userToken, false); } catch { contributionData = null; }
+  } else {
+    try { contributionData = await getContributionProfile(login, "", true); } catch { contributionData = null; }
   }
   const profile = {
     id: user.login,
@@ -541,12 +585,14 @@ export async function getGitHubProfile(login, userToken = "", includeContributio
     company: user.company || "",
     location: user.location || "",
     color: colorFor(user.login),
-    commits: contributionData?.contributions.commits || 0,
+    commits: contributionData?.contributions.commits ?? publicRepoCommits,
     prs: contributionData?.contributions.pullRequests || 0,
     reviews: contributionData?.contributions.reviews || 0,
-    repositories: [],
+    repositories,
     followers: user.followers,
     publicRepositories: user.public_repos,
+    publicRepoCommits,
+    publicRepoCommitRepositories: Math.min(repositoryRows.length, 12),
     contributions: contributionData?.contributions || null,
   };
   cache.set(cacheKey, { value: profile, expiresAt: Date.now() + CACHE_MS });

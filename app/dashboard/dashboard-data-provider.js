@@ -26,6 +26,9 @@ export function DashboardDataProvider({ children }) {
   const [codeEvaluation, setCodeEvaluation] = useState(null);
 
   const updateCodeEvaluation = useCallback((report) => setCodeEvaluation(report), []);
+  const loadCodeEvaluation = useCallback(async () => {
+    return apiRequest("/api/code-evaluation");
+  }, []);
 
   const loadDashboard = useCallback(async () => {
       const client = window.covalSupabase;
@@ -82,11 +85,14 @@ export function DashboardDataProvider({ children }) {
 
   useEffect(() => {
     let active = true;
-    apiRequest("/api/code-evaluation")
-      .then((result) => { if (active) setCodeEvaluation(result); })
+    const refreshEvaluation = () => loadCodeEvaluation()
+      .then((report) => { if (active) setCodeEvaluation(report); })
       .catch(() => { if (active) setCodeEvaluation(null); });
+    refreshEvaluation();
+    window.addEventListener("coval-auth-ready", refreshEvaluation);
+    window.addEventListener("coval-auth-change", refreshEvaluation);
     return () => { active = false; };
-  }, []);
+  }, [loadCodeEvaluation]);
 
   const value = useMemo(() => ({
     dashboard,

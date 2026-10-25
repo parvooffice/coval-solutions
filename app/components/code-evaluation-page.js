@@ -23,6 +23,7 @@ function parseUrlFile(value) {
 export default function CodeEvaluationPage() {
   const { codeEvaluation, projects, updateCodeEvaluation } = useDashboardData();
   const [urlText, setUrlText] = useState("");
+  const [shareScores, setShareScores] = useState(false);
   const [running, setRunning] = useState(false);
   const [importingRepositories, setImportingRepositories] = useState(false);
   const [runMessage, setRunMessage] = useState("");
@@ -123,10 +124,10 @@ export default function CodeEvaluationPage() {
 
     setRunning(true);
     try {
-      const result = await apiRequest("/api/code-evaluation", { method: "POST", body: JSON.stringify({ urls }) });
+      const result = await apiRequest("/api/code-evaluation", { method: "POST", body: JSON.stringify({ urls, isPublic: shareScores }) });
       updateCodeEvaluation(result.report);
       setUrlText(urls.join("\n"));
-      setRunMessage(`Evaluation complete for ${result.report.targets.length} ${result.report.targets.length === 1 ? "repository" : "repositories"}. All four scores are shown below and on Overview.`);
+      setRunMessage(`Evaluation complete for ${result.report.targets.length} ${result.report.targets.length === 1 ? "repository" : "repositories"}.${shareScores ? " Scores are now shared with signed-in COVAL members." : " Scores are saved privately to your account."}`);
     } catch (error) {
       setRunError(error.message || "The analyzers could not finish this run.");
     } finally {
@@ -149,7 +150,7 @@ export default function CodeEvaluationPage() {
     <PageHeading
       eyebrow="DOCUMENTATION / MODULARITY / SECURITY / ERROR HANDLING"
       title="Code evaluation"
-      description="Import repositories from this GitHub workspace or paste repository URLs. Your existing analyzers score each project across all four factors."
+      description="Every GitHub-connected COVAL member can score repositories they can access. Choose whether your results are visible to other signed-in members."
       action={<button type="button" className="button button-quiet" onClick={downloadScores} disabled={!codeEvaluation?.targets?.length}><Icon name="arrowDown" size={15} /> Download JSON</button>}
     />
 
@@ -169,7 +170,8 @@ export default function CodeEvaluationPage() {
       {running && <p className="evaluation-run-message" role="status">Fetching each repository and running Documentation, Modularity, Security, and Error handling. This can take a few minutes.</p>}
       {runMessage && !running && <p className="evaluation-run-message" role="status">{runMessage}</p>}
       {runError && <p className="evaluation-run-error" role="alert">{runError}</p>}
-      <p className="evaluation-private-note">Public repositories work without credentials. Private repositories need a server-side GitHub token with read access; see the GitHub setup instructions in README.</p>
+      <label className="evaluation-share-option"><input type="checkbox" checked={shareScores} onChange={(event) => setShareScores(event.target.checked)} /> <span><strong>Share these scores with COVAL members</strong><small>Only share scores for public GitHub repositories. Reports stay private unless you check this box.</small></span></label>
+      <p className="evaluation-private-note">Any signed-in GitHub user can evaluate public repositories they choose. Private repository access currently requires the workspace owner’s server token; private results cannot be shared.</p>
     </form>
 
     {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>Add URLs above and run all four analyzers. The resulting JSON scores will be saved to this workspace.</p></div>}
@@ -194,6 +196,17 @@ export default function CodeEvaluationPage() {
         </div>
       </section>)}
     </div>
+    <section className="evaluation-community-section">
+      <div className="evaluation-community-heading"><div><span className="eyebrow">COMMUNITY / SHARED RESULTS</span><h2>Scores from COVAL members</h2><p>Public repository evaluations shared by signed-in members.</p></div></div>
+      {!codeEvaluation?.publicEvaluations?.length && <div className="empty-state"><Icon name="users" size={22} /><strong>No shared evaluations yet</strong><p>When a member opts to share a score for a public repository, it will appear here.</p></div>}
+      <div className="evaluation-target-list">
+        {(codeEvaluation?.publicEvaluations || []).map((bundle, bundleIndex) => (bundle.targets || []).map((target) => <section className="evaluation-target-card surface-card" key={`${bundle.githubLogin}-${target.url}-${bundleIndex}`}>
+          <header className="evaluation-target-header"><div><span className="eyebrow">SHARED BY @{bundle.githubLogin || "COVAL MEMBER"}</span><h2>{target.name}</h2></div>{target.url?.startsWith("https://github.com/") && <a className="button" href={target.url} target="_blank" rel="noreferrer">Open repository <Icon name="arrowUpRight" size={14} /></a>}</header>
+          <p className="evaluation-target-meta">Evaluated {target.generatedAt ? new Date(target.generatedAt).toLocaleString() : bundle.sharedAt ? new Date(bundle.sharedAt).toLocaleString() : "recently"}</p>
+          <div className="evaluation-score-grid">{(target.evaluations || []).map((evaluation) => <article className="evaluation-score-card" key={evaluation.id}><div className="evaluation-score-heading"><span>{evaluation.label}</span><Icon name={evaluation.id === "security" ? "lock" : "code"} size={17} /></div><strong className="evaluation-score-value">{number(evaluation.score)}<small>/100</small></strong><span className={`evaluation-status evaluation-status-${evaluation.status}`}>{evaluation.status === "complete" ? evaluation.grade || "Complete" : "Unavailable"}</span><p>{evaluation.summary || evaluation.error || "No summary was provided by the analyzer."}</p></article>)}</div>
+        </section>))}
+      </div>
+    </section>
     {codeEvaluation?.generatedAt && <p className="evaluation-generated-at">Score bundle generated {new Date(codeEvaluation.generatedAt).toLocaleString()} · {codeEvaluation.urlFile}</p>}
   </>;
 }

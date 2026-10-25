@@ -73,12 +73,15 @@ In the Supabase SQL Editor, apply these migrations in filename order:
 
 - [`202610250001_coval_communication.sql`](./supabase/migrations/202610250001_coval_communication.sql) — GitHub-linked profiles, connections, private conversations, and messages.
 - [`202610250002_coval_code_evaluations.sql`](./supabase/migrations/202610250002_coval_code_evaluations.sql) — per-user code evaluation result storage.
+- [`202610250003_coval_shared_evaluations.sql`](./supabase/migrations/202610250003_coval_shared_evaluations.sql) — opt-in sharing of scores for public repositories with signed-in COVAL members.
 
 The migrations enable row-level security and use the user's Supabase session for reads and writes. Existing authenticated users are backfilled from their GitHub OAuth metadata.
 
 ### 5. Verify the deployment
 
-Open the dashboard's Vercel URL, sign in with GitHub, and check the Projects and Overview pages. On Code Evaluation, paste one or more GitHub repository URLs (up to five per run), import a URL file, or import repositories already loaded in the workspace. Each evaluation runs the existing Documentation, Modularity, Security, and Error handling analyzers. The four scores and breakdowns appear on Code Evaluation and Overview; the signed-in user's score bundle is saved through Supabase and can be downloaded as JSON.
+Open the dashboard's Vercel URL and sign in with GitHub. Any GitHub-connected member can score up to five public GitHub repositories per run by pasting URLs, importing their public repositories, or loading a URL file. Each run uses the existing Documentation, Modularity, Security, and Error handling analyzers. Scores are saved to the evaluator's own Supabase account. The evaluator can opt in to share that run with other signed-in COVAL members; only scores for repositories verified as public are published. Private reports remain private. Community results appear in the Code Evaluation page. Public repository analysis does not require a shared `GITHUB_TOKEN`.
+
+The GitHub workspace dashboard is a separate, configured organization/repository view. If `GITHUB_ORG` is set, its membership check can restrict access to that workspace; evaluation of public repository URLs is available to any signed-in user whose account is connected to GitHub. Private repository analysis is not per-user yet: it requires the workspace owner's server-side `GITHUB_TOKEN`, so don't use that shared-token path to promise access to each member's private repositories.
 
 The Python service downloads source archives into temporary storage and removes them after analysis. It limits each archive to 75 MB compressed and 150 MB extracted. The analyzers do not modify the remote repositories. The Vercel Function duration is configured to 300 seconds; large repositories or five-repository batches may need to be split into smaller runs if they exceed the plan's execution limit.
 
@@ -92,7 +95,7 @@ GitHub does not provide online presence, job titles, career history, or private 
 
 - `GET /api/dashboard` — configured repositories, contributors, teams, activity, pull requests, metrics, and contribution calendar.
 - `GET /api/github-repositories` — the signed-in GitHub account's public repositories for the import control.
-- `GET /api/code-evaluation`, `POST /api/code-evaluation` — load saved scores or validate a run, call the private analyzer service, and save the signed-in user's score bundle.
+- `GET /api/code-evaluation`, `POST /api/code-evaluation` — load the current user's saved results and signed-in community results, run analyzers, and optionally share a verified-public-repository score bundle.
 - `POST /api/code-evaluation-python` — Python Vercel function that runs the existing four analyzers; accepts requests only from the dashboard backend with the shared secret.
 - `GET /api/profile?login=...` — public GitHub profile and optional contribution data.
 - `GET /api/connections`, `POST /api/connections`, `DELETE /api/connections` — signed-in user's saved connections.

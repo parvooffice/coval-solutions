@@ -6,8 +6,6 @@ import shutil
 import tempfile
 from pathlib import Path
 
-import git
-
 from .models import RepositoryMetadata
 
 
@@ -48,6 +46,11 @@ def clone_repository(repo_reference: str, destination_root: str | None = None) -
     root = Path(destination_root) if destination_root else Path(tempfile.mkdtemp(prefix="repo-audit-"))
     repo_name = sanitize_repo_name(Path(repo_reference).name.replace(".git", ""))
     clone_target = root / repo_name
+    try:
+        import git
+    except ImportError as error:
+        raise RuntimeError("GitPython is required to clone a remote repository directly.") from error
+
     repo = git.Repo.clone_from(repo_reference, str(clone_target), depth=1)
     if not repo.working_tree_dir:
         raise RuntimeError(f"Failed to clone repository: {repo_reference}")

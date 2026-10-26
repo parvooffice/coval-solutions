@@ -250,23 +250,16 @@ def modularity_report(target: dict[str, str], report_path: Path, env: dict[str, 
 
 def security_report(target: dict[str, str], report_dir: Path, env: dict[str, str] | None = None) -> tuple[dict, Path]:
     source_dir = SECURITY_DIR / "src"
-    process_env = dict(env or os.environ)
-    existing_path = process_env.get("PYTHONPATH", "")
-    process_env["PYTHONPATH"] = str(source_dir) + (os.pathsep + existing_path if existing_path else "")
+    source_path = str(source_dir)
+    if source_path not in sys.path:
+        sys.path.insert(0, source_path)
+    from repo_security_auditor import run_repository_audit
+
     report_dir.mkdir(parents=True, exist_ok=True)
-    run_process(
-        [sys.executable, "-m", "repo_security_auditor", "--output-dir", str(report_dir), target["argument"]],
-        cwd=SECURITY_DIR if report_dir.resolve() == (SECURITY_DIR / "reports").resolve() else report_dir.parent,
-        env=process_env,
-    )
-    report_files = sorted(
-        report_dir.glob("*-security-report.json"),
-        key=lambda path: path.stat().st_mtime,
-        reverse=True,
-    )
-    if not report_files:
+    report = run_repository_audit(target["argument"], output_dir=str(report_dir))
+    report_path = report_dir / f"{safe_name(report.repo_name)}-security-report.json"
+    if not report_path.is_file():
         raise RuntimeError("The security analyzer did not write a JSON report.")
-    report_path = report_files[0]
     return json.loads(report_path.read_text(encoding="utf-8")), report_path
 
 

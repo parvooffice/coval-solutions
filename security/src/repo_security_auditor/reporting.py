@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -135,5 +136,5 @@ def save_report(report: SecurityReport, output_dir: str | Path) -> str:
     directory.mkdir(parents=True, exist_ok=True)
     filename = f"{report.repo_name}-security-report.json"
     output_path = directory / filename
-    output_path.write_text(json.dumps(report.model_dump(mode="json"), indent=2), encoding="utf-8")
+    output_path.write_text(json.dumps(asdict(report), indent=2), encoding="utf-8")
     return str(output_path)

@@ -456,6 +456,9 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
 .profile-cover > span { display: inline-flex; align-items: center; gap: 6px; }
 .profile-cover i { color: var(--accent); font-style: normal; }
 .profile-cover-status { gap: 7px; }
+.profile-cover.has-banner { min-height: 156px; background-color: var(--surface-3); background-position: center; background-size: cover; color: #fff; }
+.profile-cover.has-banner .profile-cover-status { color: #fff; }
+.profile-cover.has-banner .profile-cover-status > i { background: #65d6a5; }
 .profile-cover-status > i { width: 7px; height: 7px; border-radius: 50%; background: var(--subtle); }
 .profile-cover-status.is-online { color: var(--accent-strong); }
 .profile-cover-status.is-online > i { background: var(--accent); }
@@ -531,12 +534,14 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
 .profile-editor-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .profile-editor-header h2 { margin: 5px 0; font-size: 22px; letter-spacing: -.04em; }
 .profile-editor-header p { margin: 0; color: var(--muted); font-size: 11px; }
+.profile-editor-dialog form { display: block; width: 100%; min-width: 0; }
 .profile-editor-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.profile-editor-fields label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 650; }
+.profile-editor-fields > label { display: grid; min-width: 0; align-content: start; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 650; line-height: 1.45; }
 .profile-editor-fields input, .profile-editor-fields textarea { width: 100%; min-width: 0; padding: 10px 11px; border: 1px solid var(--border); border-radius: 8px; outline: none; background: var(--surface-2); color: var(--text); font: inherit; font-weight: 450; resize: vertical; }
+.profile-editor-fields > label > input, .profile-editor-fields > label > textarea { display: block; }
 .profile-editor-fields input:focus, .profile-editor-fields textarea:focus { border-color: var(--accent); }
 .profile-editor-wide { grid-column: 1 / -1; }
-.profile-editor-section { display: grid; gap: 8px; margin: 17px 0 0; padding: 0; border: 0; }
+.profile-editor-section { display: grid; width: 100%; min-width: 0; gap: 8px; margin: 17px 0 0; padding: 0; border: 0; }
 .profile-editor-section legend { margin-bottom: 8px; color: var(--subtle); font-size: 9px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
 .profile-editor-toggle, .profile-repository-choice { display: flex; align-items: flex-start; gap: 10px; padding: 10px 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); cursor: pointer; }
 .profile-editor-toggle input, .profile-repository-choice input { flex: 0 0 auto; margin: 2px 0 0; accent-color: var(--accent); }
@@ -547,6 +552,13 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
 .profile-editor-note, .profile-editor-error { margin: 12px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .profile-editor-error { color: #b42318; }
 .profile-editor-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.profile-editor-label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 10px; font-weight: 650; }
+.profile-banner-preview { display: flex; min-height: 112px; align-items: flex-start; padding: 12px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background-color: var(--surface-3); background-position: center; background-size: cover; color: #fff; }
+.profile-banner-preview > span { font-family: var(--font-mono); font-size: 9px; font-weight: 750; letter-spacing: .1em; text-shadow: 0 1px 4px rgb(0 0 0 / 60%); }
+.profile-banner-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+.profile-banner-actions small { color: var(--muted); font-size: 9px; }
+.profile-banner-upload { position: relative; overflow: hidden; }
+.profile-banner-upload input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
 .activity-toolbar, .messages-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 15px; }
 .messages-toolbar { flex: 0 0 auto; }
 .profile-collaborator > svg { flex: 0 0 auto; }

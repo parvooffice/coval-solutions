@@ -121,17 +121,31 @@ export default function ProfilePage({ personId, navigate, notify }) {
   const visibility = profile?.profileVisibility || { contributions: true, repositories: true, activity: true, evaluations: true };
   const codeEvaluations = profile?.codeEvaluations || [];
 
-  async function saveProfile(values) {
+  async function saveProfile(values, banner = {}) {
     const result = await apiRequest("/api/profile", { method: "PUT", body: JSON.stringify(values) });
-    setProfileResult((current) => ({ ...current, profile: { ...current.profile, ...values, ...result.profile, name: values.profileName || current.profile?.name, bio: values.bio, location: values.location, company: values.company, role: values.headline || "COVAL member" } }));
+    let bannerUrl = currentBannerUrl();
+    if (banner.bannerFile) {
+      const formData = new FormData();
+      formData.set("banner", banner.bannerFile);
+      const uploaded = await apiRequest("/api/profile/banner", { method: "POST", body: formData });
+      bannerUrl = uploaded.bannerUrl;
+    } else if (banner.removeBanner) {
+      await apiRequest("/api/profile/banner", { method: "DELETE" });
+      bannerUrl = "";
+    }
+    setProfileResult((current) => ({ ...current, profile: { ...current.profile, ...values, ...result.profile, bannerUrl, name: values.profileName || current.profile?.name, bio: values.bio, location: values.location, company: values.company, role: values.headline || "COVAL member" } }));
     notify?.("Your public profile has been updated.");
+  }
+
+  function currentBannerUrl() {
+    return profile?.bannerUrl || "";
   }
 
   return <>
     <div className="developer-profile">
       <div className="profile-breadcrumb"><button type="button" className="text-button" onClick={() => navigate("engineering")}><Icon name="users" size={14} /> PEOPLE</button><span>/</span><span>{person.name}</span></div>
       <header className="developer-profile-hero surface-card">
-        <div className="profile-cover"><span>COVAL <i>·</i> COMMUNITY PROFILE</span><span className={`profile-cover-status${person.isActive ? " is-online" : ""}`}><i /> {person.isActive ? "ACTIVE NOW" : "MEMBER"} <b>{person.location || ""}</b></span></div>
+        <div className={`profile-cover${profile?.bannerUrl ? " has-banner" : ""}`} style={profile?.bannerUrl ? { backgroundImage: `linear-gradient(90deg, rgb(9 9 11 / 45%), rgb(9 9 11 / 8%)), url("${profile.bannerUrl}")` } : undefined}><span>COVAL <i>·</i> COMMUNITY PROFILE</span><span className={`profile-cover-status${person.isActive ? " is-online" : ""}`}><i /> {person.isActive ? "ACTIVE NOW" : "MEMBER"} <b>{person.location || ""}</b></span></div>
         <div className="developer-profile-heading"><Avatar initials={person.initials} name={person.name} color={person.color || "mint"} size="xl" src={person.avatar} online={person.isActive} /><div className="developer-profile-identity"><span className="eyebrow">{person.headline || "COVAL MEMBER"}</span><div className="developer-profile-name-row"><h1>{person.name}</h1></div><p className="profile-handle">{person.login ? `@${person.login}` : "COVAL member"}</p></div><div className="developer-profile-actions">{isOwnMember && <button type="button" className="button button-primary" onClick={() => setEditProfileOpen(true)}><Icon name="settings" size={15} /> Edit profile</button>}{hasGitHubProfile && !isOwnMember && <button type="button" className="button button-quiet" onClick={() => navigate(`chat/${person.login}`)}><Icon name="message" size={16} /> Message</button>}{person.covalUserId && !isOwnMember && <button type="button" className={`button ${connected ? "button-connected" : "button-primary"}`} disabled={connectionBusy || Boolean(person.login && person.login === currentLogin)} onClick={toggleConnection}><Icon name={connected ? "check" : "plus"} size={16} /> {connectionBusy ? "Saving…" : connected ? "Connected" : "Connect"}</button>}{person.url && <a className="button button-quiet" href={person.url} target="_blank" rel="noreferrer"><Icon name="arrowUpRight" size={15} /> External profile</a>}</div></div>
         {(person.bio || person.location || person.company) && <p className="developer-profile-bio">{person.bio}</p>}
         <div className="developer-profile-meta">{person.location && <span><Icon name="activity" size={15} /> {person.location}</span>}{person.company && <span><Icon name="briefcase" size={15} /> {person.company}</span>}{visibility.repositories && <span><Icon name="repo" size={15} /> {memberProjects.length} featured {memberProjects.length === 1 ? "project" : "projects"}</span>}</div>

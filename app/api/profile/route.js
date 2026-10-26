@@ -13,6 +13,7 @@ function profileSettings(member = {}) {
     bio: member.profile_bio || "",
     location: member.profile_location || "",
     company: member.profile_company || "",
+    bannerUrl: member.profile_banner_path ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "")}/storage/v1/object/public/coval-profile-banners/${member.profile_banner_path}` : "",
     profileVisibility: Object.fromEntries(Object.keys(defaultVisibility).map((key) => [key, visibility[key] !== false])),
     featuredRepositories: Array.isArray(member.featured_repositories) ? member.featured_repositories : null,
   };
@@ -58,7 +59,7 @@ export async function GET(request) {
     const memberId = searchParams.get("memberId");
     if (memberId) {
       if (!uuidPattern.test(memberId)) return Response.json({ error: "Choose a valid COVAL member." }, { status: 400 });
-      const [member] = await supabaseRest(user, `coval_profiles?select=user_id,github_login,display_name,avatar_url,created_at,last_seen_at,profile_name,profile_headline,profile_bio,profile_location,profile_company,profile_visibility,featured_repositories&user_id=eq.${encodeURIComponent(memberId)}&limit=1`);
+      const [member] = await supabaseRest(user, `coval_profiles?select=user_id,github_login,display_name,avatar_url,created_at,last_seen_at,profile_name,profile_headline,profile_bio,profile_location,profile_company,profile_banner_path,profile_visibility,featured_repositories&user_id=eq.${encodeURIComponent(memberId)}&limit=1`);
       if (!member) return Response.json({ error: "COVAL member not found." }, { status: 404 });
       const settings = profileSettings(member);
       const codeEvaluations = await publicCodeEvaluations(user, member.user_id, settings.profileVisibility);
@@ -96,7 +97,7 @@ export async function GET(request) {
     }
     const login = searchParams.get("login");
     if (!/^[A-Za-z0-9-]{1,39}$/.test(login || "")) return Response.json({ error: "Enter a valid GitHub username." }, { status: 400 });
-    const [covalMember] = await supabaseRest(user, `coval_profiles?select=user_id,profile_name,profile_headline,profile_bio,profile_location,profile_company,profile_visibility,featured_repositories&github_login=ilike.${encodeURIComponent(login || "")}&limit=1`);
+    const [covalMember] = await supabaseRest(user, `coval_profiles?select=user_id,profile_name,profile_headline,profile_bio,profile_location,profile_company,profile_banner_path,profile_visibility,featured_repositories&github_login=ilike.${encodeURIComponent(login || "")}&limit=1`);
     const isOwnGitHubProfile = user.githubConnected && user.login?.toLowerCase() === login?.toLowerCase();
     const profile = await getGitHubProfile(login, isOwnGitHubProfile ? user.githubToken : "", isOwnGitHubProfile);
     const settings = profileSettings(covalMember);

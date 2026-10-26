@@ -8,7 +8,7 @@ export async function apiRequest(path, options = {}) {
   if (session?.provider_token && hasGitHubIdentity) {
     headers.set("x-github-provider-token", session.provider_token);
   }
-  if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (options.body && !headers.has("Content-Type") && !(typeof FormData !== "undefined" && options.body instanceof FormData)) headers.set("Content-Type", "application/json");
   const response = await fetch(path, { ...options, headers, cache: "no-store" });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {

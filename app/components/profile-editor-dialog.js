@@ -15,13 +15,9 @@ function repositoryKey(repository) {
 }
 
 export default function ProfileEditorDialog({ profile, repositories, onClose, onSave }) {
-  const [form, setForm] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
+  const [form, setForm] = useState(() => {
     const visibility = profile.profileVisibility || {};
-    setForm({
+    return {
       profileName: profile.profileName || profile.name || "",
       headline: profile.headline || "",
       bio: profile.bio || "",
@@ -29,10 +25,15 @@ export default function ProfileEditorDialog({ profile, repositories, onClose, on
       company: profile.company || "",
       profileVisibility: Object.fromEntries(visibilityOptions.map(([key]) => [key, visibility[key] !== false])),
       featuredRepositories: profile.featuredRepositories || repositories.map(repositoryKey),
-    });
-  }, [profile, repositories]);
+    };
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [bannerFile, setBannerFile] = useState(null);
+  const [removeBanner, setRemoveBanner] = useState(false);
+  const [bannerPreview, setBannerPreview] = useState("");
 
-  if (!form) return null;
+  useEffect(() => () => { if (bannerPreview.startsWith("blob:")) URL.revokeObjectURL(bannerPreview); }, [bannerPreview]);
 
   const setField = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const toggleVisibility = (key) => setForm((current) => ({ ...current, profileVisibility: { ...current.profileVisibility, [key]: !current.profileVisibility[key] } }));
@@ -48,7 +49,7 @@ export default function ProfileEditorDialog({ profile, repositories, onClose, on
     setSaving(true);
     setError("");
     try {
-      await onSave(form);
+      await onSave(form, { bannerFile, removeBanner });
       onClose();
     } catch (cause) {
       setError(cause.message || "Your profile could not be saved.");
@@ -67,6 +68,16 @@ export default function ProfileEditorDialog({ profile, repositories, onClose, on
           <label className="profile-editor-wide">About<textarea maxLength={500} rows={3} value={form.bio} onChange={(event) => setField("bio", event.target.value)} placeholder="A few words about your work and what you want to connect over." /></label>
           <label>Location<input maxLength={100} value={form.location} onChange={(event) => setField("location", event.target.value)} placeholder="City or region" /></label>
           <label>Organization<input maxLength={100} value={form.company} onChange={(event) => setField("company", event.target.value)} placeholder="Team or company" /></label>
+          <div className="profile-editor-wide profile-banner-editor">
+            <span className="profile-editor-label">Profile banner</span>
+            <div className="profile-banner-preview" style={(bannerPreview || (!removeBanner && profile.bannerUrl)) ? { backgroundImage: `linear-gradient(90deg, rgb(9 9 11 / 40%), rgb(9 9 11 / 8%)), url("${bannerPreview || profile.bannerUrl}")` } : undefined}><span>{bannerPreview ? "PREVIEW" : profile.bannerUrl && !removeBanner ? "CURRENT BANNER" : "COVAL PROFILE"}</span></div>
+            <div className="profile-banner-actions">
+              <label className="button button-quiet profile-banner-upload">{bannerFile ? "Choose another image" : "Upload banner"}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const nextFile = event.target.files?.[0] || null; setBannerPreview(nextFile ? URL.createObjectURL(nextFile) : ""); setBannerFile(nextFile); setRemoveBanner(false); event.target.value = ""; }} /></label>
+              {(bannerFile || profile.bannerUrl) && !removeBanner && <button type="button" className="button button-quiet" onClick={() => { setBannerFile(null); setBannerPreview(""); setRemoveBanner(true); }}>Remove banner</button>}
+              {removeBanner && <button type="button" className="button button-quiet" onClick={() => setRemoveBanner(false)}>Keep current banner</button>}
+              <small>PNG, JPEG, or WebP · up to 5 MB</small>
+            </div>
+          </div>
         </div>
         <fieldset className="profile-editor-section"><legend>What appears on your profile</legend>{visibilityOptions.map(([key, title, description]) => <label className="profile-editor-toggle" key={key}><input type="checkbox" checked={form.profileVisibility[key]} onChange={() => toggleVisibility(key)} /><span><strong>{title}</strong><small>{description}</small></span></label>)}</fieldset>
         {form.profileVisibility.repositories && <fieldset className="profile-editor-section"><legend>Choose repositories to feature</legend>{repositories.length ? <div className="profile-repository-picker">{repositories.map((repository) => {

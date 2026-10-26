@@ -3,8 +3,8 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { apiError, requireUser, supabaseRest } from "../../lib/server/auth";
+import { hasValidPublicSignature, signPublicReport } from "../../lib/server/evaluation-sharing";
 
 export const maxDuration = 300;
 
@@ -14,29 +14,6 @@ const execFileAsync = promisify(execFile);
 const MAX_TARGETS = 5;
 const MAX_SAVED_TARGETS = 25;
 const emptyEvaluation = { schemaVersion: 1, generatedAt: null, urlFile: "", targets: [] };
-
-function canonicalJson(value) {
-  if (Array.isArray(value)) return value.map(canonicalJson);
-  if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonicalJson(value[key])]));
-  return value;
-}
-
-function signPublicReport(userId, githubLogin, report) {
-  const secret = process.env.CODE_EVALUATION_FUNCTION_SECRET?.trim();
-  if (!secret) throw Object.assign(new Error("Shared score signing is not configured."), { status: 503 });
-  const payload = JSON.stringify({ userId, githubLogin, report: canonicalJson(report) });
-  return createHmac("sha256", secret).update(payload).digest("base64url");
-}
-
-function hasValidPublicSignature(row) {
-  try {
-    const expected = Buffer.from(signPublicReport(row.user_id, row.github_login, row.public_report), "base64url");
-    const actual = Buffer.from(row.public_signature || "", "base64url");
-    return expected.length === actual.length && timingSafeEqual(expected, actual);
-  } catch {
-    return false;
-  }
-}
 
 function parseGitHubRepository(value) {
   if (typeof value !== "string" || value.length > 500) {

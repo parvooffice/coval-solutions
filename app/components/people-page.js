@@ -78,7 +78,7 @@ export default function PeoplePage({ navigate, notify }) {
       const loginKey = member.githubLogin.toLowerCase();
       const current = loginKey ? byLogin.get(loginKey) : null;
       if (current) {
-        byLogin.set(loginKey, { ...current, covalUserId: member.userId, memberSince: member.createdAt, lastSeenAt: member.lastSeenAt, isActive: member.isActive, publicStats: member.publicStats || null });
+        byLogin.set(loginKey, { ...current, covalUserId: member.userId, name: member.name || current.name, headline: member.headline, bio: member.bio, location: member.location, company: member.company, profileVisibility: member.profileVisibility || {}, memberSince: member.createdAt, lastSeenAt: member.lastSeenAt, isActive: member.isActive, publicStats: member.publicStats || null });
         return;
       }
       const name = member.name || member.githubLogin || "COVAL member";
@@ -87,6 +87,11 @@ export default function PeoplePage({ navigate, notify }) {
         covalUserId: member.userId,
         login: member.githubLogin,
         name,
+        headline: member.headline || "",
+        bio: member.bio || "",
+        location: member.location || "",
+        company: member.company || "",
+        profileVisibility: member.profileVisibility || {},
         initials: name.trim().split(/[\s-]+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "CV",
         avatar: member.avatar,
         url: member.githubLogin ? `https://github.com/${member.githubLogin}` : "",
@@ -115,12 +120,15 @@ export default function PeoplePage({ navigate, notify }) {
 
   return (
     <>
-      <PageHeading eyebrow={`COVAL COMMUNITY / ${directoryPeople.length} PEOPLE`} title="Engineering, connected." description="Browse COVAL members and public GitHub contributor profiles. Connect with people and choose who to show in your network tree." action={<button type="button" className="button button-quiet" onClick={() => navigate("network")}><Icon name="network" size={17} /> Explore network</button>} />
+      <section className="people-community-banner">
+        <div><span className="eyebrow">COVAL COMMUNITY</span><h1>Make your work easier to discover.</h1><p>Personalize your profile, share the projects you care about, and meet people building alongside you.</p></div>
+        <div className="people-community-actions"><button type="button" className="button button-primary" onClick={() => currentUser?.id ? navigate(`profile/member-${currentUser.id}`) : navigate("overview")}><Icon name="user" size={16} /> {currentUser?.id ? "View my profile" : "Join the community"}</button><button type="button" className="button button-quiet" onClick={() => navigate("network")}><Icon name="network" size={16} /> Explore network</button></div>
+      </section>
+      <PageHeading eyebrow={`COVAL COMMUNITY / ${directoryPeople.length} PEOPLE`} title="Engineering, connected." description="Find collaborators, share what you are building, and grow your COVAL network." />
       <section className="summary-grid" aria-label="COVAL community summary">
         <MetricCard label="COVAL MEMBERS" value={fmt(members.length)} detail={`${fmt(members.filter((member) => member.isActive).length)} active in the last 3 minutes`} />
         <MetricCard label="YOUR CONNECTIONS" value={fmt(connectedMembers)} detail="COVAL members connected to you" />
-        <MetricCard label="GITHUB LINKED" value={fmt(members.filter((member) => member.githubLogin).length)} detail="Members sharing public GitHub stats" />
-        <MetricCard label="PEOPLE IN DIRECTORY" value={fmt(directoryPeople.length)} detail="COVAL members and public contributors" />
+        <MetricCard label="PEOPLE IN DIRECTORY" value={fmt(directoryPeople.length)} detail="People building across COVAL" />
       </section>
       <div className="directory-toolbar">
         <label className="search-field"><Icon name="search" size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search COVAL members…" aria-label="Search people" /></label>
@@ -130,10 +138,11 @@ export default function PeoplePage({ navigate, notify }) {
       </div>
       {filtered.length ? <div className="people-grid">
         {filtered.map((person) => <article className="person-card" key={person.id}>
-          <div className="person-card-head"><button type="button" className="person-card-avatar-button" aria-label={`View ${person.name} profile`} onClick={() => navigate(`profile/${person.id}`)}><Avatar initials={person.initials} name={person.name} color={person.color} size="lg" src={person.avatar} online={person.isActive} /></button><span className={`person-status${person.isActive ? " is-active" : ""}`}><i />{person.isActive ? "Active now" : person.login ? "GitHub" : "COVAL member"}</span></div>
+          <div className="person-card-head"><button type="button" className="person-card-avatar-button" aria-label={`View ${person.name} profile`} onClick={() => navigate(`profile/${person.id}`)}><Avatar initials={person.initials} name={person.name} color={person.color} size="lg" src={person.avatar} online={person.isActive} /></button><span className={`person-status${person.isActive ? " is-active" : ""}`}><i />{person.isActive ? "Active now" : person.covalUserId ? "COVAL member" : "Contributor"}</span></div>
           <div className="person-card-identity"><h2>{person.name}</h2><p className="person-role">{person.login ? `@${person.login}` : "COVAL community member"}</p></div>
-          {person.login ? <div className="person-card-stats"><span><b>{person.publicStats?.contributions == null ? "—" : fmt(person.publicStats.contributions)}</b><small>contributions / year</small></span><span><b>{person.publicStats?.pullRequests == null ? "—" : fmt(person.publicStats.pullRequests)}</b><small>PR contributions</small></span><span><b>{person.publicStats?.publicRepositories == null ? "—" : fmt(person.publicStats.publicRepositories)}</b><small>public repositories</small></span></div> : <div className="person-card-stats person-community-note"><span><small>Joined COVAL {person.memberSince ? new Date(person.memberSince).toLocaleDateString() : ""}</small></span></div>}
-          <div className="person-card-footer"><span><Icon name="activity" size={14} />{person.location || person.company || (person.login ? "GitHub" : "COVAL")}</span>{person.covalUserId && <button type="button" className={`button person-connect-button${connections.has(connectionKey(person)) ? " button-connected" : " button-quiet"}`} disabled={connectionBusy === connectionKey(person) || person.covalUserId === currentUser?.id} onClick={() => toggleConnection(person)}><Icon name={connections.has(connectionKey(person)) ? "check" : "plus"} size={14} />{connectionBusy === connectionKey(person) ? "Saving…" : connections.has(connectionKey(person)) ? "Connected" : "Connect"}</button>}{person.url && <a className="quiet-icon" href={person.url} target="_blank" rel="noreferrer" aria-label={`Open ${person.name} on GitHub`}><Icon name="arrowUpRight" size={16} /></a>}</div>
+          {(person.headline || person.bio) && <p className="person-card-bio">{person.headline || person.bio}</p>}
+          {person.login && person.profileVisibility?.contributions !== false ? <div className="person-card-stats"><span><b>{person.publicStats?.contributions == null ? "—" : fmt(person.publicStats.contributions)}</b><small>contributions / year</small></span><span><b>{person.publicStats?.pullRequests == null ? "—" : fmt(person.publicStats.pullRequests)}</b><small>PR contributions</small></span><span><b>{person.publicStats?.publicRepositories == null ? "—" : fmt(person.publicStats.publicRepositories)}</b><small>public repositories</small></span></div> : <div className="person-card-stats person-community-note"><span><small>{person.memberSince ? `COVAL member since ${new Date(person.memberSince).toLocaleDateString()}` : person.headline || "Community member"}</small></span></div>}
+          <div className="person-card-footer"><span><Icon name="activity" size={14} />{person.location || person.company || (person.login ? "Open source" : "COVAL")}</span>{person.covalUserId && <button type="button" className={`button person-connect-button${connections.has(connectionKey(person)) ? " button-connected" : " button-quiet"}`} disabled={connectionBusy === connectionKey(person) || person.covalUserId === currentUser?.id} onClick={() => toggleConnection(person)}><Icon name={connections.has(connectionKey(person)) ? "check" : "plus"} size={14} />{connectionBusy === connectionKey(person) ? "Saving…" : connections.has(connectionKey(person)) ? "Connected" : "Connect"}</button>}{person.url && <a className="quiet-icon" href={person.url} target="_blank" rel="noreferrer" aria-label={`Open ${person.name}'s external profile`}><Icon name="arrowUpRight" size={16} /></a>}</div>
         </article>)}
       </div> : <div className="empty-state"><Icon name="users" size={22} /><strong>{directoryPeople.length ? "No people match" : "No COVAL members or GitHub people loaded"}</strong><p>{directoryPeople.length ? "Try another name or GitHub username." : "Signed-in COVAL members and GitHub contributors will appear here."}</p></div>}
       <p className="project-footer-note">Public contribution totals and repository counts appear when GitHub makes them available; unavailable values are left blank instead of showing misleading zeros.</p>

@@ -166,7 +166,7 @@ export default function CodeEvaluationPage() {
     <PageHeading
       eyebrow="DOCUMENTATION / MODULARITY / SECURITY / ERROR HANDLING"
       title="Code evaluation"
-      description="Every GitHub-connected COVAL member can score repositories they can access. Choose whether your results are visible to other signed-in members."
+      description="Score repositories you can access. Shared results appear in the COVAL community and on your profile."
       action={<button type="button" className="button button-quiet" onClick={downloadScores} disabled={!codeEvaluation?.targets?.length}><Icon name="arrowDown" size={15} /> Download JSON</button>}
     />
 
@@ -187,7 +187,7 @@ export default function CodeEvaluationPage() {
       {running && <p className="evaluation-run-message" role="status">Fetching each repository and running Documentation, Modularity, Security, and Error handling. This can take a few minutes.</p>}
       {runMessage && !running && <p className="evaluation-run-message" role="status">{runMessage}</p>}
       {runError && <p className="evaluation-run-error" role="alert">{runError}</p>}
-      <label className="evaluation-share-option"><input type="checkbox" checked={shareScores} onChange={(event) => setShareScores(event.target.checked)} /> <span><strong>Share these scores with COVAL members</strong><small>Only share scores for public GitHub repositories. Reports stay private unless you check this box.</small></span></label>
+      <label className="evaluation-share-option"><input type="checkbox" checked={shareScores} onChange={(event) => setShareScores(event.target.checked)} /> <span><strong>Show these scores on my profile</strong><small>Only public repository scores are shared with the COVAL community. Reports stay private unless you check this box.</small></span></label>
       <p className="evaluation-private-note">Any signed-in GitHub user can evaluate public repositories they choose. Private repository access currently requires the workspace owner’s server token; private results cannot be shared.</p>
     </form>
 

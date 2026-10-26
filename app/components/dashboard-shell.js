@@ -108,8 +108,9 @@ export default function DashboardShell({
   const workspaceName = dashboard.workspaceName || "COVAL community";
   const githubIdentity = currentUser?.identities?.find((identity) => identity.provider === "github");
   const profileLogin = dashboard.primaryProfile?.login || githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || "";
-  const profilePerson = people.find((person) => person.login === profileLogin) || null;
+  const profilePerson = people.find((person) => person.login === profileLogin) || people.find((person) => person.covalUserId === currentUser?.id) || null;
   const accountName = currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.email?.split("@")[0] || "COVAL member";
+  const profileTarget = currentUser?.id ? `profile/member-${currentUser.id}` : profileLogin ? `profile/${profileLogin}` : "";
   const toggleSidebar = () => {
     if (isMobile) {
       onDrawerToggle();
@@ -189,9 +190,9 @@ export default function DashboardShell({
           <div className="sidebar-actions">
             <button type="button" className="sidebar-action" onClick={() => { onSettingsOpen(); onDrawerClose(); setDesktopSidebarOpen(false); setDesktopOverlayOpen(false); }}><Icon name="settings" size={17} /> Settings</button>
           </div>
-          <button type="button" className="profile-chip" onClick={() => profileLogin && navigateFromSidebar(`profile/${profileLogin}`)} disabled={!profileLogin}>
-            <Avatar initials={profilePerson?.initials || "GH"} name={profilePerson?.name || "GitHub profile"} color={profilePerson?.color || "mint"} size="sm" src={profilePerson?.avatar} />
-            <span><strong>{profilePerson?.name || "GitHub profile"}</strong><small>{profilePerson?.role || "Connected account"}</small></span>
+          <button type="button" className="profile-chip" onClick={() => profileTarget && navigateFromSidebar(profileTarget)} disabled={!profileTarget}>
+            <Avatar initials={profilePerson?.initials || accountName.slice(0, 2).toUpperCase()} name={profilePerson?.name || accountName} color={profilePerson?.color || "mint"} size="sm" src={profilePerson?.avatar || currentUser?.user_metadata?.avatar_url} />
+            <span><strong>{profilePerson?.name || accountName}</strong><small>My COVAL profile</small></span>
             <Icon name="chevronRight" size={17} />
           </button>
         </div>
@@ -221,7 +222,7 @@ export default function DashboardShell({
             <button type="button" className="icon-button theme-button" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title="Toggle theme" onClick={onThemeToggle}><Icon name={theme === "dark" ? "sun" : "moon"} size={19} /></button>
             <span className="top-divider" aria-hidden="true" />
             {dashboard.updatedAt && <span className="topbar-date" aria-label="GitHub data last synced">SYNCED {dashboard.updatedAt.slice(0, 10)}</span>}
-            <button type="button" className="topbar-avatar" aria-label={profileLogin ? `${profilePerson?.name || accountName} GitHub profile` : `${accountName} account settings`} onClick={() => profileLogin ? onNavigate(`profile/${profileLogin}`) : onSettingsOpen()}><Avatar initials={profilePerson?.initials || accountName.slice(0, 2).toUpperCase()} name={profilePerson?.name || accountName} color={profilePerson?.color || "mint"} size="xs" src={profilePerson?.avatar || currentUser?.user_metadata?.avatar_url} /></button>
+            <button type="button" className="topbar-avatar" aria-label={profileTarget ? `${profilePerson?.name || accountName} profile` : `${accountName} account settings`} onClick={() => profileTarget ? onNavigate(profileTarget) : onSettingsOpen()}><Avatar initials={profilePerson?.initials || accountName.slice(0, 2).toUpperCase()} name={profilePerson?.name || accountName} color={profilePerson?.color || "mint"} size="xs" src={profilePerson?.avatar || currentUser?.user_metadata?.avatar_url} /></button>
           </div>
         </header>
 

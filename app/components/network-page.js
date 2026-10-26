@@ -88,7 +88,7 @@ export default function NetworkPage({ navigate, notify }) {
   }
 
   return <>
-    <PageHeading eyebrow="COVAL / YOUR NETWORK" title="Build your connection tree." description="Connections come from people you connect with on COVAL. Choose which connections to place in your personal network tree." action={<button type="button" className="button button-primary" onClick={() => navigate("engineering")}><Icon name="users" size={16} /> Find people</button>} />
+    <PageHeading eyebrow="COVAL / CONNECTIONS" title="Your network" action={<button type="button" className="button button-primary" onClick={() => navigate("engineering")}><Icon name="users" size={16} /> Find people</button>} />
     {error && <div className="backend-status-banner" role="alert"><div><strong>Network update needs attention.</strong><p>{error}</p></div><button type="button" className="button" onClick={() => setError("")}>Dismiss</button></div>}
     <section className="network-canvas surface-card" aria-label="Your COVAL network tree">
       <div className="network-canvas-header"><div><span className="eyebrow">YOUR NETWORK TREE</span><h2>{visiblePeople.length ? `${visiblePeople.length} people added` : "Choose people to add"}</h2></div><span className="network-legend"><i /> Your COVAL connections</span></div>

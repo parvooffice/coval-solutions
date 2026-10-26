@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Icon from "./dashboard-icon";
-import { Avatar, MetricCard, PageHeading } from "./ui";
+import { Avatar, MetricCard } from "./ui";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { fmt } from "../data/dashboard-data";
 
@@ -26,7 +26,7 @@ export default function ActivityPage({ navigate }) {
 
   return (
     <>
-      <PageHeading eyebrow="GITHUB SIGNAL / ACTIVITY" title="A steady pulse of progress." description="Your GitHub contribution calendar, pull requests, and public repository activity." action={<button type="button" className="button button-quiet" onClick={() => setPeriod((value) => value === "Last 12 months" ? "Last 30 days" : "Last 12 months")}><Icon name="calendar" size={16} /> {period} <Icon name="chevronDown" size={15} /></button>} />
+      <div className="activity-toolbar"><span className="eyebrow">YOUR ACTIVITY</span><button type="button" className="button button-quiet" onClick={() => setPeriod((value) => value === "Last 12 months" ? "Last 30 days" : "Last 12 months")}><Icon name="calendar" size={16} /> {period} <Icon name="chevronDown" size={15} /></button></div>
       <section className="summary-grid activity-metrics" aria-label="GitHub activity metrics">
         <MetricCard label={dashboard.primaryProfile ? "CONTRIBUTIONS" : "REPOSITORY CONTRIBUTIONS"} value={fmt(metrics.contributions || 0)} detail={dashboard.primaryProfile ? "Your GitHub account, past year" : "Connect GitHub to load your own totals"} />
         <MetricCard label="MERGED PULL REQUESTS" value={fmt(merged)} detail={`${fmt(metrics.mergedThisMonth || 0)} merged this month`} />

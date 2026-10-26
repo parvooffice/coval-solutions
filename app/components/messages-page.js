@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon from "./dashboard-icon";
-import { Avatar, PageHeading } from "./ui";
+import { Avatar } from "./ui";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { apiRequest } from "../lib/client-api";
 
@@ -163,7 +163,7 @@ export default function MessagesPage({ notify, targetLogin = "" }) {
   const activeProjects = participant ? projects.filter((item) => item.team.includes(participant.login)) : [];
 
   return <>
-    <PageHeading eyebrow="TEAM COMMUNICATION / MESSAGES" title="Good work happens together." description="Private conversations are stored in Supabase and restricted to conversation members." action={<button type="button" className="button button-primary" onClick={() => setShowNewMessage(true)}><Icon name="plus" size={17} /> New message</button>} />
+    <div className="messages-toolbar"><span className="eyebrow">YOUR CONVERSATIONS</span><button type="button" className="button button-primary" onClick={() => setShowNewMessage(true)}><Icon name="plus" size={17} /> New message</button></div>
     {pageError && <div className="backend-status-banner" role="alert"><div><strong>Messaging needs attention.</strong><p>{pageError}</p></div><button type="button" className="button" onClick={() => { setPageError(""); window.location.reload(); }}>Retry</button></div>}
     <section className={`chat-workspace surface-card${showList ? " mobile-list-open" : ""}${showDetails ? " details-open" : ""}`} aria-label="Team messages">
       <aside className="chat-sidebar"><div className="chat-sidebar-heading"><div><span className="eyebrow">INBOX</span><h2>Messages <span>{threads.length}</span></h2></div><button type="button" className="quiet-icon" aria-label="New conversation" onClick={() => setShowNewMessage(true)}><Icon name="plus" size={18} /></button></div>

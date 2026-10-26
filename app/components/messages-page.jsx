@@ -4,6 +4,18 @@ import { Avatar } from "./ui";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { apiRequest } from "../lib/client-api";
 
+const emojiCategories = [
+  { name: "Smileys", icon: "😀", emojis: "😀 😃 😄 😁 😆 😅 😂 🤣 🥲 ☺️ 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🫢 🫣 🤫 🤔 🫡 🤐 🤨 😐 😑 😶 🫥 😏 😒 🙄 😬 😮‍💨 🤥 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🥵 🥶 🥴 😵‍💫 🤯 🤠 🥳 🥸 😎 🤓 🧐 😕 🫤 😟 🙁 ☹️ 😮 😯 😲 😳 🥺 🥹 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 🤬".split(" ") },
+  { name: "Gestures", icon: "👋", emojis: "👋 🤚 🖐️ ✋ 🖖 🫱 🫲 🫳 🫴 👌 🤌 🤏 ✌️ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 🫶 👐 🤲 🙏 🤝 💪 🦾 🫵".split(" ") },
+  { name: "Hearts", icon: "❤️", emojis: "❤️ 🧡 💛 💚 💙 💜 🖤 🩶 🤍 🤎 🩷 🩵 💔 ❤️‍🔥 ❤️‍🩹 💕 💞 💓 💗 💖 💘 💝 💟 ❣️ 💌 💋 💯".split(" ") },
+  { name: "Animals & nature", icon: "🐶", emojis: "🌱 🌿 ☘️ 🍀 🪴 🌵 🌲 🌳 🌴 🌷 🌹 🥀 🌻 🌼 🌸 🪷 🌺 🌾 🍁 🍂 🍃 🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐻‍❄️ 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🙈 🙉 🙊 🐒 🐔 🐧 🐦 🐤 🦆 🦅 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🐛 🦋 🐌 🐞 🐜 🪲 🦟 🪳 🕷️ 🦂 🐢 🐍 🦎 🦖 🦕 🐙 🦑 🦐 🦞 🦀 🐡 🐠 🐟 🐬 🐳 🦈 🐊 🐆 🐅 🦬 🐘 🦛 🦏 🐪 🦒 🦘 🦥 🦦 🦨 🦡 🦃 🦚 🦜 🦢 🦩".split(" ") },
+  { name: "Food & drink", icon: "🍕", emojis: "🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🫐 🍈 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🫒 🥑 🍆 🥔 🥕 🌽 🌶️ 🫑 🥒 🥬 🥦 🧄 🧅 🍄 🥜 🌰 🍞 🥐 🥖 🫓 🥨 🥯 🥞 🧇 🧀 🍖 🍗 🥩 🥓 🍔 🍟 🍕 🌭 🥪 🌮 🌯 🫔 🥙 🧆 🥚 🍳 🥘 🍲 🫕 🥣 🥗 🍿 🧈 🧂 🥫 🍱 🍘 🍙 🍚 🍛 🍜 🍝 🍠 🍢 🍣 🍤 🍥 🥮 🍡 🥟 🥠 🥡 🍦 🍧 🍨 🍩 🍪 🎂 🍰 🧁 🥧 🍫 🍬 🍭 🍮 🍯 🍼 🥛 ☕ 🫖 🍵 🍶 🍺 🍻 🥂 🍷 🥃 🍸 🍹 🧉 🧃 🧋 🥤 🧊".split(" ") },
+  { name: "Activities", icon: "⚽", emojis: "⚽ 🏀 🏈 ⚾ 🥎 🎾 🏐 🏉 🥏 🎱 🪀 🏓 🏸 🏒 🏑 🥍 🏏 🪃 🥅 ⛳ 🪁 🏹 🎣 🤿 🥊 🥋 🎽 🛹 🛼 🛷 ⛸️ 🥌 🎿 ⛷️ 🏂 🪂 🏋️ 🤼 🤸 🤾 🏌️ 🏇 🧘 🧗 🏊 🚴 🚵 🏆 🥇 🥈 🥉 🏅 🎖️ 🎪 🎭 🎨 🎬 🎤 🎧 🎼 🎹 🥁 🎷 🎺 🎸 🎻 🪕 🎲 ♟️ 🎯 🎳 🎮 🕹️ 🎰 🧩 🎉 🎊 🎈 🎁".split(" ") },
+  { name: "Travel & places", icon: "🚀", emojis: "🚗 🚕 🚙 🚌 🚎 🏎️ 🚓 🚑 🚒 🚐 🛻 🚚 🚛 🚜 🦽 🛴 🚲 🛵 🏍️ 🛺 🚨 🚔 🚍 🚘 🚖 🚡 🚠 🚃 🚋 🚞 🚝 🚄 🚅 🚈 🚂 🚆 🚇 🚊 🚉 ✈️ 🛫 🛬 🛩️ 💺 🚁 🚀 🛸 🚤 ⛵ 🛥️ 🛳️ ⛴️ 🚢 ⚓ 🪝 🛟 ⛽ 🗺️ 🗽 🗼 🏰 🏯 🏟️ 🎡 🎢 🎠 ⛲ 🏖️ 🏝️ 🏜️ 🌋 ⛰️ 🏔️ 🗻 🏕️ ⛺ 🏠 🏡 🏢 🏥 🏦 🏨 🏪 🏫 🏬 🏭 🏛️ ⛪ 🕌 🛕 🕍 🕋 ⛩️ 🌅 🌄 🌠".split(" ") },
+  { name: "Objects", icon: "💡", emojis: "💡 📱 💻 ⌨️ 🖥️ 🖨️ 🖱️ 🖲️ 💽 💾 💿 📀 📼 📷 📸 📹 🎥 📽️ 🎞️ 📞 ☎️ 📟 📠 📺 📻 🎙️ 🎚️ 🎛️ ⏱️ ⏲️ ⏰ 🕰️ ⌛ ⏳ 📡 🔋 🪫 🔌 🔦 🕯️ 🪔 🧯 💵 💶 💷 💰 💳 🧾 💎 ⚖️ 🪜 🧰 🔧 🔨 ⚒️ 🛠️ ⛏️ 🔩 ⚙️ 🧱 🪓 🔪 🗡️ ⚔️ 🛡️ 🏺 🪦 📿 ⚗️ 🔭 🔬 🩻 💊 🩹 🩺 🚪 🛏️ 🛋️ 🪑 🚿 🛁 🪒 🧴 🧷 🧹 🧺 🧻 🪣 🧼 🫧 🪥 🧽 🛒 📚 📖 ✏️ 🖊️ 🖋️ 📝 📌 📍 ✂️ 🎒".split(" ") },
+  { name: "Symbols", icon: "✨", emojis: "✅ ☑️ ✔️ ❌ ❎ ➕ ➖ ➗ ✖️ ♾️ 💲 💱 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟤 🔺 🔻 🔸 🔹 🔶 🔷 ⭐ 🌟 ✨ ⚡ 🔥 💥 💫 ☄️ 💦 💧 💨 🔔 🔕 🎵 🎶 💤 🔒 🔓 🔑 🗝️ 🔐 📣 📢 🔍 🔎 ⚠️ 🚫 ⛔ 🛑 ♻️ 🔁 🔄 🔃 🔂 ▶️ ⏸️ ⏹️ ⏺️ ⏭️ ⏮️ 🔀 💬 💭 🗯️".split(" ") },
+];
+
 function clockTime(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -20,6 +32,8 @@ export default function MessagesPage({ notify, targetLogin = "" }) {
   const [activeId, setActiveId] = useState("");
   const [activeMembers, setActiveMembers] = useState([]);
   const [draft, setDraft] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [emojiCategory, setEmojiCategory] = useState(0);
   const [query, setQuery] = useState("");
   const [showList, setShowList] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -30,6 +44,8 @@ export default function MessagesPage({ notify, targetLogin = "" }) {
   const [sending, setSending] = useState(false);
   const [pageError, setPageError] = useState("");
   const messageEndRef = useRef(null);
+  const messageInputRef = useRef(null);
+  const emojiPickerRef = useRef(null);
   const active = threads.find((thread) => thread.id === activeId) || null;
   const messages = messageMap[activeId] || [];
   const participant = people.find((person) => person.login === active?.login);
@@ -102,6 +118,22 @@ export default function MessagesPage({ notify, targetLogin = "" }) {
   }, [activeId, messages.length]);
 
   useEffect(() => {
+    if (!emojiOpen) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (!emojiPickerRef.current?.contains(event.target)) setEmojiOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setEmojiOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [emojiOpen]);
+
+  useEffect(() => {
     if (!activeId) return undefined;
     let mounted = true;
     const refreshMessages = () => { if (mounted) loadConversation(activeId).catch(() => {}); };
@@ -143,6 +175,19 @@ export default function MessagesPage({ notify, targetLogin = "" }) {
     finally { setSending(false); }
   }
 
+  function insertEmoji(emoji) {
+    const input = messageInputRef.current;
+    const start = input?.selectionStart ?? draft.length;
+    const end = input?.selectionEnd ?? draft.length;
+    const nextDraft = `${draft.slice(0, start)}${emoji}${draft.slice(end)}`;
+    if (nextDraft.length > 4000) return;
+    setDraft(nextDraft);
+    window.requestAnimationFrame(() => {
+      input?.focus();
+      input?.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  }
+
   async function leaveConversation() {
     if (!activeId) return;
     try {
@@ -173,7 +218,7 @@ export default function MessagesPage({ notify, targetLogin = "" }) {
         {active ? <>
           <header className="chat-header"><button type="button" className="quiet-icon mobile-chat-back" aria-label="Show conversations" onClick={() => setShowList(true)}><Icon name="arrowRight" size={18} /></button><span className="chat-header-avatar">{participant ? <Avatar initials={participant.initials} name={participant.name} color={participant.color} size="md" /> : <span className="thread-icon thread-mint"><Icon name="message" size={17} /></span>}</span><div className="chat-header-copy"><h2>{active.name}</h2><span>{active.login ? `@${active.login}` : "COVAL conversation"}</span></div><button type="button" className={`quiet-icon${showDetails ? " selected" : ""}`} aria-label="Toggle conversation details" aria-expanded={showDetails} onClick={() => setShowDetails((value) => !value)}><Icon name="info" size={18} /></button><button type="button" className="quiet-icon" aria-label="Conversation options" title="Conversation options" onClick={() => setMenuOpen((value) => !value)}><Icon name="more" size={18} /></button>{menuOpen && <div className="chat-options-menu"><button type="button" onClick={leaveConversation}>Leave conversation</button></div>}</header>
           <div className="message-history" role="log" aria-live="polite" aria-relevant="additions">{messages.map((message) => <article key={message.id} className={`message-row${message.mine ? " message-mine" : ""}`}>{!message.mine && <Avatar initials={message.login?.slice(0, 2).toUpperCase() || "CV"} name={message.from} color={participant?.color || "mint"} size="xs" />}<div className="message-content"><div className="message-sender">{message.from}<time>{message.time}</time></div><p className="message-bubble">{message.text}</p></div>{message.mine && <Avatar initials={currentUser?.githubLogin?.slice(0, 2).toUpperCase() || "ME"} name="You" color="mint" size="xs" src={currentUser?.avatarUrl} />}</article>)}{!messages.length && <div className="message-empty"><span className="thread-icon thread-mint"><Icon name="message" size={20} /></span><strong>This conversation is ready</strong><p>Send a message to get things started.</p></div>}<div ref={messageEndRef} /></div>
-          <form className="message-composer" onSubmit={sendMessage}><label className="composer-label" htmlFor="message-draft">Write a message</label><div className="composer-box"><textarea id="message-draft" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder={`Message ${active.name}…`} rows={1} maxLength={4000} /><div className="composer-actions"><span>Enter to send <i>·</i> Shift + Enter for a new line</span><button type="submit" className="send-button" disabled={!draft.trim() || sending} aria-label="Send message"><Icon name="send" size={16} /></button></div></div></form>
+          <form className="message-composer" onSubmit={sendMessage}><label className="composer-label" htmlFor="message-draft">Write a message</label><div className="composer-box"><textarea ref={messageInputRef} id="message-draft" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder={`Message ${active.name}…`} rows={1} maxLength={4000} /><div className="composer-actions"><span>Enter to send <i>·</i> Shift + Enter for a new line</span><div className="composer-actions-buttons"><div className="composer-emoji-picker" ref={emojiPickerRef}><button type="button" className="emoji-picker-trigger" aria-label="Choose an emoji" aria-haspopup="dialog" aria-expanded={emojiOpen} onClick={() => setEmojiOpen((open) => !open)}>😊</button>{emojiOpen && <section className="emoji-picker-popover" role="dialog" aria-label="Choose an emoji"><div className="emoji-category-tabs" role="tablist" aria-label="Emoji categories">{emojiCategories.map((category, index) => <button type="button" role="tab" key={category.name} aria-label={category.name} aria-selected={emojiCategory === index} title={category.name} onClick={() => setEmojiCategory(index)}>{category.icon}</button>)}</div><div className="emoji-grid" role="tabpanel" aria-label={emojiCategories[emojiCategory].name}>{emojiCategories[emojiCategory].emojis.map((emoji, index) => <button type="button" key={`${emoji}-${index}`} className="emoji-option" aria-label={`Insert ${emoji}`} title={emoji} onMouseDown={(event) => event.preventDefault()} onClick={() => insertEmoji(emoji)}>{emoji}</button>)}</div></section>}</div><button type="submit" className="send-button" disabled={!draft.trim() || sending} aria-label="Send message"><Icon name="send" size={16} /></button></div></div></div></form>
         </> : <div className="message-empty"><span className="thread-icon thread-mint"><Icon name="message" size={20} /></span><strong>{loading ? "Loading your inbox…" : "Your inbox is ready"}</strong><p>{loading ? "Fetching saved conversations." : "Start a conversation with a teammate who has signed in to COVAL."}</p><button type="button" className="button button-primary" onClick={() => setShowNewMessage(true)}><Icon name="plus" size={16} /> New message</button></div>}
       </section>
       {active && <aside className="chat-details"><div className="details-heading"><span className="eyebrow">CONVERSATION</span><button type="button" className="quiet-icon mobile-details-close" aria-label="Close conversation details" onClick={() => setShowDetails(false)}><Icon name="x" size={18} /></button></div>{participant ? <><Avatar initials={participant.initials} name={participant.name} color={participant.color} size="xl" /><h3>{participant.name}</h3><p>@{participant.login}</p><a className="text-button" href={participant.url} target="_blank" rel="noreferrer">GitHub profile <Icon name="arrowUpRight" size={13} /></a><div className="details-divider" /><span className="eyebrow">SHARED REPOSITORIES</span><div className="shared-projects">{activeProjects.slice(0, 5).map((item) => <div key={item.id}><Icon name="repo" size={15} /><span>{item.name}</span></div>)}{!activeProjects.length && <span className="details-value">No shared public repositories</span>}</div></> : <><span className="details-project-icon thread-mint"><Icon name="message" size={20} /></span><h3>{active.name}</h3><p>{activeProfile?.github_login ? `@${activeProfile.github_login}` : "COVAL member"}</p></>}</aside>}

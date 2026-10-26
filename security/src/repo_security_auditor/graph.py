@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-from langgraph.graph import END, StateGraph
-
 from .models import Finding, RepositoryMetadata, SecurityReport
 from .reporting import build_report, save_report
 from .scanners import build_scanner_plan, external_tool_scan, heuristic_scan
@@ -75,31 +73,7 @@ def cleanup_node(state: AuditState) -> AuditState:
     return state
 
 
-def build_graph() -> StateGraph:
-    graph = StateGraph(AuditState)
-    graph.add_node("validate_repository", validate_repository_node)
-    graph.add_node("clone_repository", clone_repository_node)
-    graph.add_node("discover_repository", discover_repository_node)
-    graph.add_node("select_scanners", select_scanners_node)
-    graph.add_node("run_analysis", run_analysis_node)
-    graph.add_node("generate_report", generate_report_node)
-    graph.add_node("save_report", save_report_node)
-    graph.add_node("cleanup", cleanup_node)
-
-    graph.set_entry_point("validate_repository")
-    graph.add_edge("validate_repository", "clone_repository")
-    graph.add_edge("clone_repository", "discover_repository")
-    graph.add_edge("discover_repository", "select_scanners")
-    graph.add_edge("select_scanners", "run_analysis")
-    graph.add_edge("run_analysis", "generate_report")
-    graph.add_edge("generate_report", "save_report")
-    graph.add_edge("save_report", "cleanup")
-    graph.add_edge("cleanup", END)
-    return graph.compile()
-
-
 def run_repository_audit(repo_reference: str, output_dir: str = "reports") -> SecurityReport:
-    workflow = build_graph()
     initial_state: AuditState = {
         "repo_reference": repo_reference,
         "repo_path": "",
@@ -112,5 +86,15 @@ def run_repository_audit(repo_reference: str, output_dir: str = "reports") -> Se
         "cleanup_path": "",
         "errors": [],
     }
-    result = workflow.invoke(initial_state)
-    return result["report"]
+    state = validate_repository_node(initial_state)
+    try:
+        state = clone_repository_node(state)
+        state = discover_repository_node(state)
+        state = select_scanners_node(state)
+        state = run_analysis_node(state)
+        state = generate_report_node(state)
+        save_report_node(state)
+        return state["report"]
+    finally:
+        if state["cleanup_path"]:
+            cleanup_node(state)

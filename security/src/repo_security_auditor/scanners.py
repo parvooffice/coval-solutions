@@ -239,6 +239,40 @@ def external_tool_scan(repo_path: str | Path, metadata: RepositoryMetadata) -> l
                         impact="Potential compromise of security posture, data, or runtime integrity",
                     )
                 )
+        elif scanner_name == "dependency-audit":
+            for package_name, vulnerability in parsed.get("vulnerabilities", {}).items():
+                if not isinstance(vulnerability, dict):
+                    continue
+                severity = str(vulnerability.get("severity", "MEDIUM")).upper()
+                if severity not in SEVERITY_ORDER:
+                    severity = "MEDIUM"
+                details = next((item for item in vulnerability.get("via", []) if isinstance(item, dict)), {})
+                title = details.get("title") or f"Vulnerable dependency: {package_name}"
+                affected_range = vulnerability.get("range") or details.get("range")
+                evidence_parts = [package_name]
+                if affected_range:
+                    evidence_parts.append(f"affected range {affected_range}")
+                nodes = vulnerability.get("nodes")
+                if nodes:
+                    evidence_parts.append(f"installed at {', '.join(str(node) for node in nodes[:3])}")
+                findings.append(
+                    _add_finding(
+                        identifier=f"npm-audit-{re.sub(r'[^A-Za-z0-9._-]+', '-', package_name)}",
+                        severity=severity,
+                        title=title[:180],
+                        description=f"npm audit reported a {severity.lower()} vulnerability in {package_name}.",
+                        evidence="; ".join(evidence_parts)[:180],
+                        file_path="package-lock.json",
+                        line_number=None,
+                        recommendation="Upgrade the dependency to a patched version and review npm audit's remediation guidance.",
+                        scanner_name="npm-audit",
+                        category="Dependency Security",
+                        function_name="npm audit",
+                        data_flow="Dependency manifest -> installed package -> application runtime",
+                        reachability="Package is listed in the repository dependency audit results",
+                        impact="A vulnerable dependency may expose the application to known attacks.",
+                    )
+                )
         elif scanner_name == "secret-detection":
             for result_item in parsed.get("results", {}).values():
                 file_value = result_item.get("file") if isinstance(result_item, dict) else None

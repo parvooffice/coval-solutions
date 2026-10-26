@@ -1,4 +1,7 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import os from "node:os";
 import path from "node:path";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { apiError, requireUser, supabaseRest } from "../../lib/server/auth";
@@ -7,6 +10,7 @@ export const maxDuration = 300;
 
 const ROOT = process.cwd();
 const REPORT_FILE = path.join(ROOT, "app", "data", "code-evaluation.json");
+const execFileAsync = promisify(execFile);
 const MAX_TARGETS = 5;
 const MAX_SAVED_TARGETS = 25;
 const emptyEvaluation = { schemaVersion: 1, generatedAt: null, urlFile: "", targets: [] };
@@ -56,7 +60,34 @@ function parseGitHubRepository(value) {
   return `https://github.com/${owner}/${repository}`;
 }
 
-async function runAnalyzers(urls) {
+async function runAnalyzers(urls, localWorkspace = false) {
+  if (process.env.NODE_ENV === "development") {
+    const workDir = await mkdtemp(path.join(os.tmpdir(), "coval-local-evaluation-"));
+    const reportDir = path.join(workDir, "reports");
+    const outputPath = path.join(workDir, "evaluation.json");
+    try {
+      const args = [
+        path.join(ROOT, "scripts", "run-code-evaluation.py"),
+        "--report-dir", reportDir,
+        "--output", outputPath,
+      ];
+      if (localWorkspace) args.push("--local-workspace");
+      else args.push("--targets-json", JSON.stringify(urls));
+      await execFileAsync(process.env.PYTHON_EXECUTABLE || "python", args, { cwd: ROOT, env: process.env, timeout: 285_000, maxBuffer: 10 * 1024 * 1024 });
+      const bundle = JSON.parse(await readFile(outputPath, "utf8"));
+      bundle.urlFile = "submitted repository URLs";
+      for (const target of bundle.targets || []) {
+        for (const analyzer of target.evaluations || []) delete analyzer.reportPath;
+      }
+      return bundle;
+    } catch (error) {
+      const details = error?.stderr?.toString().trim() || error?.stdout?.toString().trim();
+      throw Object.assign(new Error(details || error.message || "The local analyzers could not finish this run."), { status: 502 });
+    } finally {
+      await rm(workDir, { recursive: true, force: true });
+    }
+  }
+
   const endpoint = process.env.CODE_EVALUATION_API_URL?.trim();
   const secret = process.env.CODE_EVALUATION_FUNCTION_SECRET?.trim();
   if (!endpoint || !secret) {
@@ -185,22 +216,31 @@ export async function POST(request) {
     }
     const body = await request.json();
     const isPublic = body?.isPublic === true;
-    if (!Array.isArray(body?.urls)) throw Object.assign(new Error("Submit repository URLs as a JSON array."), { status: 400 });
-    if (body.urls.length > MAX_TARGETS) throw Object.assign(new Error(`Evaluate up to ${MAX_TARGETS} repositories per run.`), { status: 400 });
-    const urls = [...new Set(body.urls.map(parseGitHubRepository))];
-    if (urls.length === 0) throw Object.assign(new Error("Add at least one GitHub repository URL."), { status: 400 });
+    const localWorkspace = body?.localWorkspace === true;
+    if (localWorkspace && process.env.NODE_ENV !== "development") {
+      throw Object.assign(new Error("Local workspace scoring is only available in development."), { status: 403 });
+    }
+    if (localWorkspace && isPublic) {
+      throw Object.assign(new Error("Local workspace scores cannot be shared."), { status: 400 });
+    }
+    if (!localWorkspace && !Array.isArray(body?.urls)) throw Object.assign(new Error("Submit repository URLs as a JSON array."), { status: 400 });
+    if (!localWorkspace && body.urls.length > MAX_TARGETS) throw Object.assign(new Error(`Evaluate up to ${MAX_TARGETS} repositories per run.`), { status: 400 });
+    const urls = localWorkspace ? [] : [...new Set(body.urls.map(parseGitHubRepository))];
+    if (!localWorkspace && urls.length === 0) throw Object.assign(new Error("Add at least one GitHub repository URL."), { status: 400 });
     if (urls.length > MAX_TARGETS) throw Object.assign(new Error(`Evaluate up to ${MAX_TARGETS} repositories per run.`), { status: 400 });
 
     if (isPublic) await assertPublicRepositories(urls);
 
     const previous = await readSavedEvaluation(user);
-    const analyzedReport = await runAnalyzers(urls);
+    const analyzedReport = await runAnalyzers(urls, localWorkspace);
     const publicReport = isPublic ? structuredClone(analyzedReport) : null;
     const publicSignature = isPublic ? signPublicReport(user.id, user.login, publicReport) : null;
     const report = analyzedReport;
-    const submitted = new Set(urls.map((url) => url.toLowerCase()));
+    const submitted = new Set((analyzedReport.targets || []).map((target) => String(target.url || target.input).toLowerCase()));
     report.targets = [
-      ...(previous.targets || []).filter((target) => !submitted.has(String(target.url || target.input).toLowerCase())),
+      ...(previous.targets || []).filter((target) => localWorkspace
+        ? target.source !== "local"
+        : !submitted.has(String(target.url || target.input).toLowerCase())),
       ...report.targets,
     ].slice(-MAX_SAVED_TARGETS);
     await saveEvaluation(user, report, isPublic, publicReport, publicSignature);

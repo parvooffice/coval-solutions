@@ -1,5 +1,9 @@
 
+import { redirect } from "next/navigation";
+
 export default function LoginHome() {
+  if (process.env.NODE_ENV === "development") redirect("/dashboard");
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://zriirrxmkfggyhoagtov.supabase.co";
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_-LR8TY6q0UfmOevgRmDzWA_VJqck38C";
   const loginPage = `/coval-login.html?supabaseUrl=${encodeURIComponent(supabaseUrl)}&supabaseKey=${encodeURIComponent(supabaseKey)}`;

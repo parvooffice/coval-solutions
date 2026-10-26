@@ -1,49 +1,48 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-10-25T07:52:59+05:30",
-  "urlFile": "code-evaluation-urls.txt",
+  "generatedAt": "2026-10-26T04:12:37+00:00",
+  "urlFile": "submitted repository URLs",
   "targets": [
     {
       "name": "COVAL workspace",
-      "input": ".",
+      "input": "Local workspace",
       "source": "local",
-      "url": "https://github.com/parvooffice/coval-solutions",
-      "generatedAt": "2026-10-25T07:53:23+05:30",
+      "url": "local-workspace",
+      "generatedAt": "2026-10-26T04:12:12+00:00",
       "evaluations": [
         {
           "id": "documentation",
           "label": "Documentation",
           "status": "complete",
-          "score": 48.5,
-          "summary": "Overall documentation quality score: 48.5/100 (Poor). Weighted from README (75.0), docstring coverage (35.0), comment density (40.0), docs folder (60.0), and supporting files (15.0).",
+          "score": 48.4,
+          "summary": "Overall documentation quality score: 48.4/100 (Poor). Weighted from README (75.0), docstring coverage (34.6), comment density (40.0), docs folder (60.0), and supporting files (15.0).",
           "breakdown": {
-            "readme": 75.0,
-            "docstrings": 35.0,
-            "comments": 40.0,
-            "docs_folder": 60.0,
-            "supporting_docs": 15.0
-          },
-          "reportPath": "documentation/reports/coval-master-documentation-report.json"
+            "readme": 75,
+            "docstrings": 34.6,
+            "comments": 40,
+            "docs_folder": 60,
+            "supporting_docs": 15
+          }
         },
         {
           "id": "modularity",
           "label": "Modularity",
           "status": "complete",
-          "score": 87.3,
-          "grade": "A",
-          "summary": "Highly modular: small focused units, low coupling, clear boundaries.",
+          "score": 84.6,
+          "grade": "B",
+          "summary": "Good modularity with some hotspots worth refactoring.",
           "breakdown": {
             "file_level": {
               "label": "File-level modularity",
-              "score": 93.6
+              "score": 94.1
             },
             "function_cohesion": {
               "label": "Function / method cohesion",
-              "score": 64.9
+              "score": 48.8
             },
             "coupling": {
               "label": "Coupling",
-              "score": 100.0
+              "score": 100
             },
             "package_structure": {
               "label": "Package / module structure",
@@ -51,61 +50,240 @@
             },
             "encapsulation": {
               "label": "Encapsulation",
-              "score": 92.6
+              "score": 95
             },
             "code_organization": {
               "label": "Code organization signals",
-              "score": 82.1
+              "score": 83.3
             }
-          },
-          "reportPath": "modularity/reports/coval-master-modularity-report.json"
+          }
         },
         {
           "id": "security",
           "label": "Security",
           "status": "complete",
-          "score": 78.7,
-          "summary": "Findings by severity · Critical: 0 · High: 173 · Medium: 13 · Low: 26 · Info: 0",
+          "score": 78.1,
+          "summary": "Findings by severity · Critical: 0 · High: 191 · Medium: 16 · Low: 37 · Info: 0",
           "breakdown": {
-            "Input Validation": 100.0,
-            "Injection": 0.0,
-            "Authentication": 100.0,
-            "Authorization": 100.0,
+            "Input Validation": 100,
+            "Injection": 0,
+            "Authentication": 100,
+            "Authorization": 100,
             "Session & Tokens": 41.648,
-            "Secrets & Credentials": 0.0,
-            "Cryptography": 0.0,
-            "Sensitive Data Exposure": 100.0,
-            "File & Path Security": 100.0,
-            "Command & Code Execution": 0.0,
-            "Unsafe Deserialization": 100.0,
-            "XSS & Output Encoding": 100.0,
-            "CSRF & Request Integrity": 100.0,
-            "SSRF & URL Handling": 100.0,
-            "Database Security": 100.0,
-            "API Security": 100.0,
-            "Business Logic": 100.0,
-            "Race Conditions & Concurrency": 100.0,
-            "Error Handling": 100.0,
-            "Logging & Security Data": 100.0,
-            "Dependency Security": 100.0,
-            "Configuration Security": 100.0,
-            "Resource & DoS Security": 100.0,
-            "Regex & Parser Security": 100.0,
-            "Permissions & Privilege Use": 100.0,
-            "Third-Party Integrations": 100.0,
-            "Serialization & Data Integrity": 100.0,
-            "Security-Critical Assumptions": 100.0,
-            "Dead / Unused Security Controls": 100.0,
-            "Security-Relevant Complexity": 100.0,
-            "Security-Test Evidence": 100.0,
-            "Runtime Assumptions": 100.0,
-            "Data-Flow Integrity": 100.0,
-            "Attack Surface": 100.0,
-            "General Security": 59.04
+            "Secrets & Credentials": 0,
+            "Cryptography": 0,
+            "Sensitive Data Exposure": 100,
+            "File & Path Security": 100,
+            "Command & Code Execution": 0,
+            "Unsafe Deserialization": 100,
+            "XSS & Output Encoding": 100,
+            "CSRF & Request Integrity": 100,
+            "SSRF & URL Handling": 100,
+            "Database Security": 100,
+            "API Security": 100,
+            "Business Logic": 100,
+            "Race Conditions & Concurrency": 100,
+            "Error Handling": 100,
+            "Logging & Security Data": 100,
+            "Dependency Security": 100,
+            "Configuration Security": 100,
+            "Resource & DoS Security": 100,
+            "Regex & Parser Security": 100,
+            "Permissions & Privilege Use": 100,
+            "Third-Party Integrations": 100,
+            "Serialization & Data Integrity": 100,
+            "Security-Critical Assumptions": 100,
+            "Dead / Unused Security Controls": 100,
+            "Security-Relevant Complexity": 100,
+            "Security-Test Evidence": 100,
+            "Runtime Assumptions": 100,
+            "Data-Flow Integrity": 100,
+            "Attack Surface": 100,
+            "General Security": 25.936000000000007
           },
-          "findingCount": 212,
-          "reportPath": "security/reports/coval-master-security-report.json",
-          "generatedAt": "2026-10-25T07:53:23.439355+05:30"
+          "findingCount": 244,
+          "generatedAt": "2026-10-26T04:12:11.064599+00:00"
+        },
+        {
+          "id": "error_handling",
+          "label": "Error handling",
+          "status": "complete",
+          "score": 76,
+          "grade": "B",
+          "summary": "Analyzed 68 source files (9,376 lines of javascript, python) and scored 7 categories from 0 to 100. The final score of 76.0 (grade B) is the weighted average of those category scores using the weights listed under `categories`. Strongest area: Custom exception classes (100). Weakest area: Propagation vs. swallowing (59).",
+          "confidence": "high",
+          "breakdown": {
+            "exception_specificity": {
+              "label": "Exception specificity",
+              "score": 63.5
+            },
+            "handler_quality": {
+              "label": "Handler quality (logging / meaningful handling)",
+              "score": 64.4
+            },
+            "error_propagation": {
+              "label": "Propagation vs. swallowing",
+              "score": 58.8
+            },
+            "custom_exceptions": {
+              "label": "Custom exception classes",
+              "score": 100
+            },
+            "input_validation": {
+              "label": "Input validation & defensive programming",
+              "score": 92.1
+            },
+            "resource_cleanup": {
+              "label": "Resource cleanup",
+              "score": 84.4
+            },
+            "critical_path_coverage": {
+              "label": "Error handling on critical paths",
+              "score": 80.8
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "parvooffice-coval-solutions",
+      "input": "https://github.com/parvooffice/coval-solutions",
+      "source": "github",
+      "url": "https://github.com/parvooffice/coval-solutions",
+      "generatedAt": "2026-10-26T04:13:00+00:00",
+      "evaluations": [
+        {
+          "id": "documentation",
+          "label": "Documentation",
+          "status": "complete",
+          "score": 48.4,
+          "summary": "Overall documentation quality score: 48.4/100 (Poor). Weighted from README (75.0), docstring coverage (34.6), comment density (40.0), docs folder (60.0), and supporting files (15.0).",
+          "breakdown": {
+            "readme": 75,
+            "docstrings": 34.6,
+            "comments": 40,
+            "docs_folder": 60,
+            "supporting_docs": 15
+          }
+        },
+        {
+          "id": "modularity",
+          "label": "Modularity",
+          "status": "complete",
+          "score": 84.9,
+          "grade": "B",
+          "summary": "Good modularity with some hotspots worth refactoring.",
+          "breakdown": {
+            "file_level": {
+              "label": "File-level modularity",
+              "score": 94.2
+            },
+            "function_cohesion": {
+              "label": "Function / method cohesion",
+              "score": 50.7
+            },
+            "coupling": {
+              "label": "Coupling",
+              "score": 100
+            },
+            "package_structure": {
+              "label": "Package / module structure",
+              "score": 91.2
+            },
+            "encapsulation": {
+              "label": "Encapsulation",
+              "score": 94.7
+            },
+            "code_organization": {
+              "label": "Code organization signals",
+              "score": 83.4
+            }
+          }
+        },
+        {
+          "id": "security",
+          "label": "Security",
+          "status": "complete",
+          "score": 83.9,
+          "summary": "Findings by severity · Critical: 0 · High: 18 · Medium: 5 · Low: 37 · Info: 0",
+          "breakdown": {
+            "Input Validation": 100,
+            "Injection": 0,
+            "Authentication": 100,
+            "Authorization": 100,
+            "Session & Tokens": 58.368,
+            "Secrets & Credentials": 57.216,
+            "Cryptography": 66.56,
+            "Sensitive Data Exposure": 100,
+            "File & Path Security": 100,
+            "Command & Code Execution": 0,
+            "Unsafe Deserialization": 100,
+            "XSS & Output Encoding": 100,
+            "CSRF & Request Integrity": 100,
+            "SSRF & URL Handling": 100,
+            "Database Security": 100,
+            "API Security": 100,
+            "Business Logic": 100,
+            "Race Conditions & Concurrency": 100,
+            "Error Handling": 100,
+            "Logging & Security Data": 100,
+            "Dependency Security": 100,
+            "Configuration Security": 100,
+            "Resource & DoS Security": 100,
+            "Regex & Parser Security": 100,
+            "Permissions & Privilege Use": 100,
+            "Third-Party Integrations": 100,
+            "Serialization & Data Integrity": 100,
+            "Security-Critical Assumptions": 100,
+            "Dead / Unused Security Controls": 100,
+            "Security-Relevant Complexity": 100,
+            "Security-Test Evidence": 100,
+            "Runtime Assumptions": 100,
+            "Data-Flow Integrity": 100,
+            "Attack Surface": 100,
+            "General Security": 25.936000000000007
+          },
+          "findingCount": 60,
+          "generatedAt": "2026-10-26T04:12:55.806344+00:00"
+        },
+        {
+          "id": "error_handling",
+          "label": "Error handling",
+          "status": "complete",
+          "score": 75.7,
+          "grade": "B",
+          "summary": "Analyzed 68 source files (9,278 lines of javascript, python) and scored 7 categories from 0 to 100. The final score of 75.7 (grade B) is the weighted average of those category scores using the weights listed under `categories`. Strongest area: Custom exception classes (100). Weakest area: Propagation vs. swallowing (58).",
+          "confidence": "high",
+          "breakdown": {
+            "exception_specificity": {
+              "label": "Exception specificity",
+              "score": 63.6
+            },
+            "handler_quality": {
+              "label": "Handler quality (logging / meaningful handling)",
+              "score": 64.1
+            },
+            "error_propagation": {
+              "label": "Propagation vs. swallowing",
+              "score": 58.3
+            },
+            "custom_exceptions": {
+              "label": "Custom exception classes",
+              "score": 100
+            },
+            "input_validation": {
+              "label": "Input validation & defensive programming",
+              "score": 91.6
+            },
+            "resource_cleanup": {
+              "label": "Resource cleanup",
+              "score": 84.4
+            },
+            "critical_path_coverage": {
+              "label": "Error handling on critical paths",
+              "score": 79.8
+            }
+          }
         }
       ]
     }

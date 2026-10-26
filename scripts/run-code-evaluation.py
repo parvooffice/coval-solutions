@@ -89,6 +89,7 @@ def run_process(command: list[str], *, cwd: Path, env: dict[str, str] | None = N
 
 
 def docs_report(target: dict[str, str], report_path: Path, env: dict[str, str] | None = None) -> dict:
+    report_path.parent.mkdir(parents=True, exist_ok=True)
     if target.get("workspace_path"):
         sys.path.insert(0, str(DOCS_DIR))
         from docs_scorer import analyze_repository
@@ -254,7 +255,7 @@ def security_report(target: dict[str, str], report_dir: Path, env: dict[str, str
     process_env["PYTHONPATH"] = str(source_dir) + (os.pathsep + existing_path if existing_path else "")
     report_dir.mkdir(parents=True, exist_ok=True)
     run_process(
-        [sys.executable, "-m", "repo_security_auditor", target["argument"], "--output-dir", str(report_dir)],
+        [sys.executable, "-m", "repo_security_auditor", "--output-dir", str(report_dir), target["argument"]],
         cwd=SECURITY_DIR if report_dir.resolve() == (SECURITY_DIR / "reports").resolve() else report_dir.parent,
         env=process_env,
     )
@@ -343,10 +344,11 @@ def run_one(target: dict[str, str], report_root: Path | None = None, env: dict[s
     except Exception as error:
         evaluations.append({"id": "error_handling", "label": "Error handling", "status": "failed", "score": None, "error": str(error)})
 
-    local_uri = Path(target["path"]).as_uri() if target["source"] == "local" else target.get("url", target["argument"])
+    is_local = target["source"] == "local"
+    local_uri = "local-workspace" if is_local else target.get("url", target["argument"])
     return {
-        "name": "COVAL workspace" if target["source"] == "local" and Path(target["path"]) == ROOT else target["name"],
-        "input": target["input"], "source": target["source"], "url": local_uri,
+        "name": "COVAL workspace" if is_local and Path(target["path"]) == ROOT else target["name"],
+        "input": "Local workspace" if is_local else target["input"], "source": target["source"], "url": local_uri,
         "generatedAt": now(), "evaluations": evaluations,
     }
 
@@ -354,14 +356,27 @@ def run_one(target: dict[str, str], report_root: Path | None = None, env: dict[s
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--targets-json", help="JSON array of GitHub repository URLs; reads the URL dump when omitted.")
+    parser.add_argument("--local-workspace", action="store_true", help="Score this COVAL checkout directly (local development).")
     parser.add_argument("--output", help="Aggregate JSON output path (defaults to app/data/code-evaluation.json).")
     parser.add_argument("--report-dir", help="Directory for this run's analyzer reports; isolates reports from other users and runs.")
     args = parser.parse_args()
 
+    if args.local_workspace and args.targets_json:
+        parser.error("--local-workspace cannot be combined with --targets-json.")
     values = json.loads(args.targets_json) if args.targets_json else None
     if values is not None and (not isinstance(values, list) or any(not isinstance(value, str) for value in values)):
         raise ValueError("--targets-json must be a JSON array of strings.")
-    targets = read_targets(values)
+    if args.local_workspace:
+        workspace = ROOT.resolve()
+        targets = [{
+            "input": str(workspace),
+            "name": safe_name(workspace.name),
+            "source": "local",
+            "argument": str(workspace),
+            "path": str(workspace),
+        }]
+    else:
+        targets = read_targets(values)
     report_root = Path(args.report_dir).resolve() if args.report_dir else None
     analyzer_env = os.environ.copy()
     token = analyzer_env.get("GITHUB_TOKEN", "").strip()

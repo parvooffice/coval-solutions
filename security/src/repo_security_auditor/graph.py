@@ -18,6 +18,7 @@ class AuditState(TypedDict):
     findings: list[Finding]
     report: SecurityReport
     report_path: str
+    output_dir: str
     cleanup_path: str
     errors: list[str]
 
@@ -64,8 +65,7 @@ def generate_report_node(state: AuditState) -> AuditState:
 
 
 def save_report_node(state: AuditState) -> AuditState:
-    output_dir = "reports"
-    report_path = save_report(state["report"], output_dir)
+    report_path = save_report(state["report"], state["output_dir"])
     state["report_path"] = report_path
     return state
 
@@ -108,14 +108,9 @@ def run_repository_audit(repo_reference: str, output_dir: str = "reports") -> Se
         "findings": [],
         "report": None,
         "report_path": "",
+        "output_dir": output_dir,
         "cleanup_path": "",
         "errors": [],
     }
     result = workflow.invoke(initial_state)
-    report = result["report"]
-    if output_dir != "reports":
-        report_path = save_report(report, output_dir)
-        result["report_path"] = report_path
-    else:
-        result["report_path"] = save_report(report, output_dir)
-    return report
+    return result["report"]

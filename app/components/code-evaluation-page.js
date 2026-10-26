@@ -30,6 +30,7 @@ export default function CodeEvaluationPage() {
   const [runError, setRunError] = useState("");
   const fileInput = useRef(null);
   const targets = codeEvaluation?.targets || [];
+  const localWorkspaceAvailable = process.env.NODE_ENV === "development";
 
   function importWorkspaceRepositories() {
     const allLoadedUrls = [...new Set(projects.map((project) => project.url).filter((url) => url?.startsWith("https://github.com/")))];
@@ -135,6 +136,21 @@ export default function CodeEvaluationPage() {
     }
   }
 
+  async function scoreLocalWorkspace() {
+    setRunning(true);
+    setRunError("");
+    setRunMessage("");
+    try {
+      const result = await apiRequest("/api/code-evaluation", { method: "POST", body: JSON.stringify({ localWorkspace: true }) });
+      updateCodeEvaluation(result.report);
+      setRunMessage("Local workspace scoring complete. Results are saved to this development checkout.");
+    } catch (error) {
+      setRunError(error.message || "The local analyzers could not finish this run.");
+    } finally {
+      setRunning(false);
+    }
+  }
+
   function downloadScores() {
     if (!codeEvaluation) return;
     const blob = new Blob([`${JSON.stringify(codeEvaluation, null, 2)}\n`], { type: "application/json" });
@@ -160,6 +176,7 @@ export default function CodeEvaluationPage() {
       <textarea id="evaluation-repository-urls" className="evaluation-url-input" value={urlText} onChange={(event) => setUrlText(event.target.value)} placeholder={"https://github.com/owner/project-one\nhttps://github.com/owner/project-two"} rows={5} spellCheck="false" />
       <div className="evaluation-import-actions">
         <div className="evaluation-import-secondary-actions">
+          {localWorkspaceAvailable && <button type="button" className="button button-quiet" onClick={scoreLocalWorkspace} disabled={running || importingRepositories}><Icon name="code" size={15} /> Score this local workspace</button>}
           <button type="button" className="button button-quiet" onClick={importMyGitHubRepositories} disabled={importingRepositories || running}><Icon name="git" size={15} /> {importingRepositories ? "Loading GitHub…" : "Import my public repos"}</button>
           <button type="button" className="button button-quiet" onClick={importWorkspaceRepositories} disabled={!projects.length || running}><Icon name="repo" size={15} /> Add loaded workspace repos ({projects.length})</button>
           <button type="button" className="button button-quiet" onClick={() => fileInput.current?.click()} disabled={running || importingRepositories}><Icon name="folder" size={15} /> Import URL file</button>
@@ -174,7 +191,7 @@ export default function CodeEvaluationPage() {
       <p className="evaluation-private-note">Any signed-in GitHub user can evaluate public repositories they choose. Private repository access currently requires the workspace owner’s server token; private results cannot be shared.</p>
     </form>
 
-    {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>Add URLs above and run all four analyzers. The resulting JSON scores will be saved to this workspace.</p></div>}
+    {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>{localWorkspaceAvailable ? "Score this local workspace or add GitHub URLs to run all four analyzers. Results are saved to this development checkout." : "Add GitHub URLs above and run all four analyzers to generate scores."}</p></div>}
     <div className="evaluation-target-list">
       {targets.map((target) => <section className="evaluation-target-card surface-card" key={`${target.input}-${target.name}`}>
         <header className="evaluation-target-header">

@@ -1,5 +1,5 @@
-import { apiError, requireUser, supabaseRest } from "../../lib/server/auth";
-import { getGitHubPublicMemberStats, getDashboardData } from "../../lib/server/github";
+import { apiError, requireUser, supabaseRest } from "../../lib/server/auth.js";
+import { getGitHubPublicMemberStats, getDashboardData } from "../../lib/server/github.js";
 
 const ACTIVE_WINDOW_MS = 3 * 60 * 1000;
 

@@ -1,16 +1,13 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
 import Icon from "./dashboard-icon";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 
 export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClose }) {
   const { dashboard, people, currentUser } = useDashboardData();
-  const githubIdentity = currentUser?.identities?.find((identity) => identity.provider === "github");
-  const login = dashboard.primaryProfile?.login || githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || "";
+  const login = dashboard.primaryProfile?.login || currentUser?.githubLogin || "";
   const profile = people.find((person) => person.login === login) || null;
-  const githubLogin = githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || "";
-  const githubConnected = Boolean(githubIdentity || currentUser?.app_metadata?.providers?.includes("github"));
+  const githubLogin = currentUser?.githubLogin || "";
+  const githubConnected = Boolean(currentUser?.githubConnected);
   const [connectingGitHub, setConnectingGitHub] = useState(false);
   const [githubConnectMessage, setGithubConnectMessage] = useState("");
   const dialogRef = useRef(null);
@@ -44,7 +41,7 @@ export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClo
 
   async function connectGitHub() {
     const client = window.covalSupabase;
-    if (!client) {
+    if (!client || !currentUser?.id) {
       setGithubConnectMessage("COVAL authentication is still loading. Close Settings and try again.");
       return;
     }
@@ -95,7 +92,7 @@ export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClo
               ? <span className="settings-tag">CONNECTED</span>
               : <button type="button" className="button" onClick={connectGitHub} disabled={connectingGitHub}><Icon name="git" size={15} /> {connectingGitHub ? "Connecting…" : "Connect GitHub"}</button>}
           </div>
-          {githubConnectMessage && <p className="settings-connect-message" role="alert">{githubConnectMessage} If Supabase reports that linking is disabled, enable manual identity linking in Authentication settings, then try again.</p>}
+          {githubConnectMessage && <p className="settings-connect-message" role="alert">{githubConnectMessage}</p>}
           <div className="settings-option">
             <div><strong>GitHub profile</strong><p>{profile ? `${profile.name} (@${profile.login})` : "Connect GitHub to view your personal profile"}</p></div>
             <button type="button" className="button" disabled={!login} onClick={() => { onNavigate(`profile/${login}`); onClose(); }}>View profile <Icon name="arrowUpRight" size={15} /></button>

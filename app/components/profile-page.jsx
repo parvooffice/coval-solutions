@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import Icon from "./dashboard-icon";
 import { Avatar, MetricCard } from "./ui";
@@ -114,8 +112,7 @@ export default function ProfilePage({ personId, navigate, notify }) {
   const contributionData = profile?.contributions || directoryPerson?.contributionDetails || (dashboard.primaryProfile?.login === person.login ? dashboard.contributions : null);
   const contributionTotal = contributionData?.total ?? person.publicRepoCommits ?? person.commits ?? 0;
   const personPRs = contributionData?.pullRequests || person.prs || 0;
-  const githubIdentity = currentUser?.identities?.find((identity) => identity.provider === "github");
-  const currentLogin = dashboard.primaryProfile?.login || githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || "";
+  const currentLogin = dashboard.primaryProfile?.login || currentUser?.githubLogin || "";
   const isOwnMember = Boolean(person.covalUserId && person.covalUserId === currentUser?.id);
   const hasGitHubProfile = Boolean(person.login);
   const visibility = profile?.profileVisibility || { contributions: true, repositories: true, activity: true, evaluations: true };

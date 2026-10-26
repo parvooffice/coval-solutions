@@ -1,4 +1,4 @@
-import { apiError, requireUser, supabaseRest } from "../../lib/server/auth";
+import { apiError, requireUser, supabaseRest } from "../../lib/server/auth.js";
 
 export async function POST(request) {
   try {

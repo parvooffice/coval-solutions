@@ -1,5 +1,3 @@
-"use client";
-
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { apiRequest } from "../lib/client-api";
 
@@ -30,14 +28,21 @@ export function DashboardDataProvider({ children }) {
   }, []);
 
   const loadDashboard = useCallback(async () => {
-      const client = window.covalSupabase;
-      let nextUser = null;
-      if (client) {
-        const { data } = await client.auth.getSession();
-        nextUser = data.session?.user || null;
-      }
-      const result = await apiRequest("/api/dashboard");
-      return { result, user: nextUser };
+    const client = window.covalSupabase;
+    const [{ data }, result] = await Promise.all([
+      client ? client.auth.getSession() : Promise.resolve({ data: { session: null } }),
+      apiRequest("/api/dashboard"),
+    ]);
+    const authUser = data.session?.user || null;
+    const githubIdentity = authUser?.identities?.find((identity) => identity.provider === "github");
+    const user = authUser ? {
+      ...authUser,
+      displayName: authUser.user_metadata?.full_name || authUser.user_metadata?.name || authUser.email?.split("@")[0] || "COVAL member",
+      avatarUrl: authUser.user_metadata?.avatar_url || "",
+      githubLogin: githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || authUser.user_metadata?.user_name || "",
+      githubConnected: Boolean(githubIdentity || authUser.app_metadata?.providers?.includes("github")),
+    } : null;
+    return { result, user };
   }, []);
 
   const refresh = useCallback(async () => {
@@ -105,7 +110,11 @@ export function DashboardDataProvider({ children }) {
     refreshEvaluation();
     window.addEventListener("coval-auth-ready", refreshEvaluation);
     window.addEventListener("coval-auth-change", refreshEvaluation);
-    return () => { active = false; };
+    return () => {
+      active = false;
+      window.removeEventListener("coval-auth-ready", refreshEvaluation);
+      window.removeEventListener("coval-auth-change", refreshEvaluation);
+    };
   }, [loadCodeEvaluation]);
 
   const value = useMemo(() => ({

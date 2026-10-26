@@ -234,7 +234,7 @@ async function getDashboardFromGitHub(primaryLoginOverride = "", userToken = "",
 
   const pullRows = repoData.flatMap(({ repo, pulls }) => pulls.map((pull) => ({ repo, pull })));
   const recentPulls = pullRows.sort((a, b) => new Date(b.pull.updated_at) - new Date(a.pull.updated_at)).slice(0, 100);
-  recentPulls.forEach(({ repo, pull }) => {
+  recentPulls.forEach(({ repo: _repo, pull }) => {
     if (pull.user?.login && peopleMap.has(pull.user.login)) {
       const author = peopleMap.get(pull.user.login);
       if (pull.merged_at) author.prs += 1;

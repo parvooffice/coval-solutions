@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import DashboardShell from "../components/dashboard-shell";
 import AuthGate from "./auth-gate";

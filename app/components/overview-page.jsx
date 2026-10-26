@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import Icon from "./dashboard-icon";
 import { Avatar, AvatarStack, MetricCard } from "./ui";
@@ -43,7 +41,7 @@ export default function OverviewPage({ navigate, notify, onConnectGitHub }) {
   const profileContributionCount = dashboard.primaryProfile ? contributions.total || 0 : metrics.contributions || 0;
 
   if (!dashboard.primaryProfile) {
-    const accountName = currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.email?.split("@")[0] || "there";
+    const accountName = currentUser?.displayName || currentUser?.email?.split("@")[0] || "there";
     return <>
       <header className="overview-greeting-section">
         <div className="overview-greeting-text"><span className="eyebrow">COVAL COMMUNITY</span><h1 className="overview-heading">Welcome, {accountName.split(" ")[0]}</h1><p className="overview-subtext">Browse COVAL members, connect with people, and build your network tree. Connect GitHub to add your own repositories and contribution data.</p></div>

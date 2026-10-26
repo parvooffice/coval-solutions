@@ -1,0 +1,14 @@
+FROM python:3.12-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY analyzer_service/requirements.txt ./analyzer_service/requirements.txt
+RUN pip install --no-cache-dir -r analyzer_service/requirements.txt
+COPY analyzer_service ./analyzer_service
+COPY scripts ./scripts
+COPY documentation ./documentation
+COPY modularity ./modularity
+COPY security ./security
+COPY error-handling ./error-handling
+ENV PYTHONPATH=/app/security/src
+EXPOSE 8000
+CMD ["uvicorn", "analyzer_service.app:app", "--host", "0.0.0.0", "--port", "8000"]

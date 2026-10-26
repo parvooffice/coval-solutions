@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useState } from "react";
 import Icon from "./dashboard-icon";
 import { Avatar, AvatarStack, PageHeading } from "./ui";

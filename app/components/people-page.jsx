@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import Icon from "./dashboard-icon";
 import { Avatar, MetricCard, PageHeading } from "./ui";
@@ -96,9 +94,6 @@ export default function PeoplePage({ navigate, notify }) {
         avatar: member.avatar,
         url: member.githubLogin ? `https://github.com/${member.githubLogin}` : "",
         role: member.githubLogin ? "COVAL member" : "Community member",
-        location: "",
-        company: "",
-        bio: "",
         color: "mint",
         commits: member.publicStats?.commits ?? null,
         prs: member.publicStats?.pullRequests ?? null,

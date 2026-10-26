@@ -198,7 +198,7 @@ def download_repository_archive(target: dict[str, str], destination: Path, env: 
 
 
 def run_remote_targets(urls: list[str]) -> dict:
-    """Run the existing analyzers against downloaded GitHub source in Vercel /tmp."""
+    """Run the existing analyzers against downloaded GitHub source in a temp directory."""
     if not isinstance(urls, list) or any(not isinstance(value, str) for value in urls):
         raise ValueError("Submit repository URLs as a list of strings.")
     targets = read_targets(urls)
@@ -219,7 +219,7 @@ def run_remote_targets(urls: list[str]) -> dict:
 
     results = []
     for target in targets:
-        with tempfile.TemporaryDirectory(prefix="coval-vercel-evaluation-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="coval-repository-evaluation-") as temporary:
             work_dir = Path(temporary)
             workspace = download_repository_archive(target, work_dir, env)
             analyzed_target = {

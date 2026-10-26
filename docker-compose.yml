@@ -1,0 +1,38 @@
+services:
+  analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile.analyzer
+    restart: unless-stopped
+    environment:
+      CODE_EVALUATION_FUNCTION_SECRET: ${CODE_EVALUATION_FUNCTION_SECRET:?Set CODE_EVALUATION_FUNCTION_SECRET in .env}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set NEXT_PUBLIC_SUPABASE_URL in .env}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env}
+    restart: unless-stopped
+    depends_on:
+      analyzer:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set NEXT_PUBLIC_SUPABASE_URL in .env}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env}
+      SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Set NEXT_PUBLIC_SUPABASE_URL in .env}
+      SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?Set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      CODE_EVALUATION_API_URL: http://analyzer:8000/api/code-evaluation-python
+      CODE_EVALUATION_FUNCTION_SECRET: ${CODE_EVALUATION_FUNCTION_SECRET:?Set CODE_EVALUATION_FUNCTION_SECRET in .env}
+    ports:
+      - "3000:3001"

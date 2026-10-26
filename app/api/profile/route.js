@@ -1,6 +1,6 @@
-import { apiError, requireUser, supabaseRest } from "../../lib/server/auth";
-import { hasValidPublicSignature } from "../../lib/server/evaluation-sharing";
-import { getGitHubErrorStatus, getGitHubProfile } from "../../lib/server/github";
+import { apiError, requireUser, supabaseRest } from "../../lib/server/auth.js";
+import { hasValidPublicSignature } from "../../lib/server/evaluation-sharing.js";
+import { getGitHubErrorStatus, getGitHubProfile } from "../../lib/server/github.js";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const defaultVisibility = { contributions: true, repositories: true, activity: true, evaluations: true };
@@ -13,7 +13,7 @@ function profileSettings(member = {}) {
     bio: member.profile_bio || "",
     location: member.profile_location || "",
     company: member.profile_company || "",
-    bannerUrl: member.profile_banner_path ? `${(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "")}/storage/v1/object/public/coval-profile-banners/${member.profile_banner_path}` : "",
+    bannerUrl: member.profile_banner_path ? `/api/profile/banner/${member.profile_banner_path}` : "",
     profileVisibility: Object.fromEntries(Object.keys(defaultVisibility).map((key) => [key, visibility[key] !== false])),
     featuredRepositories: Array.isArray(member.featured_repositories) ? member.featured_repositories : null,
   };

@@ -779,6 +779,7 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
 .backend-status-banner strong { font-size: 12px; }
 .backend-status-banner p { margin: 4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .backend-status-banner code { font-family: var(--font-mono); }
+.login-page-frame { position: fixed; inset: 0; display: block; width: 100%; height: 100dvh; border: 0; background: #080b10; }
 .backend-loading { margin: 0 0 12px; color: var(--muted); font-size: 10px; }
 .sidebar-empty { margin: 7px 9px; color: var(--subtle); font-size: 9px; line-height: 1.5; }
 .search-result.selected { background: var(--surface-2); color: var(--text); }

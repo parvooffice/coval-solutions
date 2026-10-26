@@ -1,5 +1,5 @@
-import { requireUser, apiError } from "../../lib/server/auth";
-import { getDashboardData, getGitHubErrorStatus } from "../../lib/server/github";
+import { requireUser, apiError } from "../../lib/server/auth.js";
+import { getDashboardData, getGitHubErrorStatus } from "../../lib/server/github.js";
 
 export async function GET(request) {
   try {

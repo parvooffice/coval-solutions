@@ -3,12 +3,10 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
-import { apiError, requireUser, supabaseRest } from "../../lib/server/auth";
-import { hasValidPublicSignature, signPublicReport } from "../../lib/server/evaluation-sharing";
+import { apiError, requireUser, supabaseRest } from "../../lib/server/auth.js";
+import { hasValidPublicSignature, signPublicReport } from "../../lib/server/evaluation-sharing.js";
 
-export const maxDuration = 300;
-
-const ROOT = process.cwd();
+const ROOT = path.resolve(process.cwd());
 const REPORT_FILE = path.join(ROOT, "app", "data", "code-evaluation.json");
 const execFileAsync = promisify(execFile);
 const MAX_TARGETS = 5;
@@ -50,7 +48,7 @@ async function runAnalyzers(urls, localWorkspace = false) {
       ];
       if (localWorkspace) args.push("--local-workspace");
       else args.push("--targets-json", JSON.stringify(urls));
-      await execFileAsync(process.env.PYTHON_EXECUTABLE || "python", args, { cwd: ROOT, env: process.env, timeout: 285_000, maxBuffer: 10 * 1024 * 1024 });
+      await execFileAsync(process.env.CODE_EVALUATION_PYTHON || "python", args, { cwd: ROOT, env: process.env, timeout: 285_000, maxBuffer: 10 * 1024 * 1024 });
       const bundle = JSON.parse(await readFile(outputPath, "utf8"));
       bundle.urlFile = "submitted repository URLs";
       for (const target of bundle.targets || []) {
@@ -68,14 +66,14 @@ async function runAnalyzers(urls, localWorkspace = false) {
   const endpoint = process.env.CODE_EVALUATION_API_URL?.trim();
   const secret = process.env.CODE_EVALUATION_FUNCTION_SECRET?.trim();
   if (!endpoint || !secret) {
-    throw Object.assign(new Error("Code evaluation is not configured. Set CODE_EVALUATION_API_URL and CODE_EVALUATION_FUNCTION_SECRET in the Vercel frontend project."), { status: 503 });
+    throw Object.assign(new Error("Code evaluation is not configured. Set CODE_EVALUATION_API_URL and CODE_EVALUATION_FUNCTION_SECRET for the Express and Python services."), { status: 503 });
   }
 
   let url;
   try { url = new URL(endpoint); }
-  catch { throw Object.assign(new Error("CODE_EVALUATION_API_URL must be a valid HTTPS URL."), { status: 503 }); }
-  if (url.protocol !== "https:") {
-    throw Object.assign(new Error("CODE_EVALUATION_API_URL must use HTTPS."), { status: 503 });
+  catch { throw Object.assign(new Error("CODE_EVALUATION_API_URL must be a valid HTTP or HTTPS URL."), { status: 503 }); }
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1", "analyzer"].includes(url.hostname))) {
+    throw Object.assign(new Error("Use HTTPS for a remote analyzer, or an internal HTTP URL for local Docker services."), { status: 503 });
   }
 
   let response;
@@ -91,12 +89,12 @@ async function runAnalyzers(urls, localWorkspace = false) {
       signal: AbortSignal.timeout(285_000),
     });
   } catch (error) {
-    throw Object.assign(new Error(error?.name === "TimeoutError" ? "Code evaluation exceeded the Vercel function time limit. Try fewer or smaller repositories." : "COVAL could not reach the Vercel code evaluation service."), { status: 504 });
+    throw Object.assign(new Error(error?.name === "TimeoutError" ? "Code evaluation exceeded the analyzer time limit. Try fewer or smaller repositories." : "COVAL could not reach the Python analyzer service."), { status: 504 });
   }
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw Object.assign(new Error(payload.error || `The code evaluation service returned ${response.status}.`), { status: response.status >= 500 ? 502 : response.status });
+    throw Object.assign(new Error(payload.error || payload.detail || `The Python analyzer returned ${response.status}.`), { status: response.status >= 500 ? 502 : response.status });
   }
   const bundle = payload.report || payload;
   bundle.urlFile = "submitted repository URLs";

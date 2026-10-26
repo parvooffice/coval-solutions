@@ -1,4 +1,4 @@
-import { apiError, requireUser } from "../../lib/server/auth";
+import { apiError, requireUser } from "../../lib/server/auth.js";
 
 export async function GET(request) {
   try {

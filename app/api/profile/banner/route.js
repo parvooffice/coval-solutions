@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { apiError, requireUser, supabaseRest } from "../../../lib/server/auth";
+import { apiError, requireUser, supabaseRest } from "../../../lib/server/auth.js";
 
 const bucket = "coval-profile-banners";
 const maxFileSize = 5 * 1024 * 1024;

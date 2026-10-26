@@ -1,0 +1,12 @@
+node_modules
+.git
+.env
+.env.*
+!.env.example
+app/dist
+.next
+.vercel
+coverage
+**/__pycache__
+**/*.py[cod]
+**/reports/*.json

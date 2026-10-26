@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import Icon from "./dashboard-icon";
 import { Avatar, PageHeading } from "./ui";
@@ -62,9 +60,9 @@ export default function NetworkPage({ navigate, notify }) {
   const visiblePeople = useMemo(() => connectedPeople.filter((person) => person.showInNetwork), [connectedPeople]);
   const self = {
     id: currentUser?.id || "me",
-    name: dashboard.primaryProfile?.name || currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.email?.split("@")[0] || "You",
-    initials: initials(dashboard.primaryProfile?.name || currentUser?.user_metadata?.full_name || currentUser?.email || "You"),
-    avatar: dashboard.primaryProfile?.avatar || currentUser?.user_metadata?.avatar_url || "",
+    name: dashboard.primaryProfile?.name || currentUser?.displayName || currentUser?.email?.split("@")[0] || "You",
+    initials: initials(dashboard.primaryProfile?.name || currentUser?.displayName || currentUser?.email || "You"),
+    avatar: dashboard.primaryProfile?.avatar || currentUser?.avatarUrl || "",
     login: dashboard.primaryProfile?.login || "",
   };
   const points = useMemo(() => [[50, 53], ...visiblePeople.map((_, index) => position(index, visiblePeople.length))], [visiblePeople]);

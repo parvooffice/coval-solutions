@@ -523,7 +523,6 @@
       .curtain, .login-shell { transition-duration: .01ms !important; }
     }
   </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     .oauth-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
     .oauth-button{display:flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:10px 12px;border:1px solid var(--line,rgba(255,255,255,.18));border-radius:8px;background:var(--surface-2,rgba(255,255,255,.04));color:var(--fg,inherit);font:inherit;font-size:12px;cursor:pointer;transition:background .2s,border-color .2s}
@@ -547,32 +546,9 @@
       </div>
       <p class="eyebrow">Sign in</p>
       <h1 id="login-title">Welcome back.</h1>
-      <p class="intro-copy">Your workspace is ready when you are. Sign in to continue to the Coval environment.</p>
+      <p class="intro-copy">Sign in securely with your Google or GitHub account to continue.</p>
 
-      <form id="login-form">
-        <label class="field">
-          <span class="field-label">Username</span>
-          <span class="input-wrap">
-            <input id="username" name="username" type="text" value="coval.dev.architect" autocomplete="username" spellcheck="false" required aria-label="Username">
-            <svg class="input-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="6.2" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M4.4 16c.5-2.5 2.4-3.8 5.6-3.8s5.1 1.3 5.6 3.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-          </span>
-        </label>
-        <label class="field">
-          <span class="field-label">Password</span>
-          <span class="input-wrap">
-            <input id="password" name="password" type="password" value="coval-access-26" autocomplete="current-password" required aria-label="Passphrase">
-            <svg class="input-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="4.2" y="8.5" width="11.6" height="8.2" rx="1.6" stroke="currentColor" stroke-width="1.3"/><path d="M6.7 8.5V6.2a3.3 3.3 0 0 1 6.6 0v2.3" stroke="currentColor" stroke-width="1.3"/><circle cx="10" cy="12.5" r=".8" fill="currentColor"/></svg>
-          </span>
-        </label>
-        <div class="form-meta">
-          <span class="secure"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.8 13 4v3.7c0 3-2 5.2-5 6.5-3-1.3-5-3.5-5-6.5V4l5-2.2Z" stroke="currentColor" stroke-width="1.2"/><path d="m5.7 7.8 1.5 1.5 3.2-3.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> ENCRYPTED SESSION</span>
-          <a class="reset" href="#" id="reset-link">Forgot password?</a>
-        </div>
-        <button class="access-button" type="submit">
-          <span>Sign in</span>
-          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h9M8 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </form>
+      <form id="login-form" aria-label="Sign in with Google or GitHub"></form>
     </section>
 
     <div class="curtain" id="curtain" aria-label="COVAL Solutions">
@@ -661,7 +637,7 @@
         body.classList.add("revealed");
         announcement.textContent = "Sign in revealed.";
         pointer.active = false;
-        window.setTimeout(() => { if (revealed) document.getElementById("username").focus({ preventScroll: true }); }, 1200);
+        window.setTimeout(() => { if (revealed) form.querySelector("button")?.focus({ preventScroll: true }); }, 1200);
       }
 
       function returnToFront() {
@@ -811,21 +787,22 @@
       }
       requestAnimationFrame(animate);
 
-      const supabaseConfig = new URLSearchParams(window.location.search);
-      const supabase = window.supabase.createClient(
-        supabaseConfig.get("supabaseUrl") || "https://zriirrxmkfggyhoagtov.supabase.co",
-        supabaseConfig.get("supabaseKey") || "sb_publishable_-LR8TY6q0UfmOevgRmDzWA_VJqck38C"
-      );
+      const supabase = window.parent?.covalSupabase || null;
       const oauthRow = document.createElement("div");
       oauthRow.className = "oauth-row";
       oauthRow.innerHTML = '<button class="oauth-button" type="button" data-provider="google"><span aria-hidden="true">G</span> Continue with Google</button><button class="oauth-button" type="button" data-provider="github"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.56.1.76-.24.76-.54v-2.1c-3.1.68-3.76-1.32-3.76-1.32-.5-1.3-1.24-1.65-1.24-1.65-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15 1 1.7 2.62 1.21 3.26.93.1-.72.39-1.21.71-1.49-2.47-.28-5.07-1.24-5.07-5.5 0-1.22.44-2.21 1.15-2.99-.12-.28-.5-1.42.11-2.95 0 0 .94-.3 3.05 1.14a10.6 10.6 0 0 1 5.55 0c2.11-1.44 3.05-1.14 3.05-1.14.61 1.53.23 2.67.11 2.95.72.78 1.15 1.77 1.15 2.99 0 4.27-2.6 5.22-5.08 5.49.4.35.76 1.02.76 2.06v3.06c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z"/></svg> Continue with GitHub</button>';
       form.appendChild(oauthRow);
       const oauthNote = document.createElement("p");
       oauthNote.className = "oauth-note";
-      oauthNote.textContent = "SECURE SIGN-IN · GOOGLE OR GITHUB";
+      oauthNote.textContent = supabase ? "SECURE SIGN-IN · GOOGLE OR GITHUB" : "SUPABASE SIGN-IN IS NOT CONFIGURED";
       form.appendChild(oauthNote);
+      const loginError = new URLSearchParams(window.location.search).get("error");
+      if (loginError) {
+        toast.textContent = "SIGN-IN ERROR · " + loginError;
+        toast.classList.add("visible");
+      }
       oauthRow.querySelectorAll("[data-provider]").forEach(button => {
-        button.addEventListener("click", async () => {
+        button.addEventListener("click", () => {
           const provider = button.dataset.provider;
           oauthRow.querySelectorAll("button").forEach(item => {
             item.disabled = true;
@@ -833,29 +810,26 @@
           toast.textContent = "CONNECTING TO " + provider.toUpperCase() + "…";
           toast.classList.add("visible");
 
-          try {
-            const { data, error } = await supabase.auth.signInWithOAuth({
-              provider,
-              options: {
-                redirectTo: `${window.location.origin}/dashboard`,
-                ...(provider === "github" ? { scopes: "read:user user:email" } : {}),
-                skipBrowserRedirect: true
-              }
-            });
-
-            if (error) throw error;
-            if (!data?.url) {
-              throw new Error("Authorization URL was not returned.");
-            }
-
-            // Start OAuth in the top-level window, not inside the homepage iframe.
-            window.top.location.assign(data.url);
-          } catch (error) {
-            toast.textContent = "SIGN-IN ERROR · " + error.message;
-            oauthRow.querySelectorAll("button").forEach(item => {
-              item.disabled = false;
-            });
+          if (!supabase) {
+            toast.textContent = "SIGN-IN ERROR · ADD THE SUPABASE URL AND PUBLISHABLE KEY TO .env.";
+            oauthRow.querySelectorAll("button").forEach(item => { item.disabled = false; });
+            return;
           }
+          supabase.auth.signInWithOAuth({
+            provider,
+            options: {
+              redirectTo: `${window.location.origin}/dashboard`,
+              ...(provider === "github" ? { scopes: "read:user user:email" } : {}),
+              skipBrowserRedirect: true
+            }
+          }).then(({ data, error }) => {
+            if (error) throw error;
+            if (!data?.url) throw new Error("Authorization URL was not returned.");
+            window.top.location.assign(data.url);
+          }).catch(error => {
+            toast.textContent = "SIGN-IN ERROR · " + error.message;
+            oauthRow.querySelectorAll("button").forEach(item => { item.disabled = false; });
+          });
         });
       });
       form.addEventListener("submit", event => {
@@ -866,13 +840,6 @@
         toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 3500);
       });
 
-      document.getElementById("reset-link").addEventListener("click", event => {
-        event.preventDefault();
-        toast.textContent = "PASSWORD RESET IS MANAGED BY YOUR COVAL WORKSPACE ADMINISTRATOR.";
-        toast.classList.add("visible");
-        window.clearTimeout(toastTimer);
-        toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 3500);
-      });
     })();
   </script>
   <script>

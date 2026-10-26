@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, useState } from "react";
 import Icon from "./dashboard-icon";
 import { PageHeading } from "./ui";
@@ -30,7 +28,7 @@ export default function CodeEvaluationPage() {
   const [runError, setRunError] = useState("");
   const fileInput = useRef(null);
   const targets = codeEvaluation?.targets || [];
-  const localWorkspaceAvailable = process.env.NODE_ENV === "development";
+  const localWorkspaceAvailable = import.meta.env.DEV;
 
   function importWorkspaceRepositories() {
     const allLoadedUrls = [...new Set(projects.map((project) => project.url).filter((url) => url?.startsWith("https://github.com/")))];

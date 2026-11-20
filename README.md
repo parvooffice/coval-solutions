@@ -48,6 +48,10 @@ Readability (`readability/`) scores function size, nesting, branching complexity
 
 Repositories are downloaded to temporary directories and removed after scoring. The analyzers do not modify remote repositories. Private analysis requires a server-side `GITHUB_TOKEN` with read access to the target repositories. Private results cannot be shared.
 
+## Vercel
+
+`vercel.json` builds the Vite client into `app/dist` and serves every `/api/*` request from `api/index.js`, which runs the same Express app as `npm start` (`server/app.js`). In the Vercel project, set the Supabase URL and publishable key, `CODE_EVALUATION_API_URL` pointing at the hosted Python analyzer, and `CODE_EVALUATION_FUNCTION_SECRET`. The Python analyzer does not run on Vercel; host it separately (for example with `Dockerfile.analyzer`).
+
 ## Docker Compose
 
 Copy `.env.example` to `.env`, configure Supabase and the analyzer secret, then run `docker compose up --build`. Compose builds the client using the public Supabase URL and publishable key, runs Express and FastAPI, and publishes the web app on port 3000. Supabase remains the authentication provider, database, and file storage.

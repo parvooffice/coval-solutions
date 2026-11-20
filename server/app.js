@@ -17,6 +17,8 @@ import * as messages from "../app/api/messages/route.js";
 import * as notifications from "../app/api/notifications/route.js";
 import * as reportChat from "../app/api/report-chat/route.js";
 import * as teams from "../app/api/teams/route.js";
+import * as billing from "../app/api/billing/route.js";
+import * as billingWebhook from "../app/api/billing/webhook/route.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 process.env.NODE_ENV ||= "production";
@@ -35,6 +37,8 @@ const apiRoutes = [
   ["/api/notifications", notifications],
   ["/api/report-chat", reportChat],
   ["/api/teams", teams],
+  ["/api/billing", billing],
+  ["/api/billing/webhook", billingWebhook],
 ];
 
 const supabaseConfigured = Boolean(

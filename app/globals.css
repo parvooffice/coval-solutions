@@ -1129,3 +1129,32 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
   .team-member-actions { width: 100%; margin-left: 0; }
   .team-invites, .team-create-card, .team-header, .team-agents, .team-members { padding: 14px; }
 }
+
+/* Plan & billing */
+.billing-current, .billing-usage, .billing-compare { display: grid; gap: 12px; margin-bottom: 16px; padding: 18px 20px; }
+.billing-current { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.billing-current h2 { display: flex; align-items: center; gap: 10px; margin: 4px 0 2px; font-size: 24px; }
+.billing-current p { margin: 0; color: var(--muted); font-size: 13px; }
+.billing-badge { padding: 3px 9px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.billing-actions { display: grid; justify-items: end; gap: 6px; }
+.billing-actions small { color: var(--muted); font-size: 12px; }
+.billing-meters { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.billing-meter { display: grid; gap: 7px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.billing-meter > div:first-child { display: flex; justify-content: space-between; font-size: 13px; }
+.billing-meter strong { font-size: 15px; }
+.billing-meter small { color: var(--muted); font-size: 12px; }
+.billing-meter-track { height: 8px; overflow: hidden; border-radius: 99px; background: var(--surface-3); }
+.billing-meter-track span { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .4s ease; }
+.billing-meter-track span.is-high { background: #d97706; }
+.billing-meter-track span.is-full { background: #dc2626; }
+.billing-meter-track span[data-unlimited] { background: repeating-linear-gradient(90deg, var(--accent) 0 10px, color-mix(in srgb, var(--accent) 60%, transparent) 10px 20px); }
+.billing-compare table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.billing-compare th, .billing-compare td { padding: 10px 8px; border-top: 1px solid var(--border); text-align: left; }
+.billing-compare thead th { border-top: 0; color: var(--subtle); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
+.billing-compare tbody th { font-weight: 600; }
+.billing-compare td:last-child { color: var(--accent); font-weight: 700; }
+@media (max-width: 700px) {
+  .billing-current { grid-template-columns: minmax(0, 1fr); }
+  .billing-actions { justify-items: stretch; }
+  .billing-current, .billing-usage, .billing-compare { padding: 14px; }
+}

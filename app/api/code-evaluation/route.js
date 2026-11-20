@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { apiError, requireUser, supabaseRest } from "../../lib/server/auth.js";
 import { hasValidPublicSignature, signPublicReport } from "../../lib/server/evaluation-sharing.js";
+import { consumeQuota } from "../../lib/server/billing.js";
 
 const ROOT = path.resolve(process.cwd());
 const REPORT_FILE = path.join(ROOT, "app", "data", "code-evaluation.json");
@@ -205,6 +206,7 @@ export async function POST(request) {
     if (urls.length > MAX_TARGETS) throw Object.assign(new Error(`Evaluate up to ${MAX_TARGETS} repositories per run.`), { status: 400 });
 
     if (isPublic) await assertPublicRepositories(urls);
+    if (!localWorkspace) await consumeQuota(user, "evaluation");
 
     const previous = await readSavedEvaluation(user);
     const analyzedReport = await runAnalyzers(urls, localWorkspace);

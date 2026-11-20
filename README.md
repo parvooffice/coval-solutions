@@ -38,6 +38,7 @@ In the Supabase SQL Editor, apply these migrations in filename order:
 - [`202610260001_coval_public_profiles.sql`](./supabase/migrations/202610260001_coval_public_profiles.sql) — editable profile details, featured repositories, and section visibility.
 - [`202610260002_coval_profile_banners.sql`](./supabase/migrations/202610260002_coval_profile_banners.sql) — the Supabase Storage bucket and scoped banner upload policies.
 - [`202611200001_coval_teams.sql`](./supabase/migrations/202611200001_coval_teams.sql) — teams, admin invites, team-admin access to member evaluations, and team-wide agent averages.
+- [`202611200002_coval_billing.sql`](./supabase/migrations/202611200002_coval_billing.sql) — Free and Pro plans, monthly usage limits, and signed plan updates. After applying it, store your `COVAL_BILLING_SIGNING_SECRET` with the `insert` shown at the top of the file.
 
 Existing Supabase accounts and records stay in place. Apply any application migrations above that have not already been applied to your project.
 
@@ -58,6 +59,17 @@ COVAL deploys from this repository to two Vercel projects that share `vercel.jso
 
 In the web app project, set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`, default `gpt-4o-mini`) for the report assistant, the Supabase URL and publishable key, `CODE_EVALUATION_API_URL` to the agents project's `https://<agents-domain>/api/code-evaluation-python`, and `CODE_EVALUATION_FUNCTION_SECRET`. Set the same `CODE_EVALUATION_FUNCTION_SECRET` in the agents project. Both functions allow up to 300 seconds per run.
 
+## Plans and payments (Razorpay)
+
+Free accounts get 5 evaluation runs and 10 report-assistant questions per month and can join teams. COVAL Pro adds unlimited runs, 300 assistant questions, and creating teams. Limits are enforced in Supabase.
+
+1. In Razorpay, create a monthly **Plan** with your Pro price and copy its plan ID.
+2. Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_PLAN_ID`, `RAZORPAY_WEBHOOK_SECRET`, and a random 32+ character `COVAL_BILLING_SIGNING_SECRET` in the web app's environment.
+3. Apply the billing migration and store the same signing secret in `coval_billing_config`.
+4. In Razorpay **Webhooks**, add `https://<web-domain>/api/billing/webhook` with the webhook secret and the `subscription.authenticated`, `activated`, `charged`, `pending`, `halted`, `cancelled`, and `completed` events.
+
+The app has no Supabase service-role key, so the server signs every plan change and the database verifies the signature before storing it. Use Razorpay test mode keys until you are ready to charge.
+
 ## Docker Compose
 
 Copy `.env.example` to `.env`, configure Supabase and the analyzer secret, then run `docker compose up --build`. Compose builds the client using the public Supabase URL and publishable key, runs Express and FastAPI, and publishes the web app on port 3000. Supabase remains the authentication provider, database, and file storage.
@@ -74,4 +86,5 @@ See [`.env.example`](./.env.example). The Supabase URL and publishable key are i
 - `GET /api/code-evaluation` loads saved results; `POST /api/code-evaluation` runs and stores an evaluation.
 - `GET /api/health` reports Express and Supabase configuration status.
 - `GET /api/teams` and `POST /api/teams` list teams and pending invites, and create teams, invite members, accept or decline invites, change roles, and remove members. Admins receive each active member's score summary; members receive only team-wide averages.
+- `GET /api/billing` returns the plan and monthly usage; `POST /api/billing` starts a Razorpay subscription, verifies checkout, or cancels at the end of the period. `POST /api/billing/webhook` receives Razorpay subscription events.
 - `POST /api/report-chat` answers questions about the signed-in member's saved reports. It retrieves the relevant report passages and sends only those to OpenAI; `OPENAI_API_KEY` stays on the server.

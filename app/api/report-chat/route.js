@@ -1,6 +1,7 @@
 import { apiError, requireUser } from "../../lib/server/auth.js";
 import { reportPassages, retrieve } from "../../lib/server/report-retrieval.js";
 import { readSavedEvaluation } from "../code-evaluation/route.js";
+import { consumeQuota } from "../../lib/server/billing.js";
 
 const MAX_QUESTION = 1_000;
 const MAX_HISTORY = 6;
@@ -39,6 +40,7 @@ export async function POST(request) {
     const passages = reportPassages(report, targetUrl);
     if (!passages.length) throw Object.assign(new Error("Score a repository first, then ask about its results."), { status: 400 });
     const context = retrieve(passages, question);
+    await consumeQuota(user, "assistant");
 
     let response;
     try {

@@ -13,6 +13,7 @@ const navItems = [
   { id: "projects", label: "Projects", icon: "folder" },
   { id: "network", label: "Network", icon: "network" },
   { id: "teams", label: "Teams", icon: "briefcase" },
+  { id: "billing", label: "Plan", icon: "star" },
   { id: "activity", label: "Activity", icon: "activity" },
   { id: "chat", label: "Messages", icon: "message" },
 ];

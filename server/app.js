@@ -15,6 +15,7 @@ import * as connections from "../app/api/connections/route.js";
 import * as conversations from "../app/api/conversations/route.js";
 import * as messages from "../app/api/messages/route.js";
 import * as notifications from "../app/api/notifications/route.js";
+import * as reportChat from "../app/api/report-chat/route.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 process.env.NODE_ENV ||= "production";
@@ -31,6 +32,7 @@ const apiRoutes = [
   ["/api/conversations", conversations],
   ["/api/messages", messages],
   ["/api/notifications", notifications],
+  ["/api/report-chat", reportChat],
 ];
 
 const supabaseConfigured = Boolean(

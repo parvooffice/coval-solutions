@@ -55,7 +55,7 @@ COVAL deploys from this repository to two Vercel projects that share `vercel.jso
 - **Web app** builds the Vite client into `app/dist` and serves `/api/*` from `api/index.js`, which runs the same Express app as `npm start` (`server/app.js`).
 - **Code-review agents** run in `api/code-evaluation-python.py`, a Python function that executes all ten agents (Documentation, Modularity, Security, Error handling, Readability, Test coverage, Performance, Maintainability, Scalability, Standards compliance) on their own in the cloud.
 
-In the web app project, set the Supabase URL and publishable key, `CODE_EVALUATION_API_URL` to the agents project's `https://<agents-domain>/api/code-evaluation-python`, and `CODE_EVALUATION_FUNCTION_SECRET`. Set the same `CODE_EVALUATION_FUNCTION_SECRET` in the agents project. Both functions allow up to 300 seconds per run.
+In the web app project, set `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`, default `gpt-4o-mini`) for the report assistant, the Supabase URL and publishable key, `CODE_EVALUATION_API_URL` to the agents project's `https://<agents-domain>/api/code-evaluation-python`, and `CODE_EVALUATION_FUNCTION_SECRET`. Set the same `CODE_EVALUATION_FUNCTION_SECRET` in the agents project. Both functions allow up to 300 seconds per run.
 
 ## Docker Compose
 
@@ -72,3 +72,4 @@ See [`.env.example`](./.env.example). The Supabase URL and publishable key are i
 - `/api/connections`, `/api/notifications`, `/api/conversations`, and `/api/messages` serve Supabase-backed community features.
 - `GET /api/code-evaluation` loads saved results; `POST /api/code-evaluation` runs and stores an evaluation.
 - `GET /api/health` reports Express and Supabase configuration status.
+- `POST /api/report-chat` answers questions about the signed-in member's saved reports. It retrieves the relevant report passages and sends only those to OpenAI; `OPENAI_API_KEY` stays on the server.

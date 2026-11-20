@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import Icon from "./dashboard-icon";
 import { PageHeading } from "./ui";
 import { EvaluationTarget, RunProgress } from "./evaluation-report";
+import ReportChat from "./report-chat";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { apiRequest } from "../lib/client-api";
 
@@ -195,6 +196,7 @@ export default function CodeEvaluationPage() {
     </form>
 
     {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>{localWorkspaceAvailable ? "Score this local workspace or add GitHub URLs to run all ten agents. Results are saved to this development checkout." : "Add GitHub URLs above and run all ten agents to generate scores."}</p></div>}
+    {targets.length > 0 && <ReportChat targets={targets} />}
     <div className="evaluation-target-list">
       {targets.map((target) => <EvaluationTarget
         key={`${target.input}-${target.name}`}

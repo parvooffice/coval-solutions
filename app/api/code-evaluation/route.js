@@ -104,7 +104,7 @@ async function runAnalyzers(urls, localWorkspace = false) {
   return bundle;
 }
 
-async function readSavedEvaluation(user) {
+export async function readSavedEvaluation(user) {
   if (user.token) {
     const rows = await supabaseRest(user, `coval_code_evaluations?select=report,is_public,github_login&user_id=eq.${encodeURIComponent(user.id)}&limit=1`);
     return { ...(rows?.[0]?.report || emptyEvaluation), isPublic: rows?.[0]?.is_public || false, publicEvaluations: [] };

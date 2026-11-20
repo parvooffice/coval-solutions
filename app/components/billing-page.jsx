@@ -113,6 +113,8 @@ export default function BillingPage({ notify }) {
 
   const isPro = summary?.plan === "pro";
   const cancelled = summary?.status === "cancelled";
+  // Early access hides upgrade and cancel, unless the member already has a paid subscription to manage.
+  const earlyAccess = Boolean(summary?.earlyAccess) && !summary?.subscriptionId;
   const periodEnd = summary?.currentPeriodEnd ? new Date(summary.currentPeriodEnd).toLocaleDateString() : "";
   const resets = summary?.resetsAt ? new Date(summary.resetsAt).toLocaleDateString() : "the 1st of next month";
 
@@ -124,11 +126,13 @@ export default function BillingPage({ notify }) {
       <div>
         <span className="eyebrow">CURRENT PLAN</span>
         <h2>{summary ? (isPro ? "COVAL Pro" : "Free") : "Loading…"} {isPro && <span className="billing-badge">PRO</span>}</h2>
-        <p>{isPro
-          ? cancelled ? `Cancelled. Pro stays active until ${periodEnd || "the end of this period"}.` : `Renews automatically${periodEnd ? ` on ${periodEnd}` : ""}.`
-          : `Usage resets on ${resets}.`}</p>
+        <p>{earlyAccess
+          ? "Early access: every Pro feature is free for all members while COVAL is in early access."
+          : isPro
+            ? cancelled ? `Cancelled. Pro stays active until ${periodEnd || "the end of this period"}.` : `Renews automatically${periodEnd ? ` on ${periodEnd}` : ""}.`
+            : `Usage resets on ${resets}.`}</p>
       </div>
-      {summary && <div className="billing-actions">
+      {summary && !earlyAccess && <div className="billing-actions">
         {(!isPro || cancelled) && <button type="button" className="button button-primary" onClick={upgrade} disabled={Boolean(busy) || !summary.signedIn || !summary.checkoutAvailable}><Icon name="star" size={15} /> {busy === "upgrade" ? "Opening checkout…" : cancelled ? "Resubscribe to Pro" : "Upgrade to Pro"}</button>}
         {isPro && !cancelled && <button type="button" className="button button-quiet team-danger" onClick={cancel} disabled={Boolean(busy)}>{busy === "cancel" ? "Cancelling…" : "Cancel subscription"}</button>}
         {!summary.signedIn && <small>Sign in to upgrade.</small>}

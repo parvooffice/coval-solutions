@@ -38,6 +38,7 @@ In the Supabase SQL Editor, apply these migrations in filename order:
 - [`202610260001_coval_public_profiles.sql`](./supabase/migrations/202610260001_coval_public_profiles.sql) — editable profile details, featured repositories, and section visibility.
 - [`202610260002_coval_profile_banners.sql`](./supabase/migrations/202610260002_coval_profile_banners.sql) — the Supabase Storage bucket and scoped banner upload policies.
 - [`202611200001_coval_teams.sql`](./supabase/migrations/202611200001_coval_teams.sql) — teams, admin invites, team-admin access to member evaluations, and team-wide agent averages.
+- [`202611200004_coval_early_access.sql`](./supabase/migrations/202611200004_coval_early_access.sql) — early access: every member gets Pro features until you switch the paywall on (instructions at the top of the file).
 - [`202611200003_coval_shared_reports.sql`](./supabase/migrations/202611200003_coval_shared_reports.sql) — public share links and README badges for public repositories.
 - [`202611200002_coval_billing.sql`](./supabase/migrations/202611200002_coval_billing.sql) — Free and Pro plans, monthly usage limits, and signed plan updates. After applying it, store your `COVAL_BILLING_SIGNING_SECRET` with the `insert` shown at the top of the file.
 

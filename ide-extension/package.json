@@ -1,0 +1,54 @@
+{
+  "name": "coval-code-review",
+  "displayName": "COVAL Code Review",
+  "description": "Run COVAL's code-review agents on your workspace and see scores and fixes right in VS Code.",
+  "version": "0.1.0",
+  "publisher": "coval",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": { "vscode": "^1.85.0", "node": ">=20" },
+  "categories": ["Linters", "Other"],
+  "main": "./extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "coval.scanWorkspace", "title": "COVAL: Score this workspace", "icon": "$(play)" },
+      { "command": "coval.clearFindings", "title": "COVAL: Clear findings", "icon": "$(clear-all)" },
+      { "command": "coval.openWebApp", "title": "COVAL: Open the full report in COVAL" }
+    ],
+    "viewsContainers": {
+      "activitybar": [{ "id": "coval", "title": "COVAL", "icon": "media/coval.svg" }]
+    },
+    "views": {
+      "coval": [{ "id": "coval.scores", "name": "Scores" }]
+    },
+    "viewsWelcome": [
+      { "view": "coval.scores", "contents": "Score this workspace with COVAL's code-review agents. Your code stays on this computer.\n[Score workspace](command:coval.scanWorkspace)" }
+    ],
+    "menus": {
+      "view/title": [
+        { "command": "coval.scanWorkspace", "when": "view == coval.scores", "group": "navigation" },
+        { "command": "coval.clearFindings", "when": "view == coval.scores", "group": "navigation" }
+      ]
+    },
+    "configuration": {
+      "title": "COVAL",
+      "properties": {
+        "coval.pythonPath": { "type": "string", "default": "python", "description": "Python 3.10+ used to run the agents (for example python3 or a full path)." },
+        "coval.agents": {
+          "type": "array",
+          "default": [],
+          "items": { "type": "string", "enum": ["readability", "test_coverage", "performance", "maintainability", "scalability", "standards"] },
+          "description": "Agents to run. Leave empty to run all six."
+        },
+        "coval.scanOnSave": { "type": "boolean", "default": false, "description": "Re-score the workspace after you save a file (at most once a minute)." },
+        "coval.webAppUrl": { "type": "string", "default": "https://coval-solutions-w92u.vercel.app/dashboard#code-evaluation", "description": "Where \"Open the full report\" goes." }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node --test test/agents.test.js",
+    "bundle-agents": "node scripts/bundle-agents.js",
+    "package": "npm run bundle-agents && npx --yes @vscode/vsce@3.2.1 package --no-dependencies --allow-missing-repository"
+  }
+}

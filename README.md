@@ -70,6 +70,10 @@ Free accounts get 5 evaluation runs and 10 report-assistant questions per month 
 
 The app has no Supabase service-role key, so the server signs every plan change and the database verifies the signature before storing it. Use Razorpay test mode keys until you are ready to charge.
 
+## VS Code extension
+
+[`ide-extension/`](./ide-extension/README.md) runs six of the agents (Readability, Test coverage, Performance, Maintainability, Scalability, Standards compliance) locally on the open folder and shows each fix as an inline warning, in the Problems panel, and in a COVAL scores view. Code never leaves the machine. Build it with `cd ide-extension && npm run package`, then install the `.vsix` from the Extensions view.
+
 ## Docker Compose
 
 Copy `.env.example` to `.env`, configure Supabase and the analyzer secret, then run `docker compose up --build`. Compose builds the client using the public Supabase URL and publishable key, runs Express and FastAPI, and publishes the web app on port 3000. Supabase remains the authentication provider, database, and file storage.

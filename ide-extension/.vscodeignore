@@ -1,0 +1,6 @@
+test/**
+scripts/**
+.vscode/**
+**/*.vsix
+**/__pycache__/**
+**/*.pyc

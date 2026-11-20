@@ -104,6 +104,11 @@ export async function consumeQuota(user, kind) {
     return await supabaseRest(user, "rpc/coval_consume_quota", { method: "POST", body: JSON.stringify({ usage_kind: kind }) });
   } catch (error) {
     if (/limit reached/i.test(error.message || "")) throw Object.assign(new Error(error.message), { status: 402 });
+    // Until the billing migration is applied the function does not exist; keep features working without limits.
+    if (error.status === 404 || /could not find the function/i.test(error.message || "")) {
+      console.warn("COVAL usage limits are off: apply supabase/migrations/202611200002_coval_billing.sql.");
+      return null;
+    }
     throw error;
   }
 }

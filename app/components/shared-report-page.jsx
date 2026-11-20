@@ -31,7 +31,7 @@ export default function SharedReportPage({ token }) {
 
   return <div className="shared-report">
     <header className="shared-report-bar">
-      <a href="/" className="shared-report-brand"><img src="/coval-logo-light.png" alt="" width="28" height="28" /> COVAL</a>
+      <a href="/" className="shared-report-brand"><img src="/coval-logo-dark.png" alt="" width="28" height="28" /> COVAL</a>
       <nav>
         <a href="/pricing.html">Pricing</a>
         <a href="/privacy.html">Privacy</a>

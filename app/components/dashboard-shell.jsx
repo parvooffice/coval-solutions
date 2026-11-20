@@ -9,13 +9,13 @@ import { apiRequest } from "../lib/client-api";
 const navItems = [
   { id: "overview", label: "Overview", icon: "grid", shortcut: "⌘1" },
   { id: "code-evaluation", label: "Code Evaluation", icon: "code" },
-  { id: "engineering", label: "People", icon: "users" },
-  { id: "projects", label: "Projects", icon: "folder" },
-  { id: "network", label: "Network", icon: "network" },
   { id: "teams", label: "Teams", icon: "briefcase" },
-  { id: "billing", label: "Plan", icon: "star" },
+  { id: "projects", label: "Projects", icon: "folder" },
   { id: "activity", label: "Activity", icon: "activity" },
+  { id: "engineering", label: "People", icon: "users" },
+  { id: "network", label: "Network", icon: "network" },
   { id: "chat", label: "Messages", icon: "message" },
+  { id: "billing", label: "Plan", icon: "star" },
 ];
 
 export default function DashboardShell({

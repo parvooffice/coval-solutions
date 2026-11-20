@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>COVAL Pricing</title>
+  <meta name="description" content="COVAL plans: score repositories with ten code-review agents for free, or go Pro for unlimited runs, AI fixes, and teams.">
+  <link rel="icon" href="/coval-logo-light.png">
+  <link rel="stylesheet" href="/site.css">
+</head>
+<body>
+  <header class="bar"><a class="brand" href="/"><img src="/coval-logo-dark.png" alt="" width="26" height="26"> COVAL</a><nav><a href="/report/sample">Sample report</a><a href="/privacy.html">Privacy</a><a class="cta" href="/">Sign in</a></nav></header>
+  <main>
+    <p class="eyebrow">PRICING</p>
+    <h1>Know exactly what to fix in your code.</h1>
+    <p class="lead">Ten automated review agents score every repository for quality, security, performance, and test coverage, then point to the file and line to fix. Start free; upgrade when you need more.</p>
+    <section class="plans">
+      <article class="plan">
+        <h2>Free</h2>
+        <p class="price">₹0</p>
+        <p class="tagline">For trying COVAL on your own projects.</p>
+        <ul>
+          <li>5 repository evaluations a month</li>
+          <li>All 10 review agents</li>
+          <li>Top fixes with file and line</li>
+          <li>10 AI questions and fix explanations a month</li>
+          <li>Public share links and README badge</li>
+          <li>Join teams you're invited to</li>
+          <li>VS Code extension</li>
+        </ul>
+        <a class="button" href="/">Start free</a>
+      </article>
+      <article class="plan featured">
+        <h2>Pro</h2>
+        <p class="price">Monthly</p>
+        <p class="tagline">For developers and leads who review code every week.</p>
+        <ul>
+          <li>Unlimited evaluations</li>
+          <li>300 AI questions and fix explanations a month</li>
+          <li>Create teams and see every member's scores</li>
+          <li>Score history and trends</li>
+          <li>Private repositories through the COVAL GitHub App</li>
+          <li>Pull request comments that flag new issues</li>
+        </ul>
+        <a class="button primary" href="/dashboard#billing">Upgrade to Pro</a>
+        <p class="note">The current price is shown at checkout. Pay with UPI, cards, or netbanking through Razorpay; cancel anytime and keep Pro until the period ends.</p>
+      </article>
+    </section>
+    <section class="faq">
+      <h2>Questions</h2>
+      <details><summary>Is my code stored?</summary><p>No. Repositories are downloaded to a temporary folder, scored, and deleted right after the run. Only the scores and findings are saved to your account. See <a href="/privacy.html">Privacy</a>.</p></details>
+      <details><summary>Is it AI?</summary><p>The ten review agents are deterministic analyzers, so the same code always gets the same score. AI (OpenAI) is used only when you ask the assistant a question or click “Explain &amp; fix”.</p></details>
+      <details><summary>Can I score private repositories?</summary><p>Yes, on Pro: install the COVAL GitHub App on the repositories you choose. Access is read-only and you can revoke it anytime in GitHub.</p></details>
+      <details><summary>How are scores calculated?</summary><p>Each agent scores weighted categories from 0 to 100; the overall score is their average. Open “Score breakdown” on any agent card to see the categories, or look at the <a href="/report/sample">sample report for Flask</a>.</p></details>
+    </section>
+  </main>
+  <footer><a href="/privacy.html">Privacy</a> · <a href="/report/sample">Sample report</a> · © COVAL Solutions</footer>
+</body>
+</html>

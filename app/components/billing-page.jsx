@@ -97,6 +97,20 @@ export default function BillingPage({ notify }) {
     }
   }
 
+  async function deleteData() {
+    if (!window.confirm("Delete all your saved evaluation reports, dismissed findings, and share links? This cannot be undone.")) return;
+    setBusy("delete");
+    setError("");
+    try {
+      await apiRequest("/api/code-evaluation", { method: "DELETE" });
+      notify?.("Your evaluation data was deleted.");
+    } catch (cause) {
+      setError(cause.message || "Your data could not be deleted.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   const isPro = summary?.plan === "pro";
   const cancelled = summary?.status === "cancelled";
   const periodEnd = summary?.currentPeriodEnd ? new Date(summary.currentPeriodEnd).toLocaleDateString() : "";
@@ -136,7 +150,14 @@ export default function BillingPage({ notify }) {
         <thead><tr><th scope="col">Feature</th><th scope="col">Free</th><th scope="col">Pro</th></tr></thead>
         <tbody>{FEATURES.map(([feature, free, pro]) => <tr key={feature}><th scope="row">{feature}</th><td>{free}</td><td>{pro}</td></tr>)}</tbody>
       </table>
+      <p className="team-muted"><a href="/pricing.html" target="_blank" rel="noreferrer">Full pricing and FAQ</a> · <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy</a></p>
       <p className="team-muted">Payments are handled securely by Razorpay (UPI, cards, netbanking). COVAL never sees your card details. The Pro price is shown in the checkout.</p>
     </section>
+
+    {summary?.signedIn && <section className="billing-compare surface-card" aria-label="Your data">
+      <span className="eyebrow">YOUR DATA</span>
+      <p className="team-muted">Source code is deleted right after each run. Your saved scores, findings, and share links stay until you delete them.</p>
+      <div><button type="button" className="button button-quiet team-danger" disabled={Boolean(busy)} onClick={deleteData}>{busy === "delete" ? "Deleting…" : "Delete my evaluation data"}</button></div>
+    </section>}
   </>;
 }

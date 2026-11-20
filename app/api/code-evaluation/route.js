@@ -275,3 +275,19 @@ export async function PATCH(request) {
     return apiError(error);
   }
 }
+
+// Delete all of the member's saved evaluation data: reports, dismissed findings, and share links.
+export async function DELETE(request) {
+  try {
+    const user = await requireUser(request);
+    if (!user.token) throw Object.assign(new Error("Sign in to delete your data."), { status: 401 });
+    const owner = encodeURIComponent(user.id);
+    await supabaseRest(user, `coval_shared_reports?user_id=eq.${owner}`, { method: "DELETE" }).catch((error) => {
+      if (error.status !== 404) throw error; // the share-links migration may not be applied yet
+    });
+    await supabaseRest(user, `coval_code_evaluations?user_id=eq.${owner}`, { method: "DELETE" });
+    return Response.json({ deleted: true });
+  } catch (error) {
+    return apiError(error);
+  }
+}

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>COVAL Privacy</title>
+  <meta name="description" content="How COVAL handles your code and data.">
+  <link rel="icon" href="/coval-logo-light.png">
+  <link rel="stylesheet" href="/site.css">
+</head>
+<body>
+  <header class="bar"><a class="brand" href="/"><img src="/coval-logo-dark.png" alt="" width="26" height="26"> COVAL</a><nav><a href="/report/sample">Sample report</a><a href="/pricing.html">Pricing</a><a class="cta" href="/">Sign in</a></nav></header>
+  <main class="prose">
+    <p class="eyebrow">PRIVACY</p>
+    <h1>Your code stays yours.</h1>
+    <p class="lead">This page explains, in plain language, what COVAL does with your code and data.</p>
+
+    <h2>Your source code</h2>
+    <ul>
+      <li>When you score a repository, COVAL downloads it to a temporary folder, runs the review agents, and <strong>deletes the folder as soon as the run finishes</strong>. Source code is never stored in our database.</li>
+      <li>The review agents read your code; they never run it.</li>
+      <li>The VS Code extension scores code on your own computer. It does not upload anything.</li>
+      <li>Private repositories are read only through the COVAL GitHub App, with read-only access to the repositories you choose. You can revoke it anytime in GitHub settings.</li>
+    </ul>
+
+    <h2>What we store</h2>
+    <ul>
+      <li>Your account (from Google or GitHub sign-in), profile details you choose to add, and connections and messages you create.</li>
+      <li>Evaluation results: scores, short summaries, and findings (file paths, line numbers, and descriptions).</li>
+      <li>Usage counts for plan limits, and your plan status from Razorpay. COVAL never sees or stores card or UPI details.</li>
+    </ul>
+
+    <h2>AI features</h2>
+    <p>When you ask the report assistant a question or click “Explain &amp; fix”, COVAL sends the relevant parts of your report and, for “Explain &amp; fix”, about 40 lines of the related code to OpenAI to generate the answer. OpenAI does not use API data to train its models. Nothing is sent to an AI provider unless you use these features.</p>
+
+    <h2>Sharing</h2>
+    <p>Your results are private unless you share them. Share links and README badges work only for public repositories, and you can remove a link at any time. Team admins can see the scores of members on their team.</p>
+
+    <h2>Deleting your data</h2>
+    <p>On the <strong>Plan</strong> page in the dashboard, choose <strong>Delete my evaluation data</strong> to remove all saved reports, dismissed findings, and share links immediately. To delete your whole account, contact the COVAL team.</p>
+  </main>
+  <footer><a href="/pricing.html">Pricing</a> · <a href="/report/sample">Sample report</a> · © COVAL Solutions</footer>
+</body>
+</html>

@@ -1187,7 +1187,7 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
 .shared-report { min-height: 100vh; background: var(--page); color: var(--text); }
 .shared-report-bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--page) 92%, transparent); backdrop-filter: blur(8px); }
 .shared-report-brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-weight: 800; letter-spacing: .12em; text-decoration: none; }
-.shared-report-brand img { border-radius: 6px; background: #09090b; }
+.shared-report-brand img { padding: 3px; border-radius: 7px; background: #09090b; }
 .shared-report-bar nav { display: flex; align-items: center; gap: 14px; font-size: 13px; }
 .shared-report-bar nav a:not(.button) { color: var(--muted); text-decoration: none; }
 .shared-report-main { display: grid; gap: 16px; max-width: 1180px; margin: 0 auto; padding: 28px 24px 60px; }

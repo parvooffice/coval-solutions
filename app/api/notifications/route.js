@@ -6,17 +6,21 @@ export async function GET(request) {
   try {
     const user = await requireUser(request);
     if (!user.token) return Response.json({ notifications: [] });
-    const rows = await supabaseRest(user, `coval_notifications?select=id,actor_id,kind,created_at,read_at&recipient_id=eq.${user.id}&order=created_at.desc&limit=30`);
+    const rows = await supabaseRest(user, `coval_notifications?select=id,actor_id,kind,team_id,created_at,read_at&recipient_id=eq.${user.id}&order=created_at.desc&limit=30`);
     const actorIds = [...new Set((rows || []).map((row) => row.actor_id))];
     const profiles = actorIds.length
       ? await supabaseRest(user, `coval_profiles?select=user_id,github_login,display_name,avatar_url&user_id=in.(${actorIds.join(",")})`)
       : [];
     const profilesById = new Map((profiles || []).map((profile) => [profile.user_id, profile]));
+    const teamIds = [...new Set((rows || []).map((row) => row.team_id).filter(Boolean))];
+    const teams = teamIds.length ? await supabaseRest(user, `coval_teams?select=id,name&id=in.(${teamIds.join(",")})`) : [];
+    const teamNames = new Map((teams || []).map((team) => [team.id, team.name]));
     const notifications = (rows || []).map((row) => {
       const actor = profilesById.get(row.actor_id);
       return {
         id: row.id,
         kind: row.kind,
+        team: row.team_id ? { id: row.team_id, name: teamNames.get(row.team_id) || "a team" } : null,
         createdAt: row.created_at,
         readAt: row.read_at,
         actor: {

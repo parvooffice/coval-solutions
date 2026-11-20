@@ -5,13 +5,14 @@ import OverviewPage from "../components/overview-page";
 import PeoplePage from "../components/people-page";
 import ProjectsPage from "../components/projects-page";
 import NetworkPage from "../components/network-page";
+import TeamsPage from "../components/teams-page";
 import ActivityPage from "../components/activity-page";
 import MessagesPage from "../components/messages-page";
 import ProfilePage from "../components/profile-page";
 import CodeEvaluationPage from "../components/code-evaluation-page";
 import { DashboardDataProvider, useDashboardData } from "./dashboard-data-provider";
 
-const routes = ["overview", "code-evaluation", "engineering", "projects", "network", "activity", "chat", "profile"];
+const routes = ["overview", "code-evaluation", "engineering", "projects", "network", "teams", "activity", "chat", "profile"];
 
 function getRouteFromHash() {
   const route = window.location.hash.replace(/^#/, "").split("/")[0];
@@ -123,6 +124,8 @@ function DashboardContent() {
         return <ProjectsPage navigate={navigate} />;
       case "network":
         return <NetworkPage navigate={navigate} notify={notify} />;
+      case "teams":
+        return <TeamsPage navigate={navigate} notify={notify} />;
       case "activity":
         return <ActivityPage navigate={navigate} />;
       case "chat":

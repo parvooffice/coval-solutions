@@ -37,6 +37,7 @@ In the Supabase SQL Editor, apply these migrations in filename order:
 - [`202610250007_coval_network_tree_visibility.sql`](./supabase/migrations/202610250007_coval_network_tree_visibility.sql) — per-connection network tree visibility.
 - [`202610260001_coval_public_profiles.sql`](./supabase/migrations/202610260001_coval_public_profiles.sql) — editable profile details, featured repositories, and section visibility.
 - [`202610260002_coval_profile_banners.sql`](./supabase/migrations/202610260002_coval_profile_banners.sql) — the Supabase Storage bucket and scoped banner upload policies.
+- [`202611200001_coval_teams.sql`](./supabase/migrations/202611200001_coval_teams.sql) — teams, admin invites, team-admin access to member evaluations, and team-wide agent averages.
 
 Existing Supabase accounts and records stay in place. Apply any application migrations above that have not already been applied to your project.
 
@@ -72,4 +73,5 @@ See [`.env.example`](./.env.example). The Supabase URL and publishable key are i
 - `/api/connections`, `/api/notifications`, `/api/conversations`, and `/api/messages` serve Supabase-backed community features.
 - `GET /api/code-evaluation` loads saved results; `POST /api/code-evaluation` runs and stores an evaluation.
 - `GET /api/health` reports Express and Supabase configuration status.
+- `GET /api/teams` and `POST /api/teams` list teams and pending invites, and create teams, invite members, accept or decline invites, change roles, and remove members. Admins receive each active member's score summary; members receive only team-wide averages.
 - `POST /api/report-chat` answers questions about the signed-in member's saved reports. It retrieves the relevant report passages and sends only those to OpenAI; `OPENAI_API_KEY` stays on the server.

@@ -152,6 +152,44 @@ export default function CodeEvaluationPage() {
     }
   }
 
+  const dismissed = new Set(codeEvaluation?.dismissed || []);
+  const [shares, setShares] = useState({});
+  const [printing, setPrinting] = useState("");
+
+  async function setDismissed(findingKey, restore) {
+    const previous = codeEvaluation?.dismissed || [];
+    const optimistic = restore ? previous.filter((item) => item !== findingKey) : [...new Set([...previous, findingKey])];
+    updateCodeEvaluation({ ...codeEvaluation, dismissed: optimistic });
+    try {
+      const result = await apiRequest("/api/code-evaluation", { method: "PATCH", body: JSON.stringify({ key: findingKey, restore }) });
+      updateCodeEvaluation({ ...codeEvaluation, dismissed: result.dismissed });
+    } catch (error) {
+      updateCodeEvaluation({ ...codeEvaluation, dismissed: previous });
+      setRunError(error.message || "That finding could not be updated.");
+    }
+  }
+
+  async function shareTarget(target) {
+    setShares((current) => ({ ...current, [target.url]: { busy: true } }));
+    try {
+      const result = await apiRequest("/api/share", { method: "POST", body: JSON.stringify({ targetUrl: target.url }) });
+      setShares((current) => ({ ...current, [target.url]: result }));
+    } catch (error) {
+      setShares((current) => ({ ...current, [target.url]: { error: error.message || "This report could not be shared." } }));
+    }
+  }
+
+  // Print one repository's report; the browser's print dialog can save it as a PDF.
+  function printTarget(key) {
+    setPrinting(key);
+    document.body.classList.add("printing-report");
+    window.setTimeout(() => {
+      window.print();
+      document.body.classList.remove("printing-report");
+      setPrinting("");
+    }, 50);
+  }
+
   function downloadScores() {
     if (!codeEvaluation) return;
     const blob = new Blob([`${JSON.stringify(codeEvaluation, null, 2)}\n`], { type: "application/json" });
@@ -198,12 +236,29 @@ export default function CodeEvaluationPage() {
     {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>{localWorkspaceAvailable ? "Score this local workspace or add GitHub URLs to run all ten agents. Results are saved to this development checkout." : "Add GitHub URLs above and run all ten agents to generate scores."}</p></div>}
     {targets.length > 0 && <ReportChat targets={targets} />}
     <div className="evaluation-target-list">
-      {targets.map((target) => <EvaluationTarget
-        key={`${target.input}-${target.name}`}
-        target={target}
-        eyebrow={target.source === "github" ? "GITHUB REPOSITORY" : "LOCAL WORKSPACE"}
-        meta={<>Input: <code>{target.input}</code>{target.generatedAt && <> · Generated {new Date(target.generatedAt).toLocaleString()}</>}</>}
-      />)}
+      {targets.map((target) => {
+        const key = `${target.input}-${target.name}`;
+        const share = shares[target.url];
+        return <div key={key} className={printing === key ? "is-printing" : ""}>
+          <EvaluationTarget
+            target={target}
+            eyebrow={target.source === "github" ? "GITHUB REPOSITORY" : "LOCAL WORKSPACE"}
+            meta={<>Input: <code>{target.input}</code>{target.generatedAt && <> · Generated {new Date(target.generatedAt).toLocaleString()}</>}</>}
+            dismissed={dismissed}
+            onDismiss={(findingKey) => setDismissed(findingKey, false)}
+            onRestore={(findingKey) => setDismissed(findingKey, true)}
+            actions={<div className="eval-target-actions no-print">
+              <button type="button" className="button button-quiet" onClick={() => printTarget(key)}><Icon name="arrowDown" size={14} /> PDF</button>
+              {target.source === "github" && <button type="button" className="button button-quiet" onClick={() => shareTarget(target)} disabled={share?.busy}><Icon name="link" size={14} /> {share?.busy ? "Sharing…" : "Share"}</button>}
+            </div>}
+          />
+          {share?.error && <p className="evaluation-run-error eval-share-panel" role="alert">{share.error}</p>}
+          {share?.shareUrl && <div className="eval-share-panel surface-card no-print">
+            <div><strong>Public link</strong><code>{share.shareUrl}</code><button type="button" className="button button-quiet" onClick={() => navigator.clipboard?.writeText(share.shareUrl)}>Copy link</button></div>
+            <div><strong>README badge</strong><img src={share.badgeUrl} alt="COVAL score badge" height="20" /><code>{share.markdown}</code><button type="button" className="button button-quiet" onClick={() => navigator.clipboard?.writeText(share.markdown)}>Copy Markdown</button></div>
+          </div>}
+        </div>;
+      })}
     </div>
     <section className="evaluation-community-section">
       <div className="evaluation-community-heading"><div><span className="eyebrow">COMMUNITY / SHARED RESULTS</span><h2>Scores from COVAL members</h2><p>Public repository evaluations shared by signed-in members.</p></div></div>

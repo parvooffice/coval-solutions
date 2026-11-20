@@ -2,10 +2,10 @@ import { apiError, requireUser } from "../../lib/server/auth.js";
 import { reportPassages, retrieve } from "../../lib/server/report-retrieval.js";
 import { readSavedEvaluation } from "../code-evaluation/route.js";
 import { consumeQuota } from "../../lib/server/billing.js";
+import { chatCompletion } from "../../lib/server/openai.js";
 
 const MAX_QUESTION = 1_000;
 const MAX_HISTORY = 6;
-const DEFAULT_MODEL = "gpt-4o-mini";
 
 const SYSTEM_PROMPT = [
   "You are COVAL's code-review assistant. Answer questions about the member's repository evaluation reports.",
@@ -26,8 +26,7 @@ function cleanHistory(history) {
 export async function POST(request) {
   try {
     const user = await requireUser(request);
-    const apiKey = process.env.OPENAI_API_KEY?.trim();
-    if (!apiKey) throw Object.assign(new Error("The report assistant is not configured. Add OPENAI_API_KEY to the web app's environment."), { status: 503 });
+    if (!process.env.OPENAI_API_KEY?.trim()) throw Object.assign(new Error("The report assistant is not configured. Add OPENAI_API_KEY to the web app's environment."), { status: 503 });
     if (Number(request.headers.get("content-length") || 0) > 32_768) throw Object.assign(new Error("Keep each question under 32 KB."), { status: 413 });
 
     const body = await request.json().catch(() => null);
@@ -42,35 +41,12 @@ export async function POST(request) {
     const context = retrieve(passages, question);
     await consumeQuota(user, "assistant");
 
-    let response;
-    try {
-      const baseUrl = (process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com/v1").replace(/\/$/, "");
-      response = await fetch(`${baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: process.env.OPENAI_MODEL?.trim() || DEFAULT_MODEL,
-          temperature: 0.2,
-          max_tokens: 500,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "system", content: `Report excerpts:\n${context.map((passage) => `- ${passage.text}`).join("\n")}` },
-            ...cleanHistory(body?.history),
-            { role: "user", content: question },
-          ],
-        }),
-        signal: AbortSignal.timeout(45_000),
-      });
-    } catch (error) {
-      throw Object.assign(new Error(error?.name === "TimeoutError" ? "The assistant took too long to answer. Try again." : "COVAL could not reach OpenAI."), { status: 504 });
-    }
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      const status = response.status === 429 ? 429 : 502;
-      throw Object.assign(new Error(status === 429 ? "The assistant is busy or over its usage limit. Try again shortly." : "OpenAI could not answer this question."), { status });
-    }
-    const answer = payload?.choices?.[0]?.message?.content?.trim();
-    if (!answer) throw Object.assign(new Error("OpenAI returned an empty answer."), { status: 502 });
+    const answer = await chatCompletion([
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: `Report excerpts:\n${context.map((passage) => `- ${passage.text}`).join("\n")}` },
+      ...cleanHistory(body?.history),
+      { role: "user", content: question },
+    ]);
     return Response.json(
       { answer, sources: context.filter((passage) => !passage.always).slice(0, 6).map((passage) => passage.id) },
       { headers: { "Cache-Control": "private, no-store" } },

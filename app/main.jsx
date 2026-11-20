@@ -1,9 +1,12 @@
 import { createRoot } from "react-dom/client";
 import DashboardPage from "./dashboard/page.jsx";
 import LoginPage from "./components/login-page.jsx";
+import SharedReportPage from "./components/shared-report-page.jsx";
 import "./globals.css";
 
 function App() {
+  const shared = window.location.pathname.match(/^\/report\/([A-Za-z0-9_-]{6,64})\/?$/);
+  if (shared) return <SharedReportPage token={shared[1]} />;
   if (window.location.pathname.startsWith("/dashboard")) return <DashboardPage />;
   return <LoginPage />;
 }

@@ -149,7 +149,7 @@ async function readPublicEvaluations(user) {
   }));
 }
 
-async function assertPublicRepositories(urls) {
+export async function assertPublicRepositories(urls) {
   for (const url of urls) {
     const [, owner, repository] = url.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)$/i) || [];
     const response = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}`, {
@@ -222,6 +222,10 @@ export async function POST(request) {
       if (!earlier) continue;
       const scores = Object.fromEntries((earlier.evaluations || []).filter((item) => item.score != null).map((item) => [item.id, item.score]));
       if (Object.keys(scores).length) target.previous = { generatedAt: earlier.generatedAt || null, scores };
+      const values = Object.values(scores).map(Number);
+      const earlierOverall = values.length ? Math.round((values.reduce((sum, value) => sum + value, 0) / values.length) * 10) / 10 : null;
+      target.history = [...(Array.isArray(earlier.history) ? earlier.history : []), { generatedAt: earlier.generatedAt || null, overall: earlierOverall }]
+        .filter((point) => typeof point.overall === "number").slice(-11);
     }
     report.targets = [
       ...(previous.targets || []).filter((target) => localWorkspace
@@ -229,10 +233,44 @@ export async function POST(request) {
         : !submitted.has(String(target.url || target.input).toLowerCase())),
       ...report.targets,
     ].slice(-MAX_SAVED_TARGETS);
+    report.dismissed = Array.isArray(previous.dismissed) ? previous.dismissed.slice(-500) : [];
     await saveEvaluation(user, report, isPublic, publicReport, publicSignature);
     report.isPublic = isPublic;
     report.publicEvaluations = [];
     return Response.json({ report }, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    return apiError(error);
+  }
+}
+
+const MAX_DISMISSED = 500;
+
+// Dismiss or restore one finding. Keys look like "<repo url>|<agent id>|<title>|<location>".
+export async function PATCH(request) {
+  try {
+    const user = await requireUser(request);
+    const body = await request.json().catch(() => ({}));
+    const key = typeof body?.key === "string" ? body.key.slice(0, 600) : "";
+    if (!key || key.split("|").length < 3) throw Object.assign(new Error("Choose a finding to dismiss."), { status: 400 });
+    const report = await readSavedEvaluation(user);
+    const dismissed = new Set(Array.isArray(report.dismissed) ? report.dismissed : []);
+    if (body.restore === true) dismissed.delete(key);
+    else dismissed.add(key);
+    report.dismissed = [...dismissed].slice(-MAX_DISMISSED);
+    delete report.publicEvaluations;
+    if (user.token) {
+      await supabaseRest(user, `coval_code_evaluations?user_id=eq.${encodeURIComponent(user.id)}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ report: { ...report, isPublic: undefined }, updated_at: new Date().toISOString() }),
+      });
+    } else if (process.env.NODE_ENV === "development") {
+      await writeFile(REPORT_FILE, `${JSON.stringify(report, null, 2)}
+`, "utf8");
+    } else {
+      throw Object.assign(new Error("Sign in to dismiss findings."), { status: 401 });
+    }
+    return Response.json({ dismissed: report.dismissed });
   } catch (error) {
     return apiError(error);
   }

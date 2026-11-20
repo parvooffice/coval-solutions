@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Icon from "./dashboard-icon";
+import { apiRequest } from "../lib/client-api";
 
 export const AGENTS = [
   { id: "documentation", label: "Documentation", icon: "list" },
@@ -58,10 +59,73 @@ function ScoreRing({ score }) {
   </div>;
 }
 
-function AgentCard({ evaluation, before, showFixes }) {
+export const findingKey = (target, evaluation, fix) => [target.url || target.input, evaluation.id, fix.title, fix.location || ""].join("|");
+
+function githubIssueUrl(target, evaluation, fix) {
+  if (!target.url?.startsWith("https://github.com/")) return "";
+  const location = fix.location ? fix.location.match(/^(.*?)(?::(\d+))?$/) : null;
+  const link = location ? `${target.url}/blob/${target.ref || "HEAD"}/${location[1]}${location[2] ? `#L${location[2]}` : ""}` : "";
+  const body = [
+    `**${evaluation.label}** finding from a COVAL code review.`,
+    "",
+    fix.detail || "",
+    link ? `\nLocation: ${link}` : "",
+    "",
+    `Agent score: ${formatScore(evaluation.score)}/100`,
+  ].join("\n");
+  return `${target.url}/issues/new?${new URLSearchParams({ title: `[COVAL] ${fix.title}`.slice(0, 200), body: body.slice(0, 4000) })}`;
+}
+
+// Light Markdown for AI answers: bold, numbered or bulleted lists, code fences, and inline code.
+function MarkdownText({ text }) {
+  const inline = (line) => line.split(/(`[^`]+`|\*\*[^*]+\*\*)/g).map((piece, index) => piece.startsWith("`")
+    ? <code key={index}>{piece.slice(1, -1)}</code>
+    : piece.startsWith("**") ? <strong key={index}>{piece.slice(2, -2)}</strong> : piece);
+  return text.split(/```[a-z0-9]*\n?/i).map((part, index) => index % 2
+    ? <pre key={index}><code>{part.replace(/\n$/, "")}</code></pre>
+    : part.split(/\n{2,}/).filter((block) => block.trim()).map((block, blockIndex) => {
+      const lines = block.split("\n").filter(Boolean);
+      if (lines.every((line) => /^\s*([-*]|\d+\.)\s/.test(line))) return <ol key={`${index}-${blockIndex}`}>{lines.map((line, lineIndex) => <li key={lineIndex}>{inline(line.replace(/^\s*([-*]|\d+\.)\s/, ""))}</li>)}</ol>;
+      return <p key={`${index}-${blockIndex}`}>{lines.map((line, lineIndex) => <span key={lineIndex}>{inline(line)}{lineIndex < lines.length - 1 && <br />}</span>)}</p>;
+    }));
+}
+
+function FixItem({ target, evaluation, fix, onDismiss }) {
+  const [explanation, setExplanation] = useState("");
+  const [state, setState] = useState("idle");
+  const issueUrl = githubIssueUrl(target, evaluation, fix);
+  async function explain() {
+    if (state === "done") { setState("hidden"); return; }
+    if (state === "hidden" && explanation) { setState("done"); return; }
+    setState("loading");
+    try {
+      const { answer } = await apiRequest("/api/explain-finding", { method: "POST", body: JSON.stringify({ targetUrl: target.url, agent: evaluation.label, title: fix.title, detail: fix.detail, location: fix.location }) });
+      setExplanation(answer);
+      setState("done");
+    } catch (error) {
+      setExplanation(error.message || "The explanation could not be loaded.");
+      setState("error");
+    }
+  }
+  return <li>
+    <strong>{fix.title}</strong>
+    {fix.location && <code>{fix.location}</code>}
+    {fix.detail && <small>{fix.detail}</small>}
+    {onDismiss && <div className="eval-fix-actions">
+      <button type="button" onClick={explain} disabled={state === "loading"}><Icon name="smile" size={13} /> {state === "loading" ? "Thinking…" : state === "done" ? "Hide explanation" : "Explain & fix"}</button>
+      {issueUrl && <a href={issueUrl} target="_blank" rel="noreferrer"><Icon name="git" size={13} /> Create issue</a>}
+      <button type="button" onClick={() => onDismiss(findingKey(target, evaluation, fix))}><Icon name="x" size={13} /> Dismiss</button>
+    </div>}
+    {(state === "done" || state === "error") && <div className={`eval-fix-explanation ${state === "error" ? "is-error" : ""}`}><MarkdownText text={explanation} /></div>}
+  </li>;
+}
+
+function AgentCard({ target, evaluation, before, showFixes, dismissed, onDismiss, onRestore }) {
   const complete = evaluation.status === "complete";
   const grade = complete ? evaluation.grade || gradeFor(evaluation.score) : "";
-  const fixes = showFixes ? evaluation.fixes || [] : [];
+  const allFixes = showFixes ? evaluation.fixes || [] : [];
+  const fixes = allFixes.filter((fix) => !dismissed?.has(findingKey(target, evaluation, fix)));
+  const hidden = allFixes.filter((fix) => dismissed?.has(findingKey(target, evaluation, fix)));
   return <article className={`evaluation-score-card ${complete ? "" : "is-failed"}`}>
     <div className="evaluation-score-heading"><span>{evaluation.label}</span><Icon name={ICONS[evaluation.id] || "code"} size={17} /></div>
     <div className="eval-score-row">
@@ -70,13 +134,10 @@ function AgentCard({ evaluation, before, showFixes }) {
     </div>
     <span className={`evaluation-status evaluation-status-${evaluation.status} ${grade ? `eval-grade-${grade}` : ""}`}>{complete ? `Grade ${grade}` : "Unavailable"}</span>
     <p>{evaluation.summary || evaluation.error || "No summary was provided by the analyzer."}</p>
-    {fixes.length > 0 && <div className="eval-fixes">
+    {(fixes.length > 0 || hidden.length > 0) && <div className="eval-fixes">
       <span className="eval-fixes-title">Top fixes</span>
-      <ol>{fixes.map((item, index) => <li key={`${item.title}-${index}`}>
-        <strong>{item.title}</strong>
-        {item.location && <code>{item.location}</code>}
-        {item.detail && <small>{item.detail}</small>}
-      </li>)}</ol>
+      {fixes.length > 0 && <ol>{fixes.map((item, index) => <FixItem key={`${item.title}-${item.location}-${index}`} target={target} evaluation={evaluation} fix={item} onDismiss={onDismiss} />)}</ol>}
+      {hidden.length > 0 && <details className="eval-dismissed"><summary>{hidden.length} dismissed</summary><ul>{hidden.map((item, index) => <li key={index}><span>{item.title}</span>{onRestore && <button type="button" onClick={() => onRestore(findingKey(target, evaluation, item))}>Restore</button>}</li>)}</ul></details>}
     </div>}
     {evaluation.breakdown && Object.keys(evaluation.breakdown).length > 0 && <details className="evaluation-breakdown">
       <summary>Score breakdown</summary>
@@ -85,7 +146,19 @@ function AgentCard({ evaluation, before, showFixes }) {
   </article>;
 }
 
-export function EvaluationTarget({ target, eyebrow, meta, showFixes = true }) {
+function Trend({ history, current }) {
+  const points = [...(history || []).map((item) => item.overall), current].filter((value) => typeof value === "number");
+  if (points.length < 2) return null;
+  const min = Math.min(...points) - 5;
+  const span = Math.max(Math.max(...points) + 5 - min, 1);
+  const path = points.map((value, index) => `${index ? "L" : "M"}${(index / (points.length - 1)) * 100},${30 - ((value - min) / span) * 28}`).join(" ");
+  return <span className="eval-trend" title={`Overall over the last ${points.length} runs: ${points.map(formatScore).join(" → ")}`}>
+    <svg viewBox="-2 0 104 32" aria-hidden="true"><path d={path} /></svg>
+    <small>{points.length} runs</small>
+  </span>;
+}
+
+export function EvaluationTarget({ target, eyebrow, meta, showFixes = true, dismissed, onDismiss, onRestore, actions }) {
   const overall = overallScore(target.evaluations);
   const before = previousOverall(target.previous);
   const failed = (target.evaluations || []).filter((item) => item.status !== "complete").length;
@@ -96,12 +169,14 @@ export function EvaluationTarget({ target, eyebrow, meta, showFixes = true }) {
         <span className="eyebrow">{eyebrow}</span>
         <h2>{target.name}</h2>
         <p className="evaluation-target-meta">{meta}</p>
-        <p className="eval-overall-line">Overall {formatScore(overall)}/100 <Delta current={overall} before={before} />{target.previous?.generatedAt && <small> vs {new Date(target.previous.generatedAt).toLocaleDateString()}</small>}{failed > 0 && <small> · {failed} {failed === 1 ? "agent" : "agents"} unavailable</small>}</p>
+        <p className="eval-overall-line">Overall {formatScore(overall)}/100 <Delta current={overall} before={before} />{target.previous?.generatedAt && <small> vs {new Date(target.previous.generatedAt).toLocaleDateString()}</small>}{failed > 0 && <small> · {failed} {failed === 1 ? "agent" : "agents"} unavailable</small>}<Trend history={target.history} current={overall} /></p>
+        {target.ignoredFiles > 0 && <p className="eval-ignored-note">{target.ignoredFiles} generated or ignored files were skipped. Add paths to <code>.coval.yml</code> under <code>ignore:</code> to skip more.</p>}
       </div>
+      {actions}
       {target.url?.startsWith("https://github.com/") && <a className="button" href={target.url} target="_blank" rel="noreferrer">Open repository <Icon name="arrowUpRight" size={14} /></a>}
     </header>
     <div className="evaluation-score-grid">
-      {(target.evaluations || []).map((evaluation) => <AgentCard key={evaluation.id} evaluation={evaluation} before={target.previous?.scores?.[evaluation.id]} showFixes={showFixes} />)}
+      {(target.evaluations || []).map((evaluation) => <AgentCard key={evaluation.id} target={target} evaluation={evaluation} before={target.previous?.scores?.[evaluation.id]} showFixes={showFixes} dismissed={dismissed} onDismiss={onDismiss} onRestore={onRestore} />)}
     </div>
   </section>;
 }

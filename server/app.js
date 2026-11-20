@@ -16,6 +16,9 @@ import * as conversations from "../app/api/conversations/route.js";
 import * as messages from "../app/api/messages/route.js";
 import * as notifications from "../app/api/notifications/route.js";
 import * as reportChat from "../app/api/report-chat/route.js";
+import * as explainFinding from "../app/api/explain-finding/route.js";
+import * as share from "../app/api/share/route.js";
+import * as badge from "../app/api/badge/route.js";
 import * as teams from "../app/api/teams/route.js";
 import * as billing from "../app/api/billing/route.js";
 import * as billingWebhook from "../app/api/billing/webhook/route.js";
@@ -36,6 +39,9 @@ const apiRoutes = [
   ["/api/messages", messages],
   ["/api/notifications", notifications],
   ["/api/report-chat", reportChat],
+  ["/api/explain-finding", explainFinding],
+  ["/api/share", share],
+  ["/api/badge", badge],
   ["/api/teams", teams],
   ["/api/billing", billing],
   ["/api/billing/webhook", billingWebhook],

@@ -1,0 +1,480 @@
+{
+  "name": "pallets/flask",
+  "url": "https://github.com/pallets/flask",
+  "generatedAt": "2026-11-20T06:26:16+00:00",
+  "history": [],
+  "evaluations": [
+    {
+      "id": "documentation",
+      "label": "Documentation",
+      "status": "complete",
+      "score": 57.4,
+      "grade": null,
+      "summary": "Overall documentation quality score: 57.4/100 (Fair). Weighted from README (67.0), docstring coverage (17.2), comment density (70.0), docs folder (100.0), and supporting files (50.0).",
+      "breakdown": {
+        "readme": 67,
+        "docstrings": 17.2,
+        "comments": 70,
+        "docs_folder": 100,
+        "supporting_docs": 50
+      },
+      "fixes": [
+        {
+          "title": "README appears to lack common sections (Installation, Usage, Contributing, License, etc.)."
+        },
+        {
+          "title": "Low docstring coverage (17%): only 260/1462 functions and 43/160 classes have docstrings."
+        },
+        {
+          "title": "Many Python modules lack a top-level module docstring."
+        }
+      ]
+    },
+    {
+      "id": "modularity",
+      "label": "Modularity",
+      "status": "complete",
+      "score": 74.8,
+      "grade": "B",
+      "summary": "Good modularity with some hotspots worth refactoring.",
+      "breakdown": {
+        "file_level": {
+          "label": "File-level modularity",
+          "score": 81.9
+        },
+        "function_cohesion": {
+          "label": "Function / method cohesion",
+          "score": 90.6
+        },
+        "coupling": {
+          "label": "Coupling",
+          "score": 69
+        },
+        "package_structure": {
+          "label": "Package / module structure",
+          "score": 88.5
+        },
+        "encapsulation": {
+          "label": "Encapsulation",
+          "score": 9.5
+        },
+        "code_organization": {
+          "label": "Code organization signals",
+          "score": 86.4
+        }
+      },
+      "fixes": [
+        {
+          "title": "Split or simplify this module",
+          "location": "src/flask/app.py",
+          "detail": "Large file: 1280 LOC; Class with 35 methods"
+        },
+        {
+          "title": "Split or simplify this module",
+          "location": "src/flask/cli.py",
+          "detail": "Large file: 825 LOC; Part of a circular import chain"
+        },
+        {
+          "title": "Split or simplify this module",
+          "location": "src/flask/sansio/app.py",
+          "detail": "Large file: 679 LOC; Class with 35 methods"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "label": "Security",
+      "status": "complete",
+      "score": 88.9,
+      "grade": null,
+      "summary": "Findings by severity · Critical: 0 · High: 8 · Medium: 5 · Low: 0 · Info: 0",
+      "breakdown": {
+        "Input Validation": 100,
+        "Injection": 73.6,
+        "Authentication": 100,
+        "Authorization": 100,
+        "Session & Tokens": 66.56,
+        "Secrets & Credentials": 0,
+        "Cryptography": 49.84,
+        "Sensitive Data Exposure": 100,
+        "File & Path Security": 100,
+        "Command & Code Execution": 47.2,
+        "Unsafe Deserialization": 100,
+        "XSS & Output Encoding": 100,
+        "CSRF & Request Integrity": 100,
+        "SSRF & URL Handling": 100,
+        "Database Security": 100,
+        "API Security": 100,
+        "Business Logic": 100,
+        "Race Conditions & Concurrency": 100,
+        "Error Handling": 100,
+        "Logging & Security Data": 100,
+        "Dependency Security": 100,
+        "Configuration Security": 100,
+        "Resource & DoS Security": 100,
+        "Regex & Parser Security": 100,
+        "Permissions & Privilege Use": 100,
+        "Third-Party Integrations": 100,
+        "Serialization & Data Integrity": 100,
+        "Security-Critical Assumptions": 100,
+        "Dead / Unused Security Controls": 100,
+        "Security-Relevant Complexity": 100,
+        "Security-Test Evidence": 100,
+        "Runtime Assumptions": 100,
+        "Data-Flow Integrity": 100,
+        "Attack Surface": 100,
+        "General Security": 100
+      },
+      "fixes": [
+        {
+          "title": "High: Hardcoded credential or secret-like value",
+          "location": "tests/test_reqctx.py:215",
+          "detail": "Move secrets to environment variables or a secure secret manager and never store them in the repository."
+        },
+        {
+          "title": "High: Hardcoded credential or secret-like value",
+          "location": "tests/conftest.py:32",
+          "detail": "Move secrets to environment variables or a secure secret manager and never store them in the repository."
+        },
+        {
+          "title": "High: Dynamic code execution detected",
+          "location": "src/flask/config.py:209",
+          "detail": "Avoid dynamic execution of untrusted input. Prefer explicit parsing, validation, and safer APIs."
+        }
+      ]
+    },
+    {
+      "id": "error_handling",
+      "label": "Error handling",
+      "status": "complete",
+      "score": 80.9,
+      "grade": "B",
+      "summary": "Analyzed 24 source files (7,009 lines of python) and scored 7 categories from 0 to 100. The final score of 80.9 (grade B) is the weighted average of those category scores using the weights listed under `categories`. Strongest area: Resource cleanup (100). Weakest area: Error handling on critical paths (55).",
+      "breakdown": {
+        "exception_specificity": {
+          "label": "Exception specificity",
+          "score": 90.3
+        },
+        "handler_quality": {
+          "label": "Handler quality (logging / meaningful handling)",
+          "score": 80.7
+        },
+        "error_propagation": {
+          "label": "Propagation vs. swallowing",
+          "score": 87.4
+        },
+        "custom_exceptions": {
+          "label": "Custom exception classes",
+          "score": 75
+        },
+        "input_validation": {
+          "label": "Input validation & defensive programming",
+          "score": 75.7
+        },
+        "resource_cleanup": {
+          "label": "Resource cleanup",
+          "score": 100
+        },
+        "critical_path_coverage": {
+          "label": "Error handling on critical paths",
+          "score": 54.5
+        }
+      },
+      "fixes": [
+        {
+          "title": "Exceptions silently swallowed (empty handler / pass / continue) (3×)",
+          "location": "src/flask/cli.py:1097",
+          "detail": "error is silently discarded (ValueError)"
+        },
+        {
+          "title": "Bare `except:` clauses catch everything, including KeyboardInterrupt and SystemExit (1×)",
+          "location": "src/flask/app.py:1662",
+          "detail": "catches every exception, including KeyboardInterrupt/SystemExit"
+        },
+        {
+          "title": "Risky operations (I/O, network, parsing, subprocess) outside any error handling (9×)",
+          "location": "src/flask/app.py:441",
+          "detail": "open() (io) is not inside a try block"
+        }
+      ]
+    },
+    {
+      "id": "readability",
+      "label": "Readability",
+      "status": "complete",
+      "score": 92.2,
+      "grade": "A",
+      "summary": "Analyzed 1,462 functions in 80 files. Weakest area: manageable file size (67/100).",
+      "breakdown": {
+        "function_size": {
+          "label": "Short, focused functions",
+          "score": 100
+        },
+        "nesting": {
+          "label": "Shallow nesting",
+          "score": 100
+        },
+        "complexity": {
+          "label": "Low branching complexity",
+          "score": 100
+        },
+        "line_length": {
+          "label": "Readable line length",
+          "score": 100
+        },
+        "naming": {
+          "label": "Descriptive identifiers",
+          "score": 69.7
+        },
+        "file_size": {
+          "label": "Manageable file size",
+          "score": 67
+        }
+      },
+      "fixes": [
+        {
+          "title": "Simplify register",
+          "location": "src/flask/sansio/blueprints.py:273",
+          "detail": "105 lines, 23 decision points, nesting depth 4"
+        },
+        {
+          "title": "Simplify test_response_types",
+          "location": "tests/test_basic.py:1144",
+          "detail": "92 lines, 27 decision points, nesting depth 0"
+        },
+        {
+          "title": "Simplify make_response",
+          "location": "src/flask/app.py:1267",
+          "detail": "141 lines, 16 decision points, nesting depth 5"
+        }
+      ]
+    },
+    {
+      "id": "test_coverage",
+      "label": "Test coverage",
+      "status": "complete",
+      "score": 93.4,
+      "grade": "A",
+      "summary": "48 test files cover 19/21 source modules. Weakest area: coverage measurement tooling (70/100).",
+      "breakdown": {
+        "module_coverage": {
+          "label": "Source modules with matching tests",
+          "score": 100
+        },
+        "test_volume": {
+          "label": "Test code relative to source code",
+          "score": 100
+        },
+        "assertion_quality": {
+          "label": "Assertions per test case",
+          "score": 85.8
+        },
+        "test_infrastructure": {
+          "label": "Test runner and CI wiring",
+          "score": 100
+        },
+        "coverage_tooling": {
+          "label": "Coverage measurement tooling",
+          "score": 70
+        }
+      },
+      "fixes": [
+        {
+          "title": "Add tests for this module",
+          "location": "src/flask/sansio/scaffold.py",
+          "detail": "539 lines with no matching test"
+        },
+        {
+          "title": "Add tests for this module",
+          "location": "src/flask/ctx.py",
+          "detail": "392 lines with no matching test"
+        }
+      ]
+    },
+    {
+      "id": "performance",
+      "label": "Performance",
+      "status": "complete",
+      "score": 91.9,
+      "grade": "A",
+      "summary": "Efficient: no significant performance risks found. Weakest area: no blocking calls in request paths (81/100).",
+      "breakdown": {
+        "io_in_loops": {
+          "label": "No network, database, or file I/O inside loops",
+          "score": 100
+        },
+        "blocking_calls": {
+          "label": "No blocking calls in request paths",
+          "score": 81
+        },
+        "nested_loops": {
+          "label": "Shallow loop nesting",
+          "score": 81
+        },
+        "costly_patterns": {
+          "label": "No costly patterns",
+          "score": 90.1
+        },
+        "asset_weight": {
+          "label": "Lightweight assets",
+          "score": 100
+        }
+      },
+      "fixes": [
+        {
+          "title": "Blocking call in application code",
+          "location": "examples/celery/src/task_app/tasks.py:14",
+          "detail": "Use the async version so one request does not stall the others."
+        },
+        {
+          "title": "Blocking call in application code",
+          "location": "examples/celery/src/task_app/tasks.py:21",
+          "detail": "Use the async version so one request does not stall the others."
+        },
+        {
+          "title": "Three or more nested loops",
+          "location": "src/flask/sansio/app.py:888",
+          "detail": "Use a lookup map or set to avoid quadratic or cubic work."
+        }
+      ]
+    },
+    {
+      "id": "maintainability",
+      "label": "Maintainability",
+      "status": "complete",
+      "score": 96.9,
+      "grade": "A",
+      "summary": "Easy to maintain: little duplication or debt, dependencies locked. Weakest area: short parameter lists (83/100).",
+      "breakdown": {
+        "duplication": {
+          "label": "Little duplicated code",
+          "score": 98.1
+        },
+        "todo_debt": {
+          "label": "Low TODO / FIXME debt",
+          "score": 100
+        },
+        "commented_code": {
+          "label": "No commented-out code",
+          "score": 100
+        },
+        "parameter_lists": {
+          "label": "Short parameter lists",
+          "score": 82.9
+        },
+        "dependency_hygiene": {
+          "label": "Locked, pinned dependencies",
+          "score": 100
+        }
+      },
+      "fixes": [
+        {
+          "title": "Duplicated block",
+          "location": "src/flask/sansio/app.py:605",
+          "detail": "Also at src/flask/sansio/blueprints.py:412. Extract a shared helper."
+        },
+        {
+          "title": "Duplicated block",
+          "location": "examples/tutorial/flaskr/blog.py:64",
+          "detail": "Also at examples/tutorial/flaskr/blog.py:92. Extract a shared helper."
+        },
+        {
+          "title": "Duplicated block",
+          "location": "src/flask/app.py:55",
+          "detail": "Also at src/flask/sansio/app.py:37. Extract a shared helper."
+        }
+      ]
+    },
+    {
+      "id": "scalability",
+      "label": "Scalability",
+      "status": "complete",
+      "score": 75.5,
+      "grade": "B",
+      "summary": "Scales well with a few gaps to close. Weakest area: ready to deploy and scale out (15/100).",
+      "breakdown": {
+        "config_externalized": {
+          "label": "Configuration comes from the environment",
+          "score": 100
+        },
+        "network_resilience": {
+          "label": "Network calls have timeouts",
+          "score": 100
+        },
+        "bounded_queries": {
+          "label": "Queries are bounded",
+          "score": 50
+        },
+        "stateless_design": {
+          "label": "Stateless server code",
+          "score": 100
+        },
+        "deployment_readiness": {
+          "label": "Ready to deploy and scale out",
+          "score": 15
+        }
+      },
+      "fixes": [
+        {
+          "title": "Unbounded query",
+          "location": "examples/tutorial/flaskr/auth.py:93",
+          "detail": "Add a LIMIT or pagination so results cannot grow without bound."
+        },
+        {
+          "title": "Limited deployment setup",
+          "detail": "Add a container or platform config, an .env example, CI, and a /health endpoint."
+        }
+      ]
+    },
+    {
+      "id": "standards",
+      "label": "Standards compliance",
+      "status": "complete",
+      "score": 74.8,
+      "grade": "B",
+      "summary": "Mostly standard with a few missing pieces. Weakest area: type checking (50/100).",
+      "breakdown": {
+        "linting": {
+          "label": "Linters configured",
+          "score": 100
+        },
+        "formatting": {
+          "label": "Formatter configured",
+          "score": 100
+        },
+        "type_checking": {
+          "label": "Type checking",
+          "score": 50
+        },
+        "project_docs": {
+          "label": "License, contributing, and security docs",
+          "score": 65
+        },
+        "naming_consistency": {
+          "label": "Consistent file naming",
+          "score": 52.9
+        },
+        "ci_quality_gates": {
+          "label": "CI enforces quality checks",
+          "score": 70
+        }
+      },
+      "fixes": [
+        {
+          "title": "Little type checking",
+          "detail": "Add type hints with mypy/pyright, TypeScript, or checkJs so mistakes surface before runtime."
+        },
+        {
+          "title": "Missing SECURITY file",
+          "detail": "Tell people how to report vulnerabilities privately."
+        },
+        {
+          "title": "Mixed file naming in python",
+          "detail": "Only 74% of names use the main snake style."
+        }
+      ]
+    }
+  ],
+  "sharedBy": "COVAL sample",
+  "sample": true
+}

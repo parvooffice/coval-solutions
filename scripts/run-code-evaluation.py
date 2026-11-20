@@ -119,11 +119,15 @@ MAX_EXTRACTED_BYTES = 150 * 1024 * 1024
 MAX_ARCHIVE_FILES = 20_000
 
 
-def download_repository_archive(target: dict[str, str], destination: Path, env: dict[str, str]) -> Path:
-    """Download a GitHub zipball, then extract only safe, bounded regular files."""
+def download_repository_archive(target: dict[str, str], destination: Path, env: dict[str, str], ref: str = "") -> Path:
+    """Download a GitHub zipball (optionally at a commit/branch), then extract only safe, bounded regular files."""
     parsed = urlparse(target["input"])
     owner, repository = parsed.path.strip("/").split("/")
     endpoint = f"https://api.github.com/repos/{owner}/{repository}/zipball"
+    if ref:
+        if not re.fullmatch(r"[A-Za-z0-9._/-]{1,200}", ref) or ".." in ref:
+            raise ValueError("Invalid Git reference.")
+        endpoint += f"/{ref}"
     headers = {
         "Accept": "application/vnd.github+json",
         "User-Agent": "COVAL-code-evaluation",
@@ -198,8 +202,59 @@ def download_repository_archive(target: dict[str, str], destination: Path, env: 
     raise RuntimeError("The repository archive did not contain any files.")
 
 
-def run_remote_targets(urls: list[str]) -> dict:
-    """Run the existing analyzers against downloaded GitHub source in a temp directory."""
+# Generated or data files that skew results; removed from the temporary copy before scoring.
+DEFAULT_IGNORES = (
+    "**/node_modules/**", "**/dist/**", "**/build/**", "**/coverage/**", "**/.next/**", "**/vendor/**",
+    "**/*.min.js", "**/*.min.css", "**/*.map", "**/__snapshots__/**", "**/*.snap",
+    "**/reports/**/*.json", "**/*-report.json", "**/fixtures/**/*.json",
+)
+MAX_IGNORE_PATTERNS = 100
+
+
+def read_coval_config(workspace: Path) -> list[str]:
+    """Parse the `ignore:` list from .coval.yml / .coval.yaml (a small YAML subset, no dependency)."""
+    for name in (".coval.yml", ".coval.yaml"):
+        path = workspace / name
+        if not path.is_file() or path.stat().st_size > 64 * 1024:
+            continue
+        patterns, in_ignore = [], False
+        for raw in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = raw.split("#", 1)[0].rstrip()
+            if not line.strip():
+                continue
+            if not raw.startswith((" ", "	", "-")):
+                in_ignore = line.strip().rstrip(":") == "ignore"
+                continue
+            item = line.strip()
+            if in_ignore and item.startswith("- "):
+                value = item[2:].strip().strip("'\"")
+                if value and ".." not in value and not value.startswith("/"):
+                    patterns.append(value if "*" in value or "." in Path(value).name else value.rstrip("/") + "/**")
+        return patterns[:MAX_IGNORE_PATTERNS]
+    return []
+
+
+def prune_workspace(workspace: Path) -> int:
+    """Delete ignored files from a temporary checkout. Never call this on a real working tree."""
+    patterns = [*DEFAULT_IGNORES, *read_coval_config(workspace)]
+    removed = 0
+    for path in sorted(workspace.rglob("*"), key=lambda item: len(item.parts), reverse=True):
+        if not path.is_file() or path.is_symlink():
+            continue
+        relative = path.relative_to(workspace).as_posix()
+        if any(Path(relative).match(pattern) or Path("x/" + relative).match(pattern) for pattern in patterns):
+            path.unlink()
+            removed += 1
+    return removed
+
+
+def run_remote_targets(urls: list[str], access: dict | None = None) -> dict:
+    """Run the analyzers against downloaded GitHub source in a temp directory.
+
+    `access` optionally maps a repository URL to {"token": ..., "ref": ...}: a short-lived
+    GitHub App installation token for private repositories, and a commit or branch to score.
+    """
+    access = access or {}
     if not isinstance(urls, list) or any(not isinstance(value, str) for value in urls):
         raise ValueError("Submit repository URLs as a list of strings.")
     targets = read_targets(urls)
@@ -222,7 +277,10 @@ def run_remote_targets(urls: list[str]) -> dict:
     for target in targets:
         with tempfile.TemporaryDirectory(prefix="coval-repository-evaluation-") as temporary:
             work_dir = Path(temporary)
-            workspace = download_repository_archive(target, work_dir, env)
+            target_access = access.get(target["input"]) or access.get(target["input"].lower()) or {}
+            target_env = {**env, "GITHUB_TOKEN": target_access["token"]} if target_access.get("token") else env
+            workspace = download_repository_archive(target, work_dir, target_env, target_access.get("ref", ""))
+            ignored_files = prune_workspace(workspace)
             analyzed_target = {
                 **target,
                 "argument": str(workspace),
@@ -230,7 +288,11 @@ def run_remote_targets(urls: list[str]) -> dict:
                 "workspace_path": str(workspace),
                 "url": target["input"],
             }
-            results.append(run_one(analyzed_target, work_dir / "reports", env))
+            result = run_one(analyzed_target, work_dir / "reports", env)
+            result["ignoredFiles"] = ignored_files
+            if target_access.get("ref"):
+                result["ref"] = target_access["ref"]
+            results.append(result)
 
     return {
         "schemaVersion": 1,

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "./dashboard-icon";
 import { PageHeading } from "./ui";
 import { EvaluationTarget, RunProgress } from "./evaluation-report";
@@ -154,6 +154,8 @@ export default function CodeEvaluationPage() {
 
   const dismissed = new Set(codeEvaluation?.dismissed || []);
   const [shares, setShares] = useState({});
+  const [githubApp, setGithubApp] = useState(null);
+  useEffect(() => { apiRequest("/api/github/app").then(setGithubApp).catch(() => {}); }, []);
   const [printing, setPrinting] = useState("");
 
   async function setDismissed(findingKey, restore) {
@@ -230,7 +232,7 @@ export default function CodeEvaluationPage() {
       {runMessage && !running && <p className="evaluation-run-message" role="status">{runMessage}</p>}
       {runError && <p className="evaluation-run-error" role="alert">{runError}</p>}
       <label className="evaluation-share-option"><input type="checkbox" checked={shareScores} onChange={(event) => setShareScores(event.target.checked)} /> <span><strong>Show these scores on my profile</strong><small>Only public repository scores are shared with the COVAL community. Reports stay private unless you check this box.</small></span></label>
-      <p className="evaluation-private-note">Any signed-in GitHub user can evaluate public repositories they choose. Private repository access currently requires the workspace owner’s server token; private results cannot be shared.</p>
+      <p className="evaluation-private-note">Public repositories work right away. To score private repositories (Pro) and get COVAL comments on pull requests, {githubApp?.installUrl ? <a href={githubApp.installUrl} target="_blank" rel="noreferrer">install the COVAL GitHub App</a> : "install the COVAL GitHub App"} on the repositories you choose; access is read-only and you can revoke it anytime. Private results cannot be shared publicly. Files listed under <code>ignore:</code> in a <code>.coval.yml</code> are skipped.</p>
     </form>
 
     {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>{localWorkspaceAvailable ? "Score this local workspace or add GitHub URLs to run all ten agents. Results are saved to this development checkout." : "Add GitHub URLs above and run all ten agents to generate scores."}</p></div>}

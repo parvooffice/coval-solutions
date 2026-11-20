@@ -15,13 +15,14 @@ from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "scripts" / "run-code-evaluation.py"
-MAX_BODY_BYTES = 16_384
+MAX_BODY_BYTES = 32_768
 app = FastAPI(title="COVAL Python Analyzer", docs_url=None, redoc_url=None)
 runner: dict[str, Any] | None = None
 
 
 class AnalyzeRequest(BaseModel):
     urls: list[str] = Field(min_length=1, max_length=5)
+    access: dict[str, dict[str, str]] | None = None
 
 
 @app.get("/health")
@@ -37,14 +38,14 @@ def evaluate(payload: AnalyzeRequest, x_coval_evaluation_secret: str = Header(de
     if not x_coval_evaluation_secret or not hmac.compare_digest(expected, x_coval_evaluation_secret.strip()):
         raise HTTPException(status_code=401, detail="Unauthorized analyzer request.")
     if len(json.dumps(payload.model_dump()).encode("utf-8")) > MAX_BODY_BYTES:
-        raise HTTPException(status_code=413, detail="Keep each evaluation request under 16 KB.")
+        raise HTTPException(status_code=413, detail="Keep each evaluation request under 32 KB.")
     if any(not url.startswith("https://github.com/") for url in payload.urls):
         raise HTTPException(status_code=400, detail="Submit public GitHub repository URLs.")
     global runner
     try:
         if runner is None:
             runner = runpy.run_path(str(RUNNER))
-        report = runner["run_remote_targets"](payload.urls)
+        report = runner["run_remote_targets"](payload.urls, payload.access)
         return {"report": report}
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error

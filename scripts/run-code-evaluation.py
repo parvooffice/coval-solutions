@@ -248,13 +248,30 @@ def prune_workspace(workspace: Path) -> int:
     return removed
 
 
+def clean_access(value, urls):
+    """Validate {repo url: {"token": str, "ref": str}} for repositories in this run."""
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError("Repository access must be an object.")
+    cleaned = {}
+    for url, item in value.items():
+        if url not in urls or not isinstance(item, dict):
+            continue
+        token, ref = item.get("token", ""), item.get("ref", "")
+        if not isinstance(token, str) or not isinstance(ref, str) or len(token) > 255 or len(ref) > 200:
+            raise ValueError("Invalid repository access entry.")
+        cleaned[url] = {"token": token, "ref": ref}
+    return cleaned
+
+
 def run_remote_targets(urls: list[str], access: dict | None = None) -> dict:
     """Run the analyzers against downloaded GitHub source in a temp directory.
 
     `access` optionally maps a repository URL to {"token": ..., "ref": ...}: a short-lived
     GitHub App installation token for private repositories, and a commit or branch to score.
     """
-    access = access or {}
+    access = clean_access(access, set(urls))
     if not isinstance(urls, list) or any(not isinstance(value, str) for value in urls):
         raise ValueError("Submit repository URLs as a list of strings.")
     targets = read_targets(urls)
@@ -503,6 +520,7 @@ def run_one(target: dict[str, str], report_root: Path | None = None, env: dict[s
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--targets-json", help="JSON array of GitHub repository URLs; reads the URL dump when omitted.")
+    parser.add_argument("--access-json", help="JSON object mapping repository URLs to {token, ref} (private repositories and pull requests).")
     parser.add_argument("--local-workspace", action="store_true", help="Score this COVAL checkout directly (local development).")
     parser.add_argument("--output", help="Aggregate JSON output path (defaults to app/data/code-evaluation.json).")
     parser.add_argument("--report-dir", help="Directory for this run's analyzer reports; isolates reports from other users and runs.")
@@ -535,7 +553,7 @@ def main() -> int:
         analyzer_env["GIT_CONFIG_VALUE_0"] = f"AUTHORIZATION: basic {credential}"
     if values is not None:
         # Same path as the cloud function: download each repository once and share it with every agent.
-        bundle = run_remote_targets(values)
+        bundle = run_remote_targets(values, json.loads(args.access_json) if args.access_json else None)
     else:
         bundle = {
             "schemaVersion": 1,

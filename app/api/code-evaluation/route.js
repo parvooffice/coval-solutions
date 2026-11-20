@@ -5,7 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { apiError, requireUser, supabaseRest } from "../../lib/server/auth.js";
 import { hasValidPublicSignature, signPublicReport } from "../../lib/server/evaluation-sharing.js";
-import { consumeQuota } from "../../lib/server/billing.js";
+import { consumeQuota, hasPro } from "../../lib/server/billing.js";
+import { resolvePrivateAccess } from "../../lib/server/github-app.js";
 
 const ROOT = path.resolve(process.cwd());
 const REPORT_FILE = path.join(ROOT, "app", "data", "code-evaluation.json");
@@ -36,7 +37,7 @@ function parseGitHubRepository(value) {
   return `https://github.com/${owner}/${repository}`;
 }
 
-async function runAnalyzers(urls, localWorkspace = false) {
+export async function runAnalyzers(urls, localWorkspace = false, access = {}) {
   if (process.env.NODE_ENV === "development") {
     const workDir = await mkdtemp(path.join(os.tmpdir(), "coval-local-evaluation-"));
     const reportDir = path.join(workDir, "reports");
@@ -49,6 +50,7 @@ async function runAnalyzers(urls, localWorkspace = false) {
       ];
       if (localWorkspace) args.push("--local-workspace");
       else args.push("--targets-json", JSON.stringify(urls));
+      if (Object.keys(access).length) args.push("--access-json", JSON.stringify(access));
       await execFileAsync(process.env.CODE_EVALUATION_PYTHON || "python", args, { cwd: ROOT, env: process.env, timeout: 285_000, maxBuffer: 10 * 1024 * 1024 });
       const bundle = JSON.parse(await readFile(outputPath, "utf8"));
       bundle.urlFile = "submitted repository URLs";
@@ -85,7 +87,7 @@ async function runAnalyzers(urls, localWorkspace = false) {
         "Content-Type": "application/json",
         "x-coval-evaluation-secret": secret,
       },
-      body: JSON.stringify({ urls }),
+      body: JSON.stringify({ urls, ...(Object.keys(access).length ? { access } : {}) }),
       cache: "no-store",
       signal: AbortSignal.timeout(285_000),
     });
@@ -209,7 +211,12 @@ export async function POST(request) {
     if (!localWorkspace) await consumeQuota(user, "evaluation");
 
     const previous = await readSavedEvaluation(user);
-    const analyzedReport = await runAnalyzers(urls, localWorkspace);
+    // Private repositories: confirm the member can read them, then use a read-only GitHub App token.
+    const { access, privateUrls } = localWorkspace ? { access: {}, privateUrls: [] } : await resolvePrivateAccess(urls, user.githubToken);
+    if (privateUrls.length && !(await hasPro(user))) {
+      throw Object.assign(new Error("Scoring private repositories is part of COVAL Pro. Upgrade on the Plan page."), { status: 402 });
+    }
+    const analyzedReport = await runAnalyzers(urls, localWorkspace, access);
     const publicReport = isPublic ? structuredClone(analyzedReport) : null;
     const publicSignature = isPublic ? signPublicReport(user.id, user.login, publicReport) : null;
     const report = analyzedReport;

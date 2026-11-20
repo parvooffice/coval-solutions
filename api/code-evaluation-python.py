@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = ROOT / "scripts" / "run-code-evaluation.py"
-MAX_BODY_BYTES = 16_384
+MAX_BODY_BYTES = 32_768
 
 
 class handler(BaseHTTPRequestHandler):
@@ -40,7 +40,7 @@ class handler(BaseHTTPRequestHandler):
             self._respond(400, {"error": "Invalid request length."})
             return
         if content_length < 1 or content_length > MAX_BODY_BYTES:
-            self._respond(413 if content_length > MAX_BODY_BYTES else 400, {"error": "Keep each evaluation request under 16 KB."})
+            self._respond(413 if content_length > MAX_BODY_BYTES else 400, {"error": "Keep each evaluation request under 32 KB."})
             return
 
         try:
@@ -52,7 +52,8 @@ class handler(BaseHTTPRequestHandler):
                 raise ValueError("Evaluate between one and five repositories per run.")
 
             namespace = runpy.run_path(str(RUNNER))
-            report = namespace["run_remote_targets"](urls)
+            access = body.get("access") if isinstance(body.get("access"), dict) else None
+            report = namespace["run_remote_targets"](urls, access)
             self._respond(200, {"report": report})
         except (json.JSONDecodeError, UnicodeDecodeError):
             self._respond(400, {"error": "Request body must be valid JSON."})

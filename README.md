@@ -38,6 +38,7 @@ In the Supabase SQL Editor, apply these migrations in filename order:
 - [`202610260001_coval_public_profiles.sql`](./supabase/migrations/202610260001_coval_public_profiles.sql) — editable profile details, featured repositories, and section visibility.
 - [`202610260002_coval_profile_banners.sql`](./supabase/migrations/202610260002_coval_profile_banners.sql) — the Supabase Storage bucket and scoped banner upload policies.
 - [`202611200001_coval_teams.sql`](./supabase/migrations/202611200001_coval_teams.sql) — teams, admin invites, team-admin access to member evaluations, and team-wide agent averages.
+- [`202611200003_coval_shared_reports.sql`](./supabase/migrations/202611200003_coval_shared_reports.sql) — public share links and README badges for public repositories.
 - [`202611200002_coval_billing.sql`](./supabase/migrations/202611200002_coval_billing.sql) — Free and Pro plans, monthly usage limits, and signed plan updates. After applying it, store your `COVAL_BILLING_SIGNING_SECRET` with the `insert` shown at the top of the file.
 
 Existing Supabase accounts and records stay in place. Apply any application migrations above that have not already been applied to your project.
@@ -74,6 +75,24 @@ The app has no Supabase service-role key, so the server signs every plan change 
 
 [`ide-extension/`](./ide-extension/README.md) runs six of the agents (Readability, Test coverage, Performance, Maintainability, Scalability, Standards compliance) locally on the open folder and shows each fix as an inline warning, in the Problems panel, and in a COVAL scores view. Code never leaves the machine. Build it with `cd ide-extension && npm run package`, then install the `.vsix` from the Extensions view.
 
+## GitHub App (private repositories and pull request comments)
+
+1. On GitHub, open **Settings → Developer settings → GitHub Apps → New GitHub App**.
+2. Set the homepage to your COVAL URL and the webhook URL to `https://<web-domain>/api/github/webhook`, with a random webhook secret.
+3. Repository permissions: **Contents: Read-only**, **Metadata: Read-only**, **Pull requests: Read and write**. Subscribe to the **Pull request** event.
+4. Create the app, generate a private key, and note the App ID and the app's URL name (slug).
+5. Set `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_WEBHOOK_SECRET`, and `COVAL_PUBLIC_URL` in the web app's environment.
+
+Members install the app on the repositories they choose. Scoring a private repository requires Pro, a GitHub sign-in that can read the repository, and the app installed on it; COVAL then uses a one-hour, read-only token for that repository only. On each pull request, COVAL scores the base and head commits and keeps one comment updated with score changes and new findings. GitHub stops waiting for the webhook after 10 seconds; the comment appears when scoring finishes.
+
+Add a `.coval.yml` to a repository to skip paths:
+
+```yaml
+ignore:
+  - legacy/
+  - "**/*.generated.ts"
+```
+
 ## Docker Compose
 
 Copy `.env.example` to `.env`, configure Supabase and the analyzer secret, then run `docker compose up --build`. Compose builds the client using the public Supabase URL and publishable key, runs Express and FastAPI, and publishes the web app on port 3000. Supabase remains the authentication provider, database, and file storage.
@@ -91,4 +110,7 @@ See [`.env.example`](./.env.example). The Supabase URL and publishable key are i
 - `GET /api/health` reports Express and Supabase configuration status.
 - `GET /api/teams` and `POST /api/teams` list teams and pending invites, and create teams, invite members, accept or decline invites, change roles, and remove members. Admins receive each active member's score summary; members receive only team-wide averages.
 - `GET /api/billing` returns the plan and monthly usage; `POST /api/billing` starts a Razorpay subscription, verifies checkout, or cancels at the end of the period. `POST /api/billing/webhook` receives Razorpay subscription events.
+- `POST /api/explain-finding` explains one finding and suggests a fix using the surrounding code (OpenAI).
+- `POST /api/share`, `GET /api/share?token=`, and `DELETE /api/share` manage public report links; `GET /api/badge?token=` returns the README badge. Pages: `/report/<token>` and `/report/sample`.
+- `POST /api/github/webhook` receives GitHub App pull request events; `GET /api/github/app` returns the install link.
 - `POST /api/report-chat` answers questions about the signed-in member's saved reports. It retrieves the relevant report passages and sends only those to OpenAI; `OPENAI_API_KEY` stays on the server.

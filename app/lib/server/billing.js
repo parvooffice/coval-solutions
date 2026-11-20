@@ -97,6 +97,18 @@ export async function applyEntitlement(userId, entitlement, user = null) {
   return true;
 }
 
+// True on Pro, or when billing is not set up yet (no paywall before the billing migration).
+export async function hasPro(user) {
+  if (!user?.token) return true;
+  try {
+    const summary = await supabaseRest(user, "rpc/coval_billing_summary", { method: "POST", body: "{}" });
+    return summary?.plan === "pro";
+  } catch (error) {
+    if (error.status === 404 || /could not find the function/i.test(error.message || "")) return true;
+    throw error;
+  }
+}
+
 // Counts one use of a metered feature; turns the database's limit error into HTTP 402.
 export async function consumeQuota(user, kind) {
   if (!user?.token) return null; // local development without a session

@@ -23,7 +23,7 @@ export function PageHeading({ eyebrow, title, description, action }) {
   );
 }
 
-export function MetricCard({ label, value, unit, detail, trend, badge, chart = false }) {
+export function MetricCard({ label, value, unit, detail, trend, badge }) {
   return (
     <article className="metric-card">
       <div className="metric-top">
@@ -34,17 +34,8 @@ export function MetricCard({ label, value, unit, detail, trend, badge, chart = f
       <div className="metric-value">{value}<small>{unit}</small></div>
       <div className="metric-foot">
         <span>{detail}</span>
-        {chart && <Sparkline />}
       </div>
     </article>
-  );
-}
-
-export function Sparkline({ color = "var(--violet)" }) {
-  return (
-    <svg className="sparkline" viewBox="0 0 96 32" aria-hidden="true">
-      <path d="M2 27 15 20 26 24 38 13 49 18 61 8 72 12 84 3 94 7" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 

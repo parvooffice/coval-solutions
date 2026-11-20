@@ -211,7 +211,16 @@ export async function POST(request) {
     const publicReport = isPublic ? structuredClone(analyzedReport) : null;
     const publicSignature = isPublic ? signPublicReport(user.id, user.login, publicReport) : null;
     const report = analyzedReport;
-    const submitted = new Set((analyzedReport.targets || []).map((target) => String(target.url || target.input).toLowerCase()));
+    const targetKey = (target) => String(target.url || target.input).toLowerCase();
+    const submitted = new Set((analyzedReport.targets || []).map(targetKey));
+    // Keep the last run's scores beside each re-scored repository so members can see what changed.
+    const previousByKey = new Map((previous.targets || []).map((target) => [targetKey(target), target]));
+    for (const target of report.targets || []) {
+      const earlier = previousByKey.get(targetKey(target));
+      if (!earlier) continue;
+      const scores = Object.fromEntries((earlier.evaluations || []).filter((item) => item.score != null).map((item) => [item.id, item.score]));
+      if (Object.keys(scores).length) target.previous = { generatedAt: earlier.generatedAt || null, scores };
+    }
     report.targets = [
       ...(previous.targets || []).filter((target) => localWorkspace
         ? target.source !== "local"

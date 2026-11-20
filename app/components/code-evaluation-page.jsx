@@ -1,16 +1,11 @@
 import { useRef, useState } from "react";
 import Icon from "./dashboard-icon";
 import { PageHeading } from "./ui";
+import { EvaluationTarget, RunProgress } from "./evaluation-report";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { apiRequest } from "../lib/client-api";
 
 const MAX_TARGETS = 5;
-const ANALYZER_ICONS = { security: "lock", readability: "eye", test_coverage: "flask", documentation: "list", modularity: "grid", error_handling: "info" };
-const analyzerIcon = (id) => ANALYZER_ICONS[id] || "code";
-
-function number(value) {
-  return value == null || Number.isNaN(Number(value)) ? "—" : Number(value).toFixed(1).replace(/\.0$/, "");
-}
 
 function parseUrlText(value) {
   return [...new Set(value.split(/[\s,;]+/).map((item) => item.trim().replace(/^['"]|['"]$/g, "")).filter(Boolean))];
@@ -29,7 +24,10 @@ export default function CodeEvaluationPage() {
   const [runMessage, setRunMessage] = useState("");
   const [runError, setRunError] = useState("");
   const fileInput = useRef(null);
-  const targets = codeEvaluation?.targets || [];
+  const targets = [...(codeEvaluation?.targets || [])].sort((a, b) => String(b.generatedAt || "").localeCompare(String(a.generatedAt || "")));
+  const [runningCount, setRunningCount] = useState(0);
+  const importMenu = useRef(null);
+  const closeImportMenu = () => importMenu.current?.removeAttribute("open");
   const localWorkspaceAvailable = import.meta.env.DEV;
 
   function importWorkspaceRepositories() {
@@ -124,6 +122,7 @@ export default function CodeEvaluationPage() {
     }
 
     setRunning(true);
+    setRunningCount(urls.length);
     try {
       const result = await apiRequest("/api/code-evaluation", { method: "POST", body: JSON.stringify({ urls, isPublic: shareScores }) });
       updateCodeEvaluation(result.report);
@@ -138,6 +137,7 @@ export default function CodeEvaluationPage() {
 
   async function scoreLocalWorkspace() {
     setRunning(true);
+    setRunningCount(1);
     setRunError("");
     setRunMessage("");
     try {
@@ -175,16 +175,19 @@ export default function CodeEvaluationPage() {
       <label className="evaluation-url-label" htmlFor="evaluation-repository-urls">Repository URLs</label>
       <textarea id="evaluation-repository-urls" className="evaluation-url-input" value={urlText} onChange={(event) => setUrlText(event.target.value)} placeholder={"https://github.com/owner/project-one\nhttps://github.com/owner/project-two"} rows={5} spellCheck="false" />
       <div className="evaluation-import-actions">
-        <div className="evaluation-import-secondary-actions">
-          {localWorkspaceAvailable && <button type="button" className="button button-quiet" onClick={scoreLocalWorkspace} disabled={running || importingRepositories}><Icon name="code" size={15} /> Score this local workspace</button>}
-          <button type="button" className="button button-quiet" onClick={importMyGitHubRepositories} disabled={importingRepositories || running}><Icon name="git" size={15} /> {importingRepositories ? "Loading GitHub…" : "Import my public repos"}</button>
-          <button type="button" className="button button-quiet" onClick={importWorkspaceRepositories} disabled={!projects.length || running}><Icon name="repo" size={15} /> Add loaded workspace repos ({projects.length})</button>
-          <button type="button" className="button button-quiet" onClick={() => fileInput.current?.click()} disabled={running || importingRepositories}><Icon name="folder" size={15} /> Import URL file</button>
-          <input ref={fileInput} className="evaluation-file-input" type="file" accept=".txt,.csv,text/plain,text/csv" onChange={importUrlFile} aria-label="Import a text or CSV file containing GitHub repository URLs" />
-        </div>
-        <button type="submit" className="button button-primary" disabled={running || importingRepositories}><Icon name={running ? "activity" : "code"} size={15} /> {running ? "Running analyzers…" : "Score repositories"}</button>
+        <details className="eval-import-menu" ref={importMenu}>
+          <summary className="button button-quiet"><Icon name="folder" size={15} /> Import repositories <Icon name="chevronDown" size={14} /></summary>
+          <div className="eval-import-menu-list" role="menu">
+            <button type="button" role="menuitem" onClick={() => { closeImportMenu(); importMyGitHubRepositories(); }} disabled={importingRepositories || running}><Icon name="git" size={15} /> {importingRepositories ? "Loading GitHub…" : "My public GitHub repos"}</button>
+            <button type="button" role="menuitem" onClick={() => { closeImportMenu(); importWorkspaceRepositories(); }} disabled={!projects.length || running}><Icon name="repo" size={15} /> Loaded workspace repos ({projects.length})</button>
+            <button type="button" role="menuitem" onClick={() => { closeImportMenu(); fileInput.current?.click(); }} disabled={running || importingRepositories}><Icon name="list" size={15} /> A .txt or .csv URL file</button>
+            {localWorkspaceAvailable && <button type="button" role="menuitem" onClick={() => { closeImportMenu(); scoreLocalWorkspace(); }} disabled={running || importingRepositories}><Icon name="code" size={15} /> Score this local workspace (dev)</button>}
+          </div>
+        </details>
+        <input ref={fileInput} className="evaluation-file-input" type="file" accept=".txt,.csv,text/plain,text/csv" onChange={importUrlFile} aria-label="Import a text or CSV file containing GitHub repository URLs" />
+        <button type="submit" className="button button-primary eval-submit" disabled={running || importingRepositories}><Icon name={running ? "activity" : "code"} size={15} /> {running ? "Running agents…" : "Score repositories"}</button>
       </div>
-      {running && <p className="evaluation-run-message" role="status">Fetching each repository and running Documentation, Modularity, Security, Error handling, Readability, and Test coverage. This can take a few minutes.</p>}
+      {running && <RunProgress repositories={runningCount || 1} />}
       {runMessage && !running && <p className="evaluation-run-message" role="status">{runMessage}</p>}
       {runError && <p className="evaluation-run-error" role="alert">{runError}</p>}
       <label className="evaluation-share-option"><input type="checkbox" checked={shareScores} onChange={(event) => setShareScores(event.target.checked)} /> <span><strong>Show these scores on my profile</strong><small>Only public repository scores are shared with the COVAL community. Reports stay private unless you check this box.</small></span></label>
@@ -193,35 +196,24 @@ export default function CodeEvaluationPage() {
 
     {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>{localWorkspaceAvailable ? "Score this local workspace or add GitHub URLs to run all six analyzers. Results are saved to this development checkout." : "Add GitHub URLs above and run all six analyzers to generate scores."}</p></div>}
     <div className="evaluation-target-list">
-      {targets.map((target) => <section className="evaluation-target-card surface-card" key={`${target.input}-${target.name}`}>
-        <header className="evaluation-target-header">
-          <div><span className="eyebrow">{target.source === "github" ? "GITHUB REPOSITORY" : "LOCAL WORKSPACE"}</span><h2>{target.name}</h2></div>
-          {target.source === "github" && <a className="button" href={target.url} target="_blank" rel="noreferrer">Open repository <Icon name="arrowUpRight" size={14} /></a>}
-        </header>
-        <p className="evaluation-target-meta">Input: <code>{target.input}</code>{target.generatedAt && <> · Generated {new Date(target.generatedAt).toLocaleString()}</>}</p>
-        <div className="evaluation-score-grid">
-          {(target.evaluations || []).map((evaluation) => <article className="evaluation-score-card" key={evaluation.id}>
-            <div className="evaluation-score-heading"><span>{evaluation.label}</span><Icon name={analyzerIcon(evaluation.id)} size={17} /></div>
-            <strong className="evaluation-score-value">{number(evaluation.score)}<small>/100</small></strong>
-            <span className={`evaluation-status evaluation-status-${evaluation.status}`}>{evaluation.status === "complete" ? evaluation.grade || "Complete" : "Unavailable"}</span>
-            <p>{evaluation.summary || evaluation.error || "No summary was provided by the analyzer."}</p>
-            {evaluation.breakdown && Object.keys(evaluation.breakdown).length > 0 && <details className="evaluation-breakdown">
-              <summary>Score breakdown</summary>
-              <dl>{Object.entries(evaluation.breakdown).map(([key, value]) => <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd>{number(typeof value === "object" ? value.score : value)}</dd></div>)}</dl>
-            </details>}
-          </article>)}
-        </div>
-      </section>)}
+      {targets.map((target) => <EvaluationTarget
+        key={`${target.input}-${target.name}`}
+        target={target}
+        eyebrow={target.source === "github" ? "GITHUB REPOSITORY" : "LOCAL WORKSPACE"}
+        meta={<>Input: <code>{target.input}</code>{target.generatedAt && <> · Generated {new Date(target.generatedAt).toLocaleString()}</>}</>}
+      />)}
     </div>
     <section className="evaluation-community-section">
       <div className="evaluation-community-heading"><div><span className="eyebrow">COMMUNITY / SHARED RESULTS</span><h2>Scores from COVAL members</h2><p>Public repository evaluations shared by signed-in members.</p></div></div>
       {!codeEvaluation?.publicEvaluations?.length && <div className="empty-state"><Icon name="users" size={22} /><strong>No shared evaluations yet</strong><p>When a member opts to share a score for a public repository, it will appear here.</p></div>}
       <div className="evaluation-target-list">
-        {(codeEvaluation?.publicEvaluations || []).map((bundle, bundleIndex) => (bundle.targets || []).map((target) => <section className="evaluation-target-card surface-card" key={`${bundle.githubLogin}-${target.url}-${bundleIndex}`}>
-          <header className="evaluation-target-header"><div><span className="eyebrow">SHARED BY @{bundle.githubLogin || "COVAL MEMBER"}</span><h2>{target.name}</h2></div>{target.url?.startsWith("https://github.com/") && <a className="button" href={target.url} target="_blank" rel="noreferrer">Open repository <Icon name="arrowUpRight" size={14} /></a>}</header>
-          <p className="evaluation-target-meta">Evaluated {target.generatedAt ? new Date(target.generatedAt).toLocaleString() : bundle.sharedAt ? new Date(bundle.sharedAt).toLocaleString() : "recently"}</p>
-          <div className="evaluation-score-grid">{(target.evaluations || []).map((evaluation) => <article className="evaluation-score-card" key={evaluation.id}><div className="evaluation-score-heading"><span>{evaluation.label}</span><Icon name={analyzerIcon(evaluation.id)} size={17} /></div><strong className="evaluation-score-value">{number(evaluation.score)}<small>/100</small></strong><span className={`evaluation-status evaluation-status-${evaluation.status}`}>{evaluation.status === "complete" ? evaluation.grade || "Complete" : "Unavailable"}</span><p>{evaluation.summary || evaluation.error || "No summary was provided by the analyzer."}</p></article>)}</div>
-        </section>))}
+        {(codeEvaluation?.publicEvaluations || []).map((bundle, bundleIndex) => (bundle.targets || []).map((target) => <EvaluationTarget
+          key={`${bundle.githubLogin}-${target.url}-${bundleIndex}`}
+          target={target}
+          showFixes={false}
+          eyebrow={`SHARED BY @${bundle.githubLogin || "COVAL MEMBER"}`}
+          meta={`Evaluated ${target.generatedAt ? new Date(target.generatedAt).toLocaleString() : bundle.sharedAt ? new Date(bundle.sharedAt).toLocaleString() : "recently"}`}
+        />))}
       </div>
     </section>
     {codeEvaluation?.generatedAt && <p className="evaluation-generated-at">Score bundle generated {new Date(codeEvaluation.generatedAt).toLocaleString()} · {codeEvaluation.urlFile}</p>}

@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import tempfile
 import urllib.error
 import urllib.request
@@ -289,88 +290,140 @@ def static_agent_evaluation(agent: dict[str, str], target: dict[str, str], repor
             "score": final_score.get("score"), "grade": final_score.get("grade"),
             "summary": report.get("summary", final_score.get("interpretation", "")),
             "breakdown": {key: {"label": value.get("label", key), "score": value.get("score")} for key, value in report.get("categories", {}).items()},
+            "fixes": static_agent_fixes(agent["id"], report),
             "reportPath": report_name,
         }
     except Exception as error:  # Keep other analyzer reports even if one agent fails.
         return {"id": agent["id"], "label": agent["label"], "status": "failed", "score": None, "error": str(error)}
 
 
-def run_one(target: dict[str, str], report_root: Path | None = None, env: dict[str, str] | None = None) -> dict:
-    stem = target["name"]
-    docs_path = (report_root / "documentation" if report_root else ROOT / "documentation" / "reports") / f"{stem}-documentation-report.json"
-    modularity_path = (report_root / "modularity" if report_root else ROOT / "modularity" / "reports") / f"{stem}-modularity-report.json"
-    security_dir = report_root / "security" / stem if report_root else SECURITY_DIR / "reports"
-    evaluations = []
+SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+MAX_FIXES = 3
 
+
+def fix(title: str, location: str = "", detail: str = "") -> dict:
+    return {key: value for key, value in {"title": title, "location": location, "detail": detail}.items() if value}
+
+
+def report_location(root: Path | None, path: Path) -> str:
+    return path.name if root else path.relative_to(ROOT).as_posix()
+
+
+def documentation_evaluation(target: dict[str, str], report_root: Path | None, stem: str, env: dict[str, str] | None) -> dict:
+    docs_path = (report_root / "documentation" if report_root else ROOT / "documentation" / "reports") / f"{stem}-documentation-report.json"
     try:
         report = docs_report(target, docs_path, env)
-        evaluations.append({
+        return {
             "id": "documentation", "label": "Documentation", "status": "complete",
             "score": report.get("score"), "summary": report.get("summary", ""),
             "breakdown": report.get("breakdown", {}),
-            "reportPath": docs_path.name if report_root else docs_path.relative_to(ROOT).as_posix(),
-        })
+            "fixes": [fix(issue) for issue in report.get("issues", [])[:MAX_FIXES] if isinstance(issue, str)],
+            "reportPath": report_location(report_root, docs_path),
+        }
     except Exception as error:  # Keep other analyzer reports even if one tool fails.
         write_json(docs_path, {"tool": "documentation", "status": "failed", "error": str(error), "generated_at": now()})
-        evaluations.append({"id": "documentation", "label": "Documentation", "status": "failed", "score": None, "error": str(error), "reportPath": docs_path.name if report_root else docs_path.relative_to(ROOT).as_posix()})
+        return {"id": "documentation", "label": "Documentation", "status": "failed", "score": None, "error": str(error), "reportPath": report_location(report_root, docs_path)}
 
+
+def modularity_evaluation(target: dict[str, str], report_root: Path | None, stem: str, env: dict[str, str] | None) -> dict:
+    modularity_path = (report_root / "modularity" if report_root else ROOT / "modularity" / "reports") / f"{stem}-modularity-report.json"
     try:
         report = modularity_report(target, modularity_path, env)
         overall = report.get("overall", {})
         dimensions = report.get("dimensions", {})
-        breakdown = {key: {"label": value.get("label", key), "score": value.get("score")} for key, value in dimensions.items()}
-        evaluations.append({
+        offenders = (report.get("top_offenders") or {}).get("files", [])
+        return {
             "id": "modularity", "label": "Modularity", "status": "complete",
             "score": overall.get("score"), "grade": overall.get("grade"),
-            "summary": overall.get("interpretation", ""), "breakdown": breakdown,
-            "reportPath": modularity_path.name if report_root else modularity_path.relative_to(ROOT).as_posix(),
-        })
+            "summary": overall.get("interpretation", ""),
+            "breakdown": {key: {"label": value.get("label", key), "score": value.get("score")} for key, value in dimensions.items()},
+            "fixes": [fix("Split or simplify this module", item.get("path", ""), "; ".join(item.get("reasons", [])[:2])) for item in offenders[:MAX_FIXES]],
+            "reportPath": report_location(report_root, modularity_path),
+        }
     except Exception as error:
         write_json(modularity_path, {"tool": "modularity", "status": "failed", "error": str(error), "generated_at": now()})
-        evaluations.append({"id": "modularity", "label": "Modularity", "status": "failed", "score": None, "error": str(error), "reportPath": modularity_path.name if report_root else modularity_path.relative_to(ROOT).as_posix()})
+        return {"id": "modularity", "label": "Modularity", "status": "failed", "score": None, "error": str(error), "reportPath": report_location(report_root, modularity_path)}
 
+
+def security_evaluation(target: dict[str, str], report_root: Path | None, stem: str, env: dict[str, str] | None) -> dict:
+    security_dir = report_root / "security" / stem if report_root else SECURITY_DIR / "reports"
     try:
         report, source_report_path = security_report(target, security_dir, env)
         expected_report_path = security_dir / f"{safe_name(report.get('repo_name', stem))}-security-report.json"
-        evaluations.append({
+        if source_report_path != expected_report_path:
+            expected_report_path.parent.mkdir(parents=True, exist_ok=True)
+            expected_report_path.write_text(source_report_path.read_text(encoding="utf-8"), encoding="utf-8")
+        findings = sorted(report.get("findings", []), key=lambda item: SEVERITY_RANK.get(str(item.get("severity", "")).lower(), 5))
+        return {
             "id": "security", "label": "Security", "status": "complete",
             "score": report.get("overall_score"), "summary": security_summary(report.get("severity_summary")),
             "breakdown": report.get("domain_scores", {}),
             "findingCount": len(report.get("findings", [])),
-            "reportPath": expected_report_path.name if report_root else expected_report_path.relative_to(ROOT).as_posix(),
+            "fixes": [
+                fix(f"{str(item.get('severity', '')).title()}: {item.get('title', 'Security finding')}",
+                    f"{item['file']}:{item['line']}" if item.get("file") and item.get("line") else item.get("file", ""),
+                    item.get("recommendation", ""))
+                for item in findings[:MAX_FIXES]
+            ],
+            "reportPath": report_location(report_root, expected_report_path),
             "generatedAt": report.get("generated_at"),
-        })
-        if source_report_path != expected_report_path:
-            expected_report_path.parent.mkdir(parents=True, exist_ok=True)
-            expected_report_path.write_text(source_report_path.read_text(encoding="utf-8"), encoding="utf-8")
+        }
     except Exception as error:
-        evaluations.append({"id": "security", "label": "Security", "status": "failed", "score": None, "error": str(error)})
+        return {"id": "security", "label": "Security", "status": "failed", "score": None, "error": str(error)}
 
+
+def error_handling_evaluation(target: dict[str, str], report_root: Path | None, stem: str, env: dict[str, str] | None) -> dict:
     error_handling_path = (report_root / "error-handling" if report_root else ROOT / "error-handling" / "reports") / f"{stem}-error-handling-report.json"
     error_handling_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        error_handling_runner = ROOT / "error-handling" / "error_handling_scorer.py"
         run_process(
-            [sys.executable, str(error_handling_runner), target.get("workspace_path", target["argument"]), "--output", str(error_handling_path), "--quiet", "--no-progress"],
+            [sys.executable, str(ROOT / "error-handling" / "error_handling_scorer.py"), target.get("workspace_path", target["argument"]), "--output", str(error_handling_path), "--quiet", "--no-progress"],
             cwd=ROOT,
             env=env,
         )
-        error_report = json.loads(error_handling_path.read_text(encoding="utf-8"))
-        final_score = error_report.get("final_score", {})
-        categories = error_report.get("categories", {})
-        evaluations.append({
+        report = json.loads(error_handling_path.read_text(encoding="utf-8"))
+        final_score = report.get("final_score", {})
+        issues = sorted(report.get("issues", []), key=lambda item: (SEVERITY_RANK.get(str(item.get("severity", "")).lower(), 5), -int(item.get("count") or 0)))
+        return {
             "id": "error_handling", "label": "Error handling", "status": "complete",
             "score": final_score.get("score"), "grade": final_score.get("grade"),
-            "summary": error_report.get("summary", final_score.get("interpretation", "")),
+            "summary": report.get("summary", final_score.get("interpretation", "")),
             "confidence": final_score.get("confidence"),
-            "breakdown": {key: {"label": value.get("label", key), "score": value.get("score")} for key, value in categories.items()},
-            "reportPath": error_handling_path.name if report_root else error_handling_path.relative_to(ROOT).as_posix(),
-        })
+            "breakdown": {key: {"label": value.get("label", key), "score": value.get("score")} for key, value in report.get("categories", {}).items()},
+            "fixes": [
+                fix(f"{item.get('description', item.get('type', 'Issue'))} ({item.get('count', 0)}×)",
+                    ((item.get("examples") or [{}])[0]).get("location", ""),
+                    ((item.get("examples") or [{}])[0]).get("detail", ""))
+                for item in issues[:MAX_FIXES]
+            ],
+            "reportPath": report_location(report_root, error_handling_path),
+        }
     except Exception as error:
-        evaluations.append({"id": "error_handling", "label": "Error handling", "status": "failed", "score": None, "error": str(error)})
+        return {"id": "error_handling", "label": "Error handling", "status": "failed", "score": None, "error": str(error)}
 
-    for agent in STATIC_AGENTS:
-        evaluations.append(static_agent_evaluation(agent, target, report_root, stem, env))
+
+def static_agent_fixes(agent_id: str, report: dict) -> list[dict]:
+    if agent_id == "readability":
+        return [
+            fix(f"Simplify {item['name'] or 'this function'}", f"{item['path']}:{item['line']}",
+                f"{item['length']} lines, {item['complexity']} decision points, nesting depth {item['nesting']}")
+            for item in report.get("hotspots", [])[:MAX_FIXES]
+        ]
+    if agent_id == "test_coverage":
+        return [fix("Add tests for this module", item["path"], f"{item['lines']} lines with no matching test") for item in report.get("untested_modules", [])[:MAX_FIXES]]
+    return []
+
+
+AGENT_RUNNERS = (documentation_evaluation, modularity_evaluation, security_evaluation, error_handling_evaluation)
+
+
+def run_one(target: dict[str, str], report_root: Path | None = None, env: dict[str, str] | None = None) -> dict:
+    stem = target["name"]
+    # The agents are independent, so run them side by side; results keep a fixed order.
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = [pool.submit(runner, target, report_root, stem, env) for runner in AGENT_RUNNERS]
+        futures += [pool.submit(static_agent_evaluation, agent, target, report_root, stem, env) for agent in STATIC_AGENTS]
+        evaluations = [future.result() for future in futures]
 
     is_local = target["source"] == "local"
     local_uri = "local-workspace" if is_local else target.get("url", target["argument"])
@@ -414,12 +467,16 @@ def main() -> int:
         analyzer_env["GIT_CONFIG_COUNT"] = "1"
         analyzer_env["GIT_CONFIG_KEY_0"] = "http.https://github.com/.extraheader"
         analyzer_env["GIT_CONFIG_VALUE_0"] = f"AUTHORIZATION: basic {credential}"
-    bundle = {
-        "schemaVersion": 1,
-        "generatedAt": now(),
-        "urlFile": "submitted repository URLs" if values is not None else URL_FILE.name,
-        "targets": [run_one(target, report_root, analyzer_env) for target in targets],
-    }
+    if values is not None:
+        # Same path as the cloud function: download each repository once and share it with every agent.
+        bundle = run_remote_targets(values)
+    else:
+        bundle = {
+            "schemaVersion": 1,
+            "generatedAt": now(),
+            "urlFile": URL_FILE.name,
+            "targets": [run_one(target, report_root, analyzer_env) for target in targets],
+        }
     output_path = Path(args.output).resolve() if args.output else OUTPUT_FILE
     write_json(output_path, bundle)
     print(f"Wrote analyzer scores to {output_path}")

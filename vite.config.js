@@ -15,7 +15,8 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "127.0.0.1",
       port: 3000,
-      proxy: { "/api": "http://127.0.0.1:3001" },
+      // Keep the browser's Host header so the API's same-origin check accepts POST/PATCH requests.
+      proxy: { "/api": { target: "http://127.0.0.1:3001", changeOrigin: false } },
     },
     build: { outDir: "dist", emptyOutDir: true },
   };

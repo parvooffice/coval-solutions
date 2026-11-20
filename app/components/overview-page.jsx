@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "./dashboard-icon";
 import { Avatar, AvatarStack, MetricCard } from "./ui";
+import { formatScore, gradeFor, overallScore } from "./evaluation-report";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { fmt } from "../data/dashboard-data";
 import { apiRequest } from "../lib/client-api";
@@ -108,11 +109,11 @@ function EvaluationSummary({ targets, navigate }) {
     </div>
     {targets.length ? <>
       {targets.slice(0, 5).map((target) => <div className="overview-evaluation-project" key={`${target.input}-${target.name}`}>
-        <p className="overview-evaluation-target"><strong>{target.name}</strong> · {target.source === "github" ? "GitHub repository" : "local workspace"}</p>
+        <p className="overview-evaluation-target"><strong>{target.name}</strong> · {target.source === "github" ? "GitHub repository" : "local workspace"} · overall <b>{formatScore(overallScore(target.evaluations))}</b>/100</p>
         <div className="overview-evaluation-grid">{(target.evaluations || []).map((evaluation) => <article className="overview-evaluation-card" key={evaluation.id}>
           <span>{evaluation.label}</span>
           <strong>{evaluation.score == null ? "—" : `${evaluation.score}`}<small>/100</small></strong>
-          <small>{evaluation.status === "complete" ? evaluation.grade || "Analyzer score" : evaluation.error || "No score available"}</small>
+          <small>{evaluation.status === "complete" ? `Grade ${evaluation.grade || gradeFor(evaluation.score)}` : evaluation.error || "No score available"}</small>
         </article>)}</div>
       </div>)}
       {targets.length > 5 && <p className="conversation-empty">Showing 5 of {targets.length} repositories. Open Code Evaluation to view every score.</p>}

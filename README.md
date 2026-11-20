@@ -50,7 +50,12 @@ Repositories are downloaded to temporary directories and removed after scoring. 
 
 ## Vercel
 
-`vercel.json` builds the Vite client into `app/dist` and serves every `/api/*` request from `api/index.js`, which runs the same Express app as `npm start` (`server/app.js`). In the Vercel project, set the Supabase URL and publishable key, `CODE_EVALUATION_API_URL` pointing at the hosted Python analyzer, and `CODE_EVALUATION_FUNCTION_SECRET`. The Python analyzer does not run on Vercel; host it separately (for example with `Dockerfile.analyzer`).
+COVAL deploys from this repository to two Vercel projects that share `vercel.json`:
+
+- **Web app** builds the Vite client into `app/dist` and serves `/api/*` from `api/index.js`, which runs the same Express app as `npm start` (`server/app.js`).
+- **Code-review agents** run in `api/code-evaluation-python.py`, a Python function that executes all six agents (Documentation, Modularity, Security, Error handling, Readability, Test coverage) on their own in the cloud.
+
+In the web app project, set the Supabase URL and publishable key, `CODE_EVALUATION_API_URL` to the agents project's `https://<agents-domain>/api/code-evaluation-python`, and `CODE_EVALUATION_FUNCTION_SECRET`. Set the same `CODE_EVALUATION_FUNCTION_SECRET` in the agents project. Both functions allow up to 300 seconds per run.
 
 ## Docker Compose
 

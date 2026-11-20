@@ -5,10 +5,15 @@
   "buildCommand": "npm run build",
   "outputDirectory": "app/dist",
   "functions": {
-    "api/index.js": { "maxDuration": 300 }
+    "api/index.js": { "maxDuration": 300 },
+    "api/code-evaluation-python.py": {
+      "maxDuration": 300,
+      "includeFiles": "{scripts/run-code-evaluation.py,documentation/**/*.py,modularity/**/*.py,security/src/**/*.py,error-handling/**/*.py,readability/**/*.py,test-coverage/**/*.py}",
+      "excludeFiles": "{**/tests/**,**/__pycache__/**,**/*.pyc,security/reports/**,modularity/reports/**,documentation/reports/**,error-handling/reports/**,readability/reports/**,test-coverage/reports/**}"
+    }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api" },
-    { "source": "/:path*", "destination": "/index.html" }
+    { "source": "/api/:path((?!code-evaluation-python$).*)", "destination": "/api" },
+    { "source": "/:path((?!api/).*)", "destination": "/index.html" }
   ]
 }

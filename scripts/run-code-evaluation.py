@@ -269,6 +269,10 @@ def security_report(target: dict[str, str], report_dir: Path, env: dict[str, str
 STATIC_AGENTS = (
     {"id": "readability", "label": "Readability", "directory": "readability", "script": "readability_scorer.py"},
     {"id": "test_coverage", "label": "Test coverage", "directory": "test-coverage", "script": "test_coverage_scorer.py"},
+    {"id": "performance", "label": "Performance", "directory": "performance", "script": "performance_scorer.py"},
+    {"id": "maintainability", "label": "Maintainability", "directory": "maintainability", "script": "maintainability_scorer.py"},
+    {"id": "scalability", "label": "Scalability", "directory": "scalability", "script": "scalability_scorer.py"},
+    {"id": "standards", "label": "Standards compliance", "directory": "standards", "script": "standards_scorer.py"},
 )
 
 
@@ -411,7 +415,7 @@ def static_agent_fixes(agent_id: str, report: dict) -> list[dict]:
         ]
     if agent_id == "test_coverage":
         return [fix("Add tests for this module", item["path"], f"{item['lines']} lines with no matching test") for item in report.get("untested_modules", [])[:MAX_FIXES]]
-    return []
+    return [item for item in report.get("fixes", []) if isinstance(item, dict)][:MAX_FIXES]
 
 
 AGENT_RUNNERS = (documentation_evaluation, modularity_evaluation, security_evaluation, error_handling_evaluation)
@@ -420,7 +424,7 @@ AGENT_RUNNERS = (documentation_evaluation, modularity_evaluation, security_evalu
 def run_one(target: dict[str, str], report_root: Path | None = None, env: dict[str, str] | None = None) -> dict:
     stem = target["name"]
     # The agents are independent, so run them side by side; results keep a fixed order.
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=6) as pool:
         futures = [pool.submit(runner, target, report_root, stem, env) for runner in AGENT_RUNNERS]
         futures += [pool.submit(static_agent_evaluation, agent, target, report_root, stem, env) for agent in STATIC_AGENTS]
         evaluations = [future.result() for future in futures]

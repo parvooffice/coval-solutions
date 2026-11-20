@@ -1,8 +1,9 @@
-"""Vercel Python function that runs COVAL's six code-review agents in the cloud.
+"""Vercel Python function that runs COVAL's ten code-review agents in the cloud.
 
 POST /api/code-evaluation-python with header `x-coval-evaluation-secret` and body
 {"urls": ["https://github.com/owner/repo", ...]} (1-5 public GitHub repositories).
-Agents: Documentation, Modularity, Security, Error handling, Readability, Test coverage.
+Agents: Documentation, Modularity, Security, Error handling, Readability, Test coverage,
+Performance, Maintainability, Scalability, Standards compliance.
 """
 
 from __future__ import annotations

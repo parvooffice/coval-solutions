@@ -44,7 +44,7 @@ Existing Supabase accounts and records stay in place. Apply any application migr
 
 The separate FastAPI service exposes `GET /health` and `POST /api/code-evaluation-python`. The Express API calls it using `x-coval-evaluation-secret`; configure the same `CODE_EVALUATION_FUNCTION_SECRET` for both services. The analyzer runs Documentation, Modularity, Security, Error Handling, Readability, and Test Coverage scorers and accepts up to five GitHub repository URLs per run.
 
-Readability (`readability/`) scores function size, nesting, branching complexity, line length, naming, and file size. Test Coverage (`test-coverage/`) statically estimates how many source modules have matching tests, test volume, assertion density, and whether a test runner, CI, and coverage tooling are configured. Both use only the Python standard library and never execute repository code.
+Readability (`readability/`) scores function size, nesting, branching complexity, line length, naming, and file size. Test Coverage (`test-coverage/`) statically estimates how many source modules have matching tests, test volume, assertion density, and whether a test runner, CI, and coverage tooling are configured. Performance (`performance/`), Maintainability (`maintainability/`), Scalability (`scalability/`), and Standards compliance (`standards/`) share helpers in `agent-kit/` and report their top fixes with file and line. All six of these use only the Python standard library and never execute repository code.
 
 Repositories are downloaded to temporary directories and removed after scoring. The analyzers do not modify remote repositories. Private analysis requires a server-side `GITHUB_TOKEN` with read access to the target repositories. Private results cannot be shared.
 
@@ -53,7 +53,7 @@ Repositories are downloaded to temporary directories and removed after scoring. 
 COVAL deploys from this repository to two Vercel projects that share `vercel.json`:
 
 - **Web app** builds the Vite client into `app/dist` and serves `/api/*` from `api/index.js`, which runs the same Express app as `npm start` (`server/app.js`).
-- **Code-review agents** run in `api/code-evaluation-python.py`, a Python function that executes all six agents (Documentation, Modularity, Security, Error handling, Readability, Test coverage) on their own in the cloud.
+- **Code-review agents** run in `api/code-evaluation-python.py`, a Python function that executes all ten agents (Documentation, Modularity, Security, Error handling, Readability, Test coverage, Performance, Maintainability, Scalability, Standards compliance) on their own in the cloud.
 
 In the web app project, set the Supabase URL and publishable key, `CODE_EVALUATION_API_URL` to the agents project's `https://<agents-domain>/api/code-evaluation-python`, and `CODE_EVALUATION_FUNCTION_SECRET`. Set the same `CODE_EVALUATION_FUNCTION_SECRET` in the agents project. Both functions allow up to 300 seconds per run.
 

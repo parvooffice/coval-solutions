@@ -164,7 +164,7 @@ export default function CodeEvaluationPage() {
 
   return <>
     <PageHeading
-      eyebrow="DOCUMENTATION / MODULARITY / SECURITY / ERROR HANDLING / READABILITY / TEST COVERAGE"
+      eyebrow="10 CODE-REVIEW AGENTS"
       title="Code evaluation"
       description="Score repositories you can access. Shared results appear in the COVAL community and on your profile."
       action={<button type="button" className="button button-quiet" onClick={downloadScores} disabled={!codeEvaluation?.targets?.length}><Icon name="arrowDown" size={15} /> Download JSON</button>}
@@ -194,7 +194,7 @@ export default function CodeEvaluationPage() {
       <p className="evaluation-private-note">Any signed-in GitHub user can evaluate public repositories they choose. Private repository access currently requires the workspace owner’s server token; private results cannot be shared.</p>
     </form>
 
-    {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>{localWorkspaceAvailable ? "Score this local workspace or add GitHub URLs to run all six analyzers. Results are saved to this development checkout." : "Add GitHub URLs above and run all six analyzers to generate scores."}</p></div>}
+    {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>{localWorkspaceAvailable ? "Score this local workspace or add GitHub URLs to run all ten agents. Results are saved to this development checkout." : "Add GitHub URLs above and run all ten agents to generate scores."}</p></div>}
     <div className="evaluation-target-list">
       {targets.map((target) => <EvaluationTarget
         key={`${target.input}-${target.name}`}

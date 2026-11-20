@@ -8,6 +8,10 @@ export const AGENTS = [
   { id: "error_handling", label: "Error handling", icon: "info" },
   { id: "readability", label: "Readability", icon: "eye" },
   { id: "test_coverage", label: "Test coverage", icon: "flask" },
+  { id: "performance", label: "Performance", icon: "activity" },
+  { id: "maintainability", label: "Maintainability", icon: "settings" },
+  { id: "scalability", label: "Scalability", icon: "network" },
+  { id: "standards", label: "Standards compliance", icon: "check" },
 ];
 const ICONS = Object.fromEntries(AGENTS.map((agent) => [agent.id, agent.icon]));
 
@@ -116,7 +120,7 @@ export function RunProgress({ repositories }) {
   return <div className="eval-progress" role="status" aria-live="polite">
     <div className="eval-progress-head">
       <span className="eval-spinner" aria-hidden="true" />
-      <strong>Running 6 agents on {repositories} {repositories === 1 ? "repository" : "repositories"}</strong>
+      <strong>Running {AGENTS.length} agents on {repositories} {repositories === 1 ? "repository" : "repositories"}</strong>
       <span className="eval-progress-time">{minutes}:{seconds}</span>
     </div>
     <ul>{AGENTS.map((agent) => <li key={agent.id}><Icon name={agent.icon} size={14} />{agent.label}<span className="eval-progress-pulse" /></li>)}</ul>

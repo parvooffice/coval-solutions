@@ -46,3 +46,7 @@ yarn-error.log*
 # Local reports from the readability and test coverage agents
 readability/reports/
 test-coverage/reports/
+performance/reports/
+maintainability/reports/
+scalability/reports/
+standards/reports/

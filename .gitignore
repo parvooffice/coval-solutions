@@ -42,3 +42,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+
+# Local reports from the readability and test coverage agents
+readability/reports/
+test-coverage/reports/

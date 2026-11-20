@@ -8,7 +8,8 @@ process.env.CODE_EVALUATION_API_URL = process.env.COVAL_ANALYZER_URL || "http://
 const { createServer } = await import("vite");
 const configFile = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../vite.config.js");
 const serverEntry = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../server/index.js");
-const apiServer = spawn(process.execPath, ["--watch", serverEntry], { stdio: "inherit", env: process.env });
+// Vite proxies /api to 3001, so the API always uses that port in development even if PORT is set in the shell.
+const apiServer = spawn(process.execPath, ["--watch", serverEntry], { stdio: "inherit", env: { ...process.env, PORT: "3001" } });
 const vite = await createServer({ configFile });
 await vite.listen();
 vite.printUrls();

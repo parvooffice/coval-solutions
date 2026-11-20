@@ -263,6 +263,38 @@ def security_report(target: dict[str, str], report_dir: Path, env: dict[str, str
     return json.loads(report_path.read_text(encoding="utf-8")), report_path
 
 
+# Standard-library agents that share one CLI contract: `<script> PATH --output FILE --quiet`
+# and a report with `final_score`, `summary`, and `categories`.
+STATIC_AGENTS = (
+    {"id": "readability", "label": "Readability", "directory": "readability", "script": "readability_scorer.py"},
+    {"id": "test_coverage", "label": "Test coverage", "directory": "test-coverage", "script": "test_coverage_scorer.py"},
+)
+
+
+def static_agent_evaluation(agent: dict[str, str], target: dict[str, str], report_root: Path | None, stem: str, env: dict[str, str] | None) -> dict:
+    agent_dir = ROOT / agent["directory"]
+    report_path = (report_root / agent["directory"] if report_root else agent_dir / "reports") / f"{stem}-{agent['directory']}-report.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_name = report_path.name if report_root else report_path.relative_to(ROOT).as_posix()
+    try:
+        run_process(
+            [sys.executable, str(agent_dir / agent["script"]), target.get("workspace_path", target["argument"]), "--output", str(report_path), "--quiet"],
+            cwd=ROOT,
+            env=env,
+        )
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        final_score = report.get("final_score", {})
+        return {
+            "id": agent["id"], "label": agent["label"], "status": "complete",
+            "score": final_score.get("score"), "grade": final_score.get("grade"),
+            "summary": report.get("summary", final_score.get("interpretation", "")),
+            "breakdown": {key: {"label": value.get("label", key), "score": value.get("score")} for key, value in report.get("categories", {}).items()},
+            "reportPath": report_name,
+        }
+    except Exception as error:  # Keep other analyzer reports even if one agent fails.
+        return {"id": agent["id"], "label": agent["label"], "status": "failed", "score": None, "error": str(error)}
+
+
 def run_one(target: dict[str, str], report_root: Path | None = None, env: dict[str, str] | None = None) -> dict:
     stem = target["name"]
     docs_path = (report_root / "documentation" if report_root else ROOT / "documentation" / "reports") / f"{stem}-documentation-report.json"
@@ -336,6 +368,9 @@ def run_one(target: dict[str, str], report_root: Path | None = None, env: dict[s
         })
     except Exception as error:
         evaluations.append({"id": "error_handling", "label": "Error handling", "status": "failed", "score": None, "error": str(error)})
+
+    for agent in STATIC_AGENTS:
+        evaluations.append(static_agent_evaluation(agent, target, report_root, stem, env))
 
     is_local = target["source"] == "local"
     local_uri = "local-workspace" if is_local else target.get("url", target["argument"])

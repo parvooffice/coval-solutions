@@ -9,6 +9,8 @@ COPY documentation ./documentation
 COPY modularity ./modularity
 COPY security ./security
 COPY error-handling ./error-handling
+COPY readability ./readability
+COPY test-coverage ./test-coverage
 ENV PYTHONPATH=/app/security/src
 EXPOSE 8000
 CMD ["uvicorn", "analyzer_service.app:app", "--host", "0.0.0.0", "--port", "8000"]

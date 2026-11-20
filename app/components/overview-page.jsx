@@ -116,6 +116,6 @@ function EvaluationSummary({ targets, navigate }) {
         </article>)}</div>
       </div>)}
       {targets.length > 5 && <p className="conversation-empty">Showing 5 of {targets.length} repositories. Open Code Evaluation to view every score.</p>}
-    </> : <p className="conversation-empty">Run the documentation, modularity, security, and error-handling analyzers to show scores here.</p>}
+    </> : <p className="conversation-empty">Run the documentation, modularity, security, error-handling, readability, and test-coverage analyzers to show scores here.</p>}
   </section>;
 }

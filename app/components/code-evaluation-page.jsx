@@ -5,6 +5,8 @@ import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { apiRequest } from "../lib/client-api";
 
 const MAX_TARGETS = 5;
+const ANALYZER_ICONS = { security: "lock", readability: "eye", test_coverage: "flask", documentation: "list", modularity: "grid", error_handling: "info" };
+const analyzerIcon = (id) => ANALYZER_ICONS[id] || "code";
 
 function number(value) {
   return value == null || Number.isNaN(Number(value)) ? "—" : Number(value).toFixed(1).replace(/\.0$/, "");
@@ -162,7 +164,7 @@ export default function CodeEvaluationPage() {
 
   return <>
     <PageHeading
-      eyebrow="DOCUMENTATION / MODULARITY / SECURITY / ERROR HANDLING"
+      eyebrow="DOCUMENTATION / MODULARITY / SECURITY / ERROR HANDLING / READABILITY / TEST COVERAGE"
       title="Code evaluation"
       description="Score repositories you can access. Shared results appear in the COVAL community and on your profile."
       action={<button type="button" className="button button-quiet" onClick={downloadScores} disabled={!codeEvaluation?.targets?.length}><Icon name="arrowDown" size={15} /> Download JSON</button>}
@@ -182,14 +184,14 @@ export default function CodeEvaluationPage() {
         </div>
         <button type="submit" className="button button-primary" disabled={running || importingRepositories}><Icon name={running ? "activity" : "code"} size={15} /> {running ? "Running analyzers…" : "Score repositories"}</button>
       </div>
-      {running && <p className="evaluation-run-message" role="status">Fetching each repository and running Documentation, Modularity, Security, and Error handling. This can take a few minutes.</p>}
+      {running && <p className="evaluation-run-message" role="status">Fetching each repository and running Documentation, Modularity, Security, Error handling, Readability, and Test coverage. This can take a few minutes.</p>}
       {runMessage && !running && <p className="evaluation-run-message" role="status">{runMessage}</p>}
       {runError && <p className="evaluation-run-error" role="alert">{runError}</p>}
       <label className="evaluation-share-option"><input type="checkbox" checked={shareScores} onChange={(event) => setShareScores(event.target.checked)} /> <span><strong>Show these scores on my profile</strong><small>Only public repository scores are shared with the COVAL community. Reports stay private unless you check this box.</small></span></label>
       <p className="evaluation-private-note">Any signed-in GitHub user can evaluate public repositories they choose. Private repository access currently requires the workspace owner’s server token; private results cannot be shared.</p>
     </form>
 
-    {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>{localWorkspaceAvailable ? "Score this local workspace or add GitHub URLs to run all four analyzers. Results are saved to this development checkout." : "Add GitHub URLs above and run all four analyzers to generate scores."}</p></div>}
+    {!targets.length && <div className="empty-state"><Icon name="code" size={22} /><strong>No analyzer reports are available</strong><p>{localWorkspaceAvailable ? "Score this local workspace or add GitHub URLs to run all six analyzers. Results are saved to this development checkout." : "Add GitHub URLs above and run all six analyzers to generate scores."}</p></div>}
     <div className="evaluation-target-list">
       {targets.map((target) => <section className="evaluation-target-card surface-card" key={`${target.input}-${target.name}`}>
         <header className="evaluation-target-header">
@@ -199,7 +201,7 @@ export default function CodeEvaluationPage() {
         <p className="evaluation-target-meta">Input: <code>{target.input}</code>{target.generatedAt && <> · Generated {new Date(target.generatedAt).toLocaleString()}</>}</p>
         <div className="evaluation-score-grid">
           {(target.evaluations || []).map((evaluation) => <article className="evaluation-score-card" key={evaluation.id}>
-            <div className="evaluation-score-heading"><span>{evaluation.label}</span><Icon name={evaluation.id === "security" ? "lock" : "code"} size={17} /></div>
+            <div className="evaluation-score-heading"><span>{evaluation.label}</span><Icon name={analyzerIcon(evaluation.id)} size={17} /></div>
             <strong className="evaluation-score-value">{number(evaluation.score)}<small>/100</small></strong>
             <span className={`evaluation-status evaluation-status-${evaluation.status}`}>{evaluation.status === "complete" ? evaluation.grade || "Complete" : "Unavailable"}</span>
             <p>{evaluation.summary || evaluation.error || "No summary was provided by the analyzer."}</p>
@@ -218,7 +220,7 @@ export default function CodeEvaluationPage() {
         {(codeEvaluation?.publicEvaluations || []).map((bundle, bundleIndex) => (bundle.targets || []).map((target) => <section className="evaluation-target-card surface-card" key={`${bundle.githubLogin}-${target.url}-${bundleIndex}`}>
           <header className="evaluation-target-header"><div><span className="eyebrow">SHARED BY @{bundle.githubLogin || "COVAL MEMBER"}</span><h2>{target.name}</h2></div>{target.url?.startsWith("https://github.com/") && <a className="button" href={target.url} target="_blank" rel="noreferrer">Open repository <Icon name="arrowUpRight" size={14} /></a>}</header>
           <p className="evaluation-target-meta">Evaluated {target.generatedAt ? new Date(target.generatedAt).toLocaleString() : bundle.sharedAt ? new Date(bundle.sharedAt).toLocaleString() : "recently"}</p>
-          <div className="evaluation-score-grid">{(target.evaluations || []).map((evaluation) => <article className="evaluation-score-card" key={evaluation.id}><div className="evaluation-score-heading"><span>{evaluation.label}</span><Icon name={evaluation.id === "security" ? "lock" : "code"} size={17} /></div><strong className="evaluation-score-value">{number(evaluation.score)}<small>/100</small></strong><span className={`evaluation-status evaluation-status-${evaluation.status}`}>{evaluation.status === "complete" ? evaluation.grade || "Complete" : "Unavailable"}</span><p>{evaluation.summary || evaluation.error || "No summary was provided by the analyzer."}</p></article>)}</div>
+          <div className="evaluation-score-grid">{(target.evaluations || []).map((evaluation) => <article className="evaluation-score-card" key={evaluation.id}><div className="evaluation-score-heading"><span>{evaluation.label}</span><Icon name={analyzerIcon(evaluation.id)} size={17} /></div><strong className="evaluation-score-value">{number(evaluation.score)}<small>/100</small></strong><span className={`evaluation-status evaluation-status-${evaluation.status}`}>{evaluation.status === "complete" ? evaluation.grade || "Complete" : "Unavailable"}</span><p>{evaluation.summary || evaluation.error || "No summary was provided by the analyzer."}</p></article>)}</div>
         </section>))}
       </div>
     </section>

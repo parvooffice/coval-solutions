@@ -42,7 +42,9 @@ Existing Supabase accounts and records stay in place. Apply any application migr
 
 ## Python repository analyzer
 
-The separate FastAPI service exposes `GET /health` and `POST /api/code-evaluation-python`. The Express API calls it using `x-coval-evaluation-secret`; configure the same `CODE_EVALUATION_FUNCTION_SECRET` for both services. The analyzer runs Documentation, Modularity, Security, and Error Handling scorers and accepts up to five GitHub repository URLs per run.
+The separate FastAPI service exposes `GET /health` and `POST /api/code-evaluation-python`. The Express API calls it using `x-coval-evaluation-secret`; configure the same `CODE_EVALUATION_FUNCTION_SECRET` for both services. The analyzer runs Documentation, Modularity, Security, Error Handling, Readability, and Test Coverage scorers and accepts up to five GitHub repository URLs per run.
+
+Readability (`readability/`) scores function size, nesting, branching complexity, line length, naming, and file size. Test Coverage (`test-coverage/`) statically estimates how many source modules have matching tests, test volume, assertion density, and whether a test runner, CI, and coverage tooling are configured. Both use only the Python standard library and never execute repository code.
 
 Repositories are downloaded to temporary directories and removed after scoring. The analyzers do not modify remote repositories. Private analysis requires a server-side `GITHUB_TOKEN` with read access to the target repositories. Private results cannot be shared.
 

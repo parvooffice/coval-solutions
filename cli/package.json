@@ -1,0 +1,15 @@
+{
+  "name": "coval-cli",
+  "version": "0.1.0",
+  "description": "COVAL code review in your terminal: score a repository and review pull requests with the same agents as the VS Code extension and the COVAL GitHub App.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bin": { "coval": "bin/coval.mjs" },
+  "files": ["bin", "lib", "agents", "README.md"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "bundle": "node scripts/bundle.mjs",
+    "test": "node scripts/bundle.mjs && node --test test/cli.test.mjs",
+    "prepack": "node scripts/bundle.mjs"
+  }
+}

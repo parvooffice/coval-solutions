@@ -12,6 +12,7 @@ categories from 0-100, and writes a report with this shape:
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import os
 import re
@@ -74,17 +75,57 @@ def grade(score: float) -> str:
     return "F"
 
 
+def coval_ignores(root: Path) -> list[str]:
+    """Patterns from the `ignore:` list in .coval.yml / .coval.yaml (small YAML subset, no dependency).
+
+    A bare folder such as `legacy/` ignores everything inside it. Same rules as the web app.
+    """
+    for name in (".coval.yml", ".coval.yaml"):
+        path = root / name
+        try:
+            if not path.is_file() or path.stat().st_size > 64 * 1024:
+                continue
+            lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except OSError:
+            continue
+        patterns, in_ignore = [], False
+        for raw in lines:
+            line = raw.split("#", 1)[0].rstrip()
+            if not line.strip():
+                continue
+            if not raw.startswith((" ", "\t", "-")):
+                in_ignore = line.strip().rstrip(":") == "ignore"
+                continue
+            item = line.strip()
+            if in_ignore and item.startswith("- "):
+                value = item[2:].strip().strip("'\"")
+                if value and ".." not in value and not value.startswith("/"):
+                    patterns.append(value if "*" in value or "." in Path(value).name else value.rstrip("/") + "/**")
+        return patterns[:100]
+    return []
+
+
+def is_ignored(rel: str, patterns: list[str]) -> bool:
+    """fnmatch-style matching where `*` also crosses folders, so `legacy/**` covers nested files."""
+    return any(fnmatch.fnmatchcase(rel, pattern) or fnmatch.fnmatchcase(f"x/{rel}", pattern) for pattern in patterns)
+
+
 def walk_files(root: Path) -> Iterator[str]:
-    """Yield repository-relative paths, skipping vendored, build, and hidden directories (except .github)."""
+    """Yield repository-relative paths, skipping vendored, build, hidden (except .github), and .coval.yml-ignored files."""
     count = 0
+    ignores = coval_ignores(root)
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-        dirnames[:] = sorted(d for d in dirnames if d not in IGNORED_DIRS and (not d.startswith(".") or d == ".github"))
         rel_dir = os.path.relpath(dirpath, root).replace(os.sep, "/")
+        prefix = "" if rel_dir == "." else f"{rel_dir}/"
+        dirnames[:] = sorted(d for d in dirnames if d not in IGNORED_DIRS and (not d.startswith(".") or d == ".github")
+                             and not is_ignored(f"{prefix}{d}/", ignores))
         for name in sorted(filenames):
             count += 1
             if count > MAX_FILES * 4:
                 return
-            yield name if rel_dir == "." else f"{rel_dir}/{name}"
+            rel = f"{prefix}{name}"
+            if not is_ignored(rel, ignores):
+                yield rel
 
 
 def read_text(path: Path) -> str:

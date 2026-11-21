@@ -1,0 +1,46 @@
+# Lint, build, and test every push and pull request. On pull requests, COVAL reviews
+# itself with its own CLI and posts the same comment the COVAL GitHub App would.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+      - name: Agent tests
+        run: |
+          for suite in readability test-coverage agent-kit error-handling modularity; do python -m unittest discover -s "$suite/tests"; done
+
+      - name: Extension and CLI tests
+        run: |
+          (cd ide-extension && npm test)
+          (cd cli && npm test)
+
+      - name: COVAL review of this pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: node cli/bin/coval.mjs review --base "origin/${{ github.base_ref }}" --comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

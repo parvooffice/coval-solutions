@@ -1,0 +1,10 @@
+# Paths COVAL skips when scoring this repository (web app, CLI, VS Code extension, and PR reviews).
+ignore:
+  # Bundled copies of the agents generated when packaging the CLI and the VS Code extension
+  - cli/agents/
+  - cli/lib/
+  - ide-extension/agents/
+  # Saved analyzer reports and sample data
+  - "**/reports/**"
+  - app/data/
+  - public/sample-report.json

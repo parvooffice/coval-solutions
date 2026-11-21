@@ -72,6 +72,12 @@ Free accounts get 5 evaluation runs and 10 report-assistant questions per month 
 
 The app has no Supabase service-role key, so the server signs every plan change and the database verifies the signature before storing it. Use Razorpay test mode keys until you are ready to charge.
 
+## CLI and pull request reviews
+
+[`cli/`](./cli/README.md) provides `coval scan` and `coval review`. `coval review` compares a branch with its base using the same agents and comment format as the VS Code extension and the GitHub App, can post the comment on a pull request, and can fail CI when scores drop. CI runs it on every pull request to this repository.
+
+Releases: pushing a tag such as `v0.1.0` runs `.github/workflows/release.yml`, which tests and builds the `.vsix` and the CLI package and attaches them to a [GitHub Release](https://github.com/parvooffice/coval-solutions/releases/latest).
+
 ## VS Code extension
 
 [`ide-extension/`](./ide-extension/README.md) runs six of the agents (Readability, Test coverage, Performance, Maintainability, Scalability, Standards compliance) locally on the open folder and shows each fix as an inline warning, in the Problems panel, and in a COVAL scores view. Code never leaves the machine. Build it with `cd ide-extension && npm run package`, then install the `.vsix` from the Extensions view.

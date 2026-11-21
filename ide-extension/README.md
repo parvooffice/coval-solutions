@@ -8,6 +8,10 @@ Run COVAL's code-review agents on the folder you have open and see the results w
 
 Your code stays on your computer. The extension runs six agents locally — Readability, Test coverage, Performance, Maintainability, Scalability, and Standards compliance — using only the Python standard library, and never executes your project's code. For all ten agents (adding Documentation, Modularity, Security, and Error handling), score history, the report assistant, and teams, use **COVAL: Open the full report in COVAL**.
 
+## Install
+
+Download `coval-code-review-<version>.vsix` from the [latest GitHub release](https://github.com/parvooffice/coval-solutions/releases/latest). In VS Code, open **Extensions** (Ctrl+Shift+X) → **⋯** → **Install from VSIX…** and choose the file, or run `code --install-extension coval-code-review-0.1.0.vsix`.
+
 ## Requirements
 
 Python 3.10 or newer. If `python` is not on your PATH, set **COVAL › Python Path** (for example `python3` or a full path).

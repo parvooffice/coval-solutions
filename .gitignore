@@ -50,3 +50,8 @@ performance/reports/
 maintainability/reports/
 scalability/reports/
 standards/reports/
+
+# Generated when bundling the CLI
+cli/agents/
+cli/lib/
+*.tgz

@@ -20,6 +20,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent-kit"))
+from coval_agent_kit import coval_ignores, is_ignored  # noqa: E402
+
 VERSION = "1.0.0"
 MAX_FILE_BYTES = 768 * 1024
 MAX_FILES = 20_000
@@ -130,11 +133,15 @@ def scan(root: Path) -> dict:
     tests: list[dict] = []
     config_files: list[str] = []
     files_seen = 0
+    ignores = coval_ignores(root)
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-        dirnames[:] = sorted(d for d in dirnames if d not in IGNORED_DIRS and not d.startswith(".") or d == ".github")
         rel_dir = os.path.relpath(dirpath, root).replace(os.sep, "/")
         rel_dir = "" if rel_dir == "." else rel_dir
+        prefix = f"{rel_dir}/" if rel_dir else ""
+        dirnames[:] = sorted(d for d in dirnames if (d not in IGNORED_DIRS and not d.startswith(".") or d == ".github") and not is_ignored(f"{prefix}{d}/", ignores))
         for name in sorted(filenames):
+            if is_ignored(f"{prefix}{name}", ignores):
+                continue
             files_seen += 1
             if files_seen > MAX_FILES:
                 break

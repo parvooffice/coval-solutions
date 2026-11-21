@@ -84,3 +84,14 @@ class StandardsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class IgnoreRulesTests(unittest.TestCase):
+    def test_coval_yml_ignores_nested_folders_and_globs(self):
+        kit = runpy.run_path(str(ROOT / "agent-kit" / "coval_agent_kit.py"))
+        files = {".coval.yml": "ignore:\n  - legacy/\n  - '**/*.gen.js'\n", "legacy/a/deep/old.js": CLEAN_JS, "src/app.js": CLEAN_JS, "src/api.gen.js": CLEAN_JS}
+        with make_repo(files) as directory:
+            paths = list(kit["walk_files"](Path(directory)))
+        self.assertIn("src/app.js", paths)
+        self.assertNotIn("legacy/a/deep/old.js", paths)
+        self.assertNotIn("src/api.gen.js", paths)

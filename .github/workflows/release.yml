@@ -1,0 +1,51 @@
+# Builds the VS Code extension (.vsix) and the COVAL CLI (.tgz) and publishes them as a
+# GitHub Release. Trigger it by pushing a version tag, for example: git tag v0.1.0 && git push origin v0.1.0
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test the agents, extension, and CLI
+        run: |
+          for suite in readability test-coverage agent-kit; do python -m unittest discover -s "$suite/tests"; done
+          (cd ide-extension && npm test)
+          (cd cli && npm test)
+
+      - name: Build the VS Code extension
+        run: cd ide-extension && npm run package
+
+      - name: Build the CLI package
+        run: cd cli && npm pack
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ide-extension/*.vsix
+            cli/*.tgz
+          generate_release_notes: true
+          body: |
+            ## Install
+
+            **VS Code extension:** download `coval-code-review-*.vsix` below, then in VS Code open Extensions (Ctrl+Shift+X) → `⋯` → **Install from VSIX…** and pick the file. Or run `code --install-extension coval-code-review-*.vsix`.
+
+            **CLI:** download `coval-cli-*.tgz`, then run `npm install -g ./coval-cli-*.tgz` and `coval --help`.
+
+            Both need Python 3.10+ and run COVAL's agents locally; your code never leaves your computer.

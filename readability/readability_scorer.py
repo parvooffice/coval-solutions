@@ -21,6 +21,9 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent-kit"))
+from coval_agent_kit import coval_ignores, is_ignored  # noqa: E402
+
 VERSION = "1.0.0"
 MAX_FILE_BYTES = 512 * 1024
 MAX_FILES = 4_000
@@ -245,9 +248,14 @@ def analyze_brace_language(text: str) -> tuple[list[dict], list[str]]:
 
 def iter_files(root: Path):
     count = 0
+    ignores = coval_ignores(root)
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-        dirnames[:] = sorted(d for d in dirnames if d not in IGNORED_DIRS and not d.startswith("."))
+        rel_dir = os.path.relpath(dirpath, root).replace(os.sep, "/")
+        prefix = "" if rel_dir == "." else f"{rel_dir}/"
+        dirnames[:] = sorted(d for d in dirnames if d not in IGNORED_DIRS and not d.startswith(".") and not is_ignored(f"{prefix}{d}/", ignores))
         for name in sorted(filenames):
+            if is_ignored(f"{prefix}{name}", ignores):
+                continue
             ext = os.path.splitext(name)[1].lower()
             if (ext != ".py" and ext not in BRACE_LANGUAGES) or SKIP_FILE.search(name):
                 continue

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import io
 import os
@@ -242,7 +243,7 @@ def prune_workspace(workspace: Path) -> int:
         if not path.is_file() or path.is_symlink():
             continue
         relative = path.relative_to(workspace).as_posix()
-        if any(Path(relative).match(pattern) or Path("x/" + relative).match(pattern) for pattern in patterns):
+        if any(fnmatch.fnmatchcase(relative, pattern) or fnmatch.fnmatchcase("x/" + relative, pattern) for pattern in patterns):
             path.unlink()
             removed += 1
     return removed

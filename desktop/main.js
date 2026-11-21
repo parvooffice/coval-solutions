@@ -278,9 +278,10 @@ function registerIpc() {
   ipcMain.handle("coval:scan-folder", (event) => (fromCoval(event) ? scanFolder() : null));
 }
 
-// coval:// links (the end of sign-in) open this app. During development, register the dev command.
-if (process.defaultApp) app.setAsDefaultProtocolClient("coval", process.execPath, [path.resolve(process.argv[1] || ".")]);
-else app.setAsDefaultProtocolClient("coval");
+// coval:// links (the end of sign-in) open this app. Development runs don't take over the
+// link from an installed COVAL unless COVAL_DEV_PROTOCOL=1.
+if (app.isPackaged) app.setAsDefaultProtocolClient("coval");
+else if (process.env.COVAL_DEV_PROTOCOL === "1") app.setAsDefaultProtocolClient("coval", process.execPath, [path.resolve(process.argv[1] || ".")]);
 const deepLinkIn = (argv) => argv.find((arg) => typeof arg === "string" && arg.startsWith("coval://"));
 
 if (!app.requestSingleInstanceLock()) {

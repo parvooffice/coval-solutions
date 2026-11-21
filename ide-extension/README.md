@@ -10,7 +10,7 @@ Your code stays on your computer. The extension runs six agents locally — Read
 
 ## Install
 
-Download `coval-code-review-<version>.vsix` from the [latest GitHub release](https://github.com/parvooffice/coval-solutions/releases/latest). In VS Code, open **Extensions** (Ctrl+Shift+X) → **⋯** → **Install from VSIX…** and choose the file, or run `code --install-extension coval-code-review-0.1.0.vsix`.
+Download `coval-code-review-<version>.vsix` from the [COVAL downloads page](https://coval-solutions-w92u.vercel.app/download.html) (or the latest GitHub release). In VS Code, open **Extensions** (Ctrl+Shift+X) → **⋯** → **Install from VSIX…** and choose the file, or run `code --install-extension coval-code-review-0.1.0.vsix`.
 
 ## Requirements
 

@@ -6,7 +6,7 @@ Score a repository and review pull requests from your terminal or CI. The CLI us
 
 Requires Node.js 20+ and Python 3.10+.
 
-Download `coval-cli-<version>.tgz` from the [latest GitHub release](https://github.com/parvooffice/coval-solutions/releases/latest), then:
+Download `coval-cli-<version>.tgz` from the [COVAL downloads page](https://coval-solutions-w92u.vercel.app/download.html) (or the latest GitHub release), then:
 
 ```bash
 npm install -g ./coval-cli-0.1.0.tgz
@@ -33,7 +33,7 @@ coval review --fail-under 70 --fail-on-drop 2   # exit code 2 blocks a merge in 
   with: { node-version: 20 }
 - uses: actions/setup-python@v5
   with: { python-version: "3.12" }
-- run: npm install -g https://github.com/parvooffice/coval-solutions/releases/download/v0.1.0/coval-cli-0.1.0.tgz
+- run: npm install -g https://coval-solutions-w92u.vercel.app/downloads/coval-cli-0.1.0.tgz
 - run: git fetch origin ${{ github.base_ref }}
 - run: coval review --comment --fail-on-drop 5
   env:

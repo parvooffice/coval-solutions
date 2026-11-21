@@ -83,7 +83,7 @@ The **Feed** lets members post a verified score (from a shared report), a job op
 
 [`cli/`](./cli/README.md) provides `coval scan` and `coval review`. `coval review` compares a branch with its base using the same agents and comment format as the VS Code extension and the GitHub App, can post the comment on a pull request, and can fail CI when scores drop. CI runs it on every pull request to this repository.
 
-Releases: pushing a tag such as `v0.1.0` runs `.github/workflows/release.yml`, which tests and builds the `.vsix` and the CLI package and attaches them to a [GitHub Release](https://github.com/parvooffice/coval-solutions/releases/latest).
+Releases: pushing a tag such as `v0.1.0` runs `.github/workflows/release.yml`, which tests and builds the `.vsix` and the CLI package and attaches them to a [GitHub Release](https://github.com/parvooffice/coval-solutions/releases/latest). Because the repository is private, the website also hosts both files at [`/download.html`](./public/download.html) (`public/downloads/`); copy the new builds there when you release a new version.
 
 ## VS Code extension
 

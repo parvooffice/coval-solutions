@@ -55,3 +55,4 @@ standards/reports/
 cli/agents/
 cli/lib/
 *.tgz
+!public/downloads/*.tgz

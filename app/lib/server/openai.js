@@ -16,8 +16,20 @@ export async function chatCompletion(messages, { maxTokens = 500, temperature = 
   }
   const payload = await response.json().catch(() => null);
   if (!response.ok) {
+    const code = payload?.error?.code || payload?.error?.type || "";
+    // Logged for the site owner (Vercel → Logs); members see a plain explanation below.
+    console.error(`OpenAI request failed: ${response.status} ${code} ${payload?.error?.message || ""}`.trim());
+    if (code === "insufficient_quota") {
+      throw Object.assign(new Error("The AI assistant is unavailable right now: COVAL's OpenAI account has run out of credit. The site owner needs to add credit at platform.openai.com → Billing."), { status: 503 });
+    }
+    if (response.status === 401 || code === "invalid_api_key") {
+      throw Object.assign(new Error("The AI assistant is unavailable right now: COVAL's OpenAI key isn't valid. The site owner needs to update OPENAI_API_KEY."), { status: 503 });
+    }
+    if (response.status === 404 || code === "model_not_found") {
+      throw Object.assign(new Error("The AI assistant is unavailable right now: the OpenAI model in OPENAI_MODEL isn't available to COVAL's account."), { status: 503 });
+    }
     const status = response.status === 429 ? 429 : 502;
-    throw Object.assign(new Error(status === 429 ? "The assistant is busy or over its usage limit. Try again shortly." : "OpenAI could not answer this request."), { status });
+    throw Object.assign(new Error(status === 429 ? "The assistant is getting a lot of questions right now. Try again in a minute." : "OpenAI could not answer this request."), { status });
   }
   const answer = payload?.choices?.[0]?.message?.content?.trim();
   if (!answer) throw Object.assign(new Error("OpenAI returned an empty answer."), { status: 502 });

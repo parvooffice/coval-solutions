@@ -23,7 +23,25 @@ let tray = null;
 let quitting = false;
 let unread = 0;
 let trayHintShown = false;
+// Sign-ins waiting for the browser, kept on disk so a restart (or an update) doesn't lose them.
 const pendingSignIns = new Map(); // state -> expiry time
+const finishedSignIns = new Set(); // the browser may open the same link twice (auto + button)
+const fs = require("node:fs");
+const pendingFile = () => path.join(app.getPath("userData"), "pending-sign-ins.json");
+
+function loadPendingSignIns() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(pendingFile(), "utf8"));
+    for (const [state, expires] of Object.entries(saved)) {
+      if (typeof expires === "number" && expires > Date.now()) pendingSignIns.set(state, expires);
+    }
+  } catch { /* nothing saved yet */ }
+}
+
+function savePendingSignIns() {
+  for (const [state, expires] of pendingSignIns) if (expires < Date.now()) pendingSignIns.delete(state);
+  try { fs.writeFileSync(pendingFile(), JSON.stringify(Object.fromEntries(pendingSignIns))); } catch { /* best effort */ }
+}
 
 // Packaged: resources\bin\coval-engine.exe. Developing: desktop\resources (after `npm run prepare-app`).
 function engine() {
@@ -53,6 +71,7 @@ function isAuthorizeUrl(url) {
 function startBrowserSignIn(authorizeUrl) {
   const state = crypto.randomBytes(24).toString("base64url");
   pendingSignIns.set(state, Date.now() + SIGN_IN_TTL_MS);
+  savePendingSignIns();
   // The website remembers the state, sends the browser to the provider, and when the provider
   // returns, opens coval://auth?state=…, which brings the session back to this app.
   const browserUrl = new URL(`${APP_URL}/dashboard`);
@@ -70,13 +89,16 @@ function handleDeepLink(link) {
   show();
   if (target.hostname !== "auth") return;
   const state = target.searchParams.get("state") || "";
+  if (finishedSignIns.has(state)) return; // already signed in with this link; show() brought COVAL forward
   const expires = pendingSignIns.get(state);
   const response = target.searchParams.get("return") || "";
   if (!expires || expires < Date.now()) {
-    toast("That sign-in link has expired", "Click Sign in in COVAL to try again.");
+    win.loadFile(path.join(__dirname, "signin.html"), { query: { failed: "1", back: `${APP_URL}/` } });
     return;
   }
   pendingSignIns.delete(state);
+  finishedSignIns.add(state);
+  savePendingSignIns();
   // Hand the provider's response to the web app, which finishes sign-in (tokens in the #hash).
   if (!/^[?#]/.test(response)) return;
   win.loadURL(`${APP_URL}/dashboard${response}`);
@@ -296,6 +318,7 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
     registerIpc();
+    loadPendingSignIns();
     createWindow();
     if (process.argv.includes("--hidden")) win.hide();
     tray = new Tray(nativeImage.createFromPath(TRAY_ICON));

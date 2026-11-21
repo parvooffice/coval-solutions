@@ -34,7 +34,17 @@
     const back = params.get("back") || "";
     const provider = params.get("provider") || "";
     const names = { github: "GitHub", google: "Google" };
-    if (names[provider]) document.getElementById("lead").textContent = `We opened your web browser. Sign in with ${names[provider]} there, allow it to open COVAL, and you'll come right back here.`;
+    if (params.get("failed") === "1") {
+      // The browser came back with a sign-in this app didn't start (or one that expired).
+      document.querySelector("h1").textContent = "That sign-in didn't come through";
+      document.getElementById("lead").textContent = "It may have expired or been started earlier. Sign in again and it will open COVAL when you're done.";
+      document.querySelector(".spinner").style.display = "none";
+      document.getElementById("again").style.display = "none";
+      const back = document.getElementById("back");
+      back.textContent = "Sign in again";
+      back.className = "primary";
+    }
+    if (params.get("failed") !== "1" && names[provider]) document.getElementById("lead").textContent = `We opened your web browser. Sign in with ${names[provider]} there, allow it to open COVAL, and you'll come right back here.`;
     // Both links are https pages of the COVAL site: the app opens the first in the browser
     // and loads the second (the sign-in page) in this window.
     if (browser.startsWith("https://") || browser.startsWith("http://localhost")) document.getElementById("again").href = browser;

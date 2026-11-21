@@ -90,10 +90,20 @@ function MarkdownText({ text }) {
     }));
 }
 
-function FixItem({ target, evaluation, fix, onDismiss }) {
+function FixItem({ target, evaluation, fix, onDismiss, helpRequest, onAskHelp }) {
   const [explanation, setExplanation] = useState("");
   const [state, setState] = useState("idle");
+  const [asking, setAsking] = useState(false);
+  const [askNote, setAskNote] = useState("");
+  const [askBusy, setAskBusy] = useState(false);
   const issueUrl = githubIssueUrl(target, evaluation, fix);
+  async function submitAsk(event) {
+    event.preventDefault();
+    setAskBusy(true);
+    const ok = await onAskHelp(target, evaluation, fix, askNote);
+    setAskBusy(false);
+    if (ok) { setAsking(false); setAskNote(""); }
+  }
   async function explain() {
     if (state === "done") { setState("hidden"); return; }
     if (state === "hidden" && explanation) { setState("done"); return; }
@@ -114,13 +124,21 @@ function FixItem({ target, evaluation, fix, onDismiss }) {
     {onDismiss && <div className="eval-fix-actions">
       <button type="button" onClick={explain} disabled={state === "loading"}><Icon name="smile" size={13} /> {state === "loading" ? "Thinking…" : state === "done" ? "Hide explanation" : "Explain & fix"}</button>
       {issueUrl && <a href={issueUrl} target="_blank" rel="noreferrer"><Icon name="git" size={13} /> Create issue</a>}
+      {onAskHelp && target.source === "github" && (helpRequest
+        ? <a href="/dashboard#feed" className="eval-help-badge"><Icon name="users" size={13} /> Help requested · {helpRequest.interestCount} {helpRequest.interestCount === 1 ? "offer" : "offers"}</a>
+        : <button type="button" onClick={() => setAsking(!asking)}><Icon name="users" size={13} /> Ask for help</button>)}
       <button type="button" onClick={() => onDismiss(findingKey(target, evaluation, fix))}><Icon name="x" size={13} /> Dismiss</button>
     </div>}
+    {asking && <form className="eval-ask-help" onSubmit={submitAsk}>
+      <small>Posts this finding to <strong>Issues to solve</strong> in the Feed, linked to the exact code. Anyone can offer to help; you choose who.</small>
+      <textarea value={askNote} onChange={(event) => setAskNote(event.target.value)} maxLength={2000} rows={2} placeholder="Optional: context, what you've tried, or what kind of help you need" aria-label="Help request details" />
+      <div><button type="button" onClick={() => setAsking(false)}>Cancel</button><button type="submit" className="is-primary" disabled={askBusy}>{askBusy ? "Posting…" : "Post help request"}</button></div>
+    </form>}
     {(state === "done" || state === "error") && <div className={`eval-fix-explanation ${state === "error" ? "is-error" : ""}`}><MarkdownText text={explanation} /></div>}
   </li>;
 }
 
-function AgentCard({ target, evaluation, before, showFixes, dismissed, onDismiss, onRestore }) {
+function AgentCard({ target, evaluation, before, showFixes, dismissed, onDismiss, onRestore, helpRequests, onAskHelp }) {
   const complete = evaluation.status === "complete";
   const grade = complete ? evaluation.grade || gradeFor(evaluation.score) : "";
   const allFixes = showFixes ? evaluation.fixes || [] : [];
@@ -136,7 +154,7 @@ function AgentCard({ target, evaluation, before, showFixes, dismissed, onDismiss
     <p>{evaluation.summary || evaluation.error || "No summary was provided by the analyzer."}</p>
     {(fixes.length > 0 || hidden.length > 0) && <div className="eval-fixes">
       <span className="eval-fixes-title">Top fixes</span>
-      {fixes.length > 0 && <ol>{fixes.map((item, index) => <FixItem key={`${item.title}-${item.location}-${index}`} target={target} evaluation={evaluation} fix={item} onDismiss={onDismiss} />)}</ol>}
+      {fixes.length > 0 && <ol>{fixes.map((item, index) => <FixItem key={`${item.title}-${item.location}-${index}`} target={target} evaluation={evaluation} fix={item} onDismiss={onDismiss} helpRequest={helpRequests?.get(findingKey(target, evaluation, item))} onAskHelp={onAskHelp} />)}</ol>}
       {hidden.length > 0 && <details className="eval-dismissed"><summary>{hidden.length} dismissed</summary><ul>{hidden.map((item, index) => <li key={index}><span>{item.title}</span>{onRestore && <button type="button" onClick={() => onRestore(findingKey(target, evaluation, item))}>Restore</button>}</li>)}</ul></details>}
     </div>}
     {evaluation.breakdown && Object.keys(evaluation.breakdown).length > 0 && <details className="evaluation-breakdown">
@@ -158,7 +176,7 @@ function Trend({ history, current }) {
   </span>;
 }
 
-export function EvaluationTarget({ target, eyebrow, meta, showFixes = true, dismissed, onDismiss, onRestore, actions }) {
+export function EvaluationTarget({ target, eyebrow, meta, showFixes = true, dismissed, onDismiss, onRestore, actions, helpRequests, onAskHelp }) {
   const overall = overallScore(target.evaluations);
   const before = previousOverall(target.previous);
   const failed = (target.evaluations || []).filter((item) => item.status !== "complete").length;
@@ -176,7 +194,7 @@ export function EvaluationTarget({ target, eyebrow, meta, showFixes = true, dism
       {target.url?.startsWith("https://github.com/") && <a className="button" href={target.url} target="_blank" rel="noreferrer">Open repository <Icon name="arrowUpRight" size={14} /></a>}
     </header>
     <div className="evaluation-score-grid">
-      {(target.evaluations || []).map((evaluation) => <AgentCard key={evaluation.id} target={target} evaluation={evaluation} before={target.previous?.scores?.[evaluation.id]} showFixes={showFixes} dismissed={dismissed} onDismiss={onDismiss} onRestore={onRestore} />)}
+      {(target.evaluations || []).map((evaluation) => <AgentCard key={evaluation.id} target={target} evaluation={evaluation} before={target.previous?.scores?.[evaluation.id]} showFixes={showFixes} dismissed={dismissed} onDismiss={onDismiss} onRestore={onRestore} helpRequests={helpRequests} onAskHelp={onAskHelp} />)}
     </div>
   </section>;
 }

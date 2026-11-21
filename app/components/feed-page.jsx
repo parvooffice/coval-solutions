@@ -10,7 +10,10 @@ const KINDS = [
   { id: "job", label: "Job opening", short: "Hiring", icon: "briefcase", placeholder: "e.g. Hiring a backend engineer (Node, Postgres)" },
   { id: "team", label: "Team formation", short: "Team up", icon: "users", placeholder: "e.g. Looking for 2 people for a hackathon project" },
 ];
-const kindMeta = (id) => KINDS.find((kind) => kind.id === id) || KINDS[0];
+const ISSUE_KIND = { id: "issue", label: "Help wanted", short: "Issue", icon: "info" };
+const kindMetaAll = (id) => (id === "issue" ? ISSUE_KIND : kindMeta(id));
+const VIEWS = [{ id: "", label: "Jobs & issues" }, { id: "showcase", label: "Score showcases" }];
+function kindMeta(id) { return KINDS.find((kind) => kind.id === id) || KINDS[0]; }
 const initials = (name = "COVAL") => name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 
 function timeAgo(value) {
@@ -24,6 +27,8 @@ function timeAgo(value) {
 const SAMPLE_POSTS = [
   { id: "s1", kind: "showcase", title: "Flask scores 82.7 across ten review agents", body: "Ran COVAL on Flask to see how a mature project looks. Strong tests and maintainability; documentation is the weak spot.", createdAt: new Date(Date.now() - 3_600_000).toISOString(), interestCount: 12, author: { name: "Ava Patel", login: "avap", headline: "Platform engineer" }, score: { token: "sample", name: "pallets/flask", overall: 82.7, best: [{ label: "Maintainability", score: 96.9 }, { label: "Test coverage", score: 93.4 }], weakest: { label: "Documentation", score: 57.4 } }, queue: [] },
   { id: "s2", kind: "job", title: "Hiring: backend engineer (Node.js + Postgres), Bengaluru / remote", body: "Small product team. Share a COVAL report of a project you're proud of when you show interest.", location: "Bengaluru · Remote", createdAt: new Date(Date.now() - 7_200_000).toISOString(), interestCount: 31, author: { name: "Northwind Labs", login: "northwind", headline: "Hiring" }, queue: [] },
+  { id: "s4", kind: "issue", title: "Help wanted: network calls without a timeout", body: "Our API client hangs when the upstream is slow. Looking for someone who has added timeouts and retries to fetch-based clients.", createdAt: new Date(Date.now() - 5_400_000).toISOString(), interestCount: 3, author: { name: "Mia Rossi", login: "miar", headline: "ML engineer" }, repoUrl: "https://github.com/pallets/flask", finding: { agent: "Scalability", title: "Network call without a timeout", location: "src/flask/app.py:1267", detail: "A slow dependency will hold the request open; add a timeout or AbortSignal.", score: 75.5 }, queue: [] },
+  { id: "s5", kind: "issue", title: "Help wanted: split a 1,280-line module", body: "Modularity flagged our app module. Happy to pair on a refactor plan.", createdAt: new Date(Date.now() - 172_800_000).toISOString(), interestCount: 6, author: { name: "Kabir Rao", login: "kabirr", headline: "Backend engineer" }, repoUrl: "https://github.com/pallets/flask", finding: { agent: "Modularity", title: "Split or simplify this module", location: "src/flask/app.py", detail: "Large file: 1280 LOC; Class with 35 methods", score: 74.8 }, queue: [] },
   { id: "s3", kind: "team", title: "Looking for 2 teammates for a 48-hour hackathon", body: "Building an accessibility checker. Need one frontend and one ML person.", createdAt: new Date(Date.now() - 86_400_000).toISOString(), interestCount: 5, author: { name: "Liam Chen", login: "liamc", headline: "Frontend lead" }, queue: [] },
 ];
 
@@ -38,6 +43,19 @@ function ScoreCard({ score }) {
       <em>View full report <Icon name="arrowUpRight" size={12} /></em>
     </span>
   </a>;
+}
+
+function IssueCard({ repoUrl, finding }) {
+  const match = String(finding.location || "").match(/^(.*?)(?::(\d+))?$/);
+  const codeUrl = match?.[1] ? `${repoUrl}/blob/HEAD/${match[1]}${match[2] ? `#L${match[2]}` : ""}` : repoUrl;
+  const issueUrl = `${repoUrl}/issues/new?${new URLSearchParams({ title: `[COVAL] ${finding.title}`.slice(0, 200), body: `**${finding.agent}** finding from a COVAL code review.\n\n${finding.detail || ""}\n\nLocation: ${codeUrl}` })}`;
+  return <div className="feed-issue">
+    <div className="feed-issue-head"><span className="feed-issue-agent">{finding.agent}{finding.score != null ? ` · ${formatScore(finding.score)}/100` : ""}</span><a href={repoUrl} target="_blank" rel="noreferrer">{repoUrl.replace("https://github.com/", "")}</a></div>
+    <strong>{finding.title}</strong>
+    {finding.location && <a className="feed-issue-location" href={codeUrl} target="_blank" rel="noreferrer"><code>{finding.location}</code> <Icon name="arrowUpRight" size={12} /></a>}
+    {finding.detail && <small>{finding.detail}</small>}
+    <a className="feed-issue-github" href={issueUrl} target="_blank" rel="noreferrer"><Icon name="git" size={12} /> Open as a GitHub issue</a>
+  </div>;
 }
 
 export default function FeedPage({ navigate, notify }) {
@@ -64,7 +82,10 @@ export default function FeedPage({ navigate, notify }) {
   useEffect(() => { load(); }, [load]);
 
   const usingSamples = data && !data.posts.length && (guest || import.meta.env.DEV);
-  const posts = usingSamples ? SAMPLE_POSTS.filter((post) => !filter || post.kind === filter) : data?.posts || [];
+  const allPosts = usingSamples ? SAMPLE_POSTS : data?.posts || [];
+  const posts = filter ? allPosts.filter((post) => post.kind === filter) : allPosts;
+  const jobPosts = allPosts.filter((post) => post.kind === "job" || post.kind === "team");
+  const issuePosts = allPosts.filter((post) => post.kind === "issue");
   const canAct = data?.signedIn && !usingSamples;
 
   async function act(payload, success, key) {
@@ -117,16 +138,29 @@ export default function FeedPage({ navigate, notify }) {
       <div className="feed-composer-actions"><button type="button" className="button button-quiet" onClick={() => setComposer((current) => ({ ...current, open: false }))}>Cancel</button><button type="submit" className="button button-primary" disabled={busy === "create"}>{busy === "create" ? "Posting…" : "Post"}</button></div>
     </form>}
 
-    <div className="nt-segmented feed-filters" role="tablist" aria-label="Filter posts">
-      {[{ id: "", short: "All" }, ...KINDS].map((kind) => <button key={kind.id || "all"} type="button" role="tab" aria-selected={filter === kind.id} className={filter === kind.id ? "is-active" : ""} onClick={() => setFilter(kind.id)}>{kind.short}</button>)}
+    <div className="nt-segmented feed-filters" role="tablist" aria-label="Feed view">
+      {VIEWS.map((view) => <button key={view.id || "board"} type="button" role="tab" aria-selected={filter === view.id} className={filter === view.id ? "is-active" : ""} onClick={() => setFilter(view.id)}>{view.label}</button>)}
     </div>
 
     {!data && <div className="empty-state"><Icon name="activity" size={22} /><strong>Loading the feed…</strong></div>}
-    {data && !posts.length && <div className="empty-state surface-card"><Icon name="message" size={22} /><strong>No posts yet</strong><p>Be the first: share your score, post an opening, or find teammates.</p></div>}
+    {data && filter === "showcase" && !posts.length && <div className="empty-state surface-card"><Icon name="message" size={22} /><strong>No showcases yet</strong><p>Share a repository from Code Evaluation, then post its verified score.</p></div>}
 
-    <div className="feed-list">
-      {posts.map((post) => {
-        const kind = kindMeta(post.kind);
+    {data && !filter && <div className="feed-board">
+      <section className="feed-column" aria-label="Jobs and team requests">
+        <header className="feed-column-head"><span><Icon name="briefcase" size={15} /> Jobs &amp; teams</span><small>{jobPosts.length}</small></header>
+        {jobPosts.length ? <div className="feed-list">{jobPosts.map(renderPost)}</div> : <p className="feed-column-empty">No openings yet. Post a job or a team-up request with <strong>New post</strong>.</p>}
+      </section>
+      <section className="feed-column" aria-label="Issues to solve">
+        <header className="feed-column-head"><span><Icon name="info" size={15} /> Issues to solve</span><small>{issuePosts.length}</small></header>
+        {issuePosts.length ? <div className="feed-list">{issuePosts.map(renderPost)}</div> : <p className="feed-column-empty">No help requests yet. In <button type="button" className="text-button" onClick={() => navigate("code-evaluation")}>Code Evaluation</button>, choose <strong>Ask for help</strong> on any finding.</p>}
+      </section>
+    </div>}
+
+    {filter === "showcase" && <div className="feed-list">{posts.map(renderPost)}</div>}
+  </>;
+
+  function renderPost(post) {
+        const kind = kindMetaAll(post.kind);
         const pending = post.queue.filter((item) => item.status === "pending").length;
         return <article key={post.id} className={`feed-post surface-card ${post.closed ? "is-closed" : ""}`}>
           <header className="feed-post-head">
@@ -140,8 +174,9 @@ export default function FeedPage({ navigate, notify }) {
           {post.location && <p className="feed-location"><Icon name="network" size={12} /> {post.location}</p>}
           {post.body && <p className="feed-body">{post.body}</p>}
           <ScoreCard score={post.score} />
+          {post.kind === "issue" && post.finding && <IssueCard repoUrl={post.repoUrl} finding={post.finding} />}
           <footer className="feed-post-foot">
-            <span className="team-muted">{post.interestCount} interested{post.closed ? " · closed" : ""}{post.teamLinked ? " · accepting invites to a team" : ""}</span>
+            <span className="team-muted">{post.interestCount} {post.kind === "issue" ? "offered to help" : "interested"}{post.closed ? " · closed" : ""}{post.teamLinked ? " · accepting invites to a team" : ""}</span>
             <div className="feed-post-actions">
               {post.isMine ? <>
                 <button type="button" className="button button-quiet" onClick={() => setOpenQueue(openQueue === post.id ? "" : post.id)}>Queue{pending ? ` (${pending} new)` : ""}</button>
@@ -150,11 +185,11 @@ export default function FeedPage({ navigate, notify }) {
               </> : post.myInterest ? <>
                 <span className={`feed-status is-${post.myInterest.status}`}>{post.myInterest.status === "accepted" ? "Accepted ✓" : post.myInterest.status === "declined" ? "Not selected" : "In queue"}</span>
                 {post.myInterest.status === "pending" && <button type="button" className="button button-quiet" disabled={Boolean(busy)} onClick={() => act({ action: "withdraw", postId: post.id }, "Removed from the queue.")}>Withdraw</button>}
-              </> : !post.closed && <button type="button" className="button button-primary" onClick={() => { if (!canAct) { requestSignIn("Sign in to show interest and join the queue."); return; } setNoteFor(noteFor === post.id ? "" : post.id); setNote(""); }}><Icon name="star" size={14} /> Interested</button>}
+              </> : !post.closed && <button type="button" className="button button-primary" onClick={() => { if (!canAct) { requestSignIn("Sign in to show interest and join the queue."); return; } setNoteFor(noteFor === post.id ? "" : post.id); setNote(""); }}><Icon name="star" size={14} /> {post.kind === "issue" ? "Offer to help" : "Interested"}</button>}
             </div>
           </footer>
           {noteFor === post.id && <form className="feed-note" onSubmit={async (event) => { event.preventDefault(); if (await act({ action: "interest", postId: post.id, note }, "You're in the queue.")) setNoteFor(""); }}>
-            <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={500} placeholder={post.kind === "job" ? "Optional: a line about you, or a link to your COVAL report" : "Optional note for the author"} aria-label="Note to the author" />
+            <input value={note} onChange={(event) => setNote(event.target.value)} maxLength={500} placeholder={post.kind === "job" ? "Optional: a line about you, or a link to your COVAL report" : post.kind === "issue" ? "How would you approach it? (optional)" : "Optional note for the author"} aria-label="Note to the author" />
             <button type="submit" className="button button-primary" disabled={Boolean(busy)}>Join queue</button>
           </form>}
           {post.isMine && openQueue === post.id && <ul className="feed-queue">
@@ -170,7 +205,5 @@ export default function FeedPage({ navigate, notify }) {
             </li>)}
           </ul>}
         </article>;
-      })}
-    </div>
-  </>;
+  }
 }

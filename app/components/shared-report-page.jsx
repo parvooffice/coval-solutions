@@ -2,6 +2,26 @@ import { useEffect, useState } from "react";
 import Icon from "./dashboard-icon";
 import { EvaluationTarget, formatScore, gradeFor, overallScore } from "./evaluation-report";
 
+// Open help requests from the Feed for this repository, so the report links to people solving its issues.
+function HelpWanted({ repoUrl }) {
+  const [posts, setPosts] = useState([]);
+  useEffect(() => {
+    if (!repoUrl) return;
+    fetch(`/api/feed?kind=issue&repo=${encodeURIComponent(repoUrl)}`)
+      .then((response) => (response.ok ? response.json() : { posts: [] }))
+      .then((body) => setPosts((body.posts || []).filter((post) => !post.closed)))
+      .catch(() => setPosts([]));
+  }, [repoUrl]);
+  if (!posts.length) return null;
+  return <section className="shared-report-help surface-card no-print" aria-label="Help wanted on this repository">
+    <div><span className="eyebrow">HELP WANTED</span><h2>Open issues on this repository</h2><p>The owner asked the COVAL community for help with these findings.</p></div>
+    <ul>{posts.slice(0, 6).map((post) => <li key={post.id}>
+      <span><strong>{post.finding?.title || post.title}</strong><small>{[post.finding?.agent, post.finding?.location, `${post.interestCount} offered to help`].filter(Boolean).join(" · ")}</small></span>
+      <a className="button button-quiet" href="/dashboard?guest=1#feed">Offer to help</a>
+    </li>)}</ul>
+  </section>;
+}
+
 // Public, read-only report at /report/<token> (or /report/sample). No sign-in needed.
 export default function SharedReportPage({ token }) {
   const [report, setReport] = useState(null);
@@ -58,6 +78,7 @@ export default function SharedReportPage({ token }) {
           <img src={`/api/badge?token=${encodeURIComponent(token)}`} alt="COVAL score badge" height="20" />
           <div className="shared-report-copy"><code>{markdown}</code><button type="button" className="button button-quiet" onClick={() => navigator.clipboard?.writeText(markdown).then(() => setCopied(true))}>{copied ? "Copied" : "Copy Markdown"}</button></div>
         </section>}
+        <HelpWanted repoUrl={report.url} />
         <section className="shared-report-cta surface-card no-print">
           <div><strong>How does your code compare?</strong><p>Sign in with GitHub or Google and score up to 5 repositories a month for free.</p></div>
           <a className="button button-primary" href="/">Score my repository <Icon name="arrowRight" size={14} /></a>

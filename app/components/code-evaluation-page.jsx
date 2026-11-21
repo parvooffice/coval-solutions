@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Icon from "./dashboard-icon";
 import { PageHeading } from "./ui";
 import { EvaluationTarget, RunProgress } from "./evaluation-report";
@@ -156,6 +156,35 @@ export default function CodeEvaluationPage() {
   const [shares, setShares] = useState({});
   const [githubApp, setGithubApp] = useState(null);
   useEffect(() => { apiRequest("/api/github/app").then(setGithubApp).catch(() => {}); }, []);
+
+  // Help requests in the Feed, keyed like findings, so each finding shows whether help was asked for.
+  const [helpRequests, setHelpRequests] = useState(new Map());
+  const loadHelpRequests = useCallback(async () => {
+    try {
+      const { posts = [] } = await apiRequest("/api/feed?kind=issue");
+      setHelpRequests(new Map(posts.filter((post) => post.isMine && post.finding && !post.closed).map((post) => [
+        [post.repoUrl, post.finding.agentId, post.finding.title, post.finding.location || ""].join("|"),
+        { id: post.id, interestCount: post.interestCount },
+      ])));
+    } catch { /* the Feed migration may not be applied yet */ }
+  }, []);
+  useEffect(() => { loadHelpRequests(); }, [loadHelpRequests]);
+
+  async function askForHelp(target, evaluation, fix, note) {
+    try {
+      await apiRequest("/api/feed", { method: "POST", body: JSON.stringify({
+        action: "create", kind: "issue",
+        title: `Help wanted: ${fix.title}`.slice(0, 120),
+        body: note || `${evaluation.label} flagged this in ${target.name}. Looking for someone to help fix it.`,
+        repoUrl: target.url, agentId: evaluation.id, findingTitle: fix.title, findingLocation: fix.location || "",
+      }) });
+      await loadHelpRequests();
+      return true;
+    } catch (error) {
+      setRunError(error.message || "The help request could not be posted.");
+      return false;
+    }
+  }
   const [printing, setPrinting] = useState("");
 
   async function setDismissed(findingKey, restore) {
@@ -249,6 +278,8 @@ export default function CodeEvaluationPage() {
             dismissed={dismissed}
             onDismiss={(findingKey) => setDismissed(findingKey, false)}
             onRestore={(findingKey) => setDismissed(findingKey, true)}
+            helpRequests={helpRequests}
+            onAskHelp={askForHelp}
             actions={<div className="eval-target-actions no-print">
               <button type="button" className="button button-quiet" onClick={() => printTarget(key)}><Icon name="arrowDown" size={14} /> PDF</button>
               {target.source === "github" && <button type="button" className="button button-quiet" onClick={() => shareTarget(target)} disabled={share?.busy}><Icon name="link" size={14} /> {share?.busy ? "Sharing…" : "Share"}</button>}

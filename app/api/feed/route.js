@@ -1,10 +1,13 @@
 import { apiError, requireUser, supabaseRest } from "../../lib/server/auth.js";
 import { loadSharedReport, TOKEN_PATTERN } from "../../lib/server/shared-reports.js";
+import { assertPublicRepositories, readSavedEvaluation } from "../code-evaluation/route.js";
 
 const supabaseUrl = () => process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseKey = () => process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const KINDS = new Set(["showcase", "job", "team"]);
+const KINDS = new Set(["showcase", "job", "team", "issue"]);
+const FILTERS = new Set(["showcase", "job", "team", "issue", "jobs"]);
+const REPO_PATTERN = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 
 const badRequest = (message) => Object.assign(new Error(message), { status: 400 });
 
@@ -13,12 +16,12 @@ async function optionalUser(request) {
   try { return await requireUser(request); } catch { return null; }
 }
 
-async function publicFeed(kind) {
+async function publicFeed(kind, repo) {
   if (!supabaseUrl() || !supabaseKey()) return [];
   const response = await fetch(`${supabaseUrl()}/rest/v1/rpc/coval_public_feed`, {
     method: "POST",
     headers: { apikey: supabaseKey(), Authorization: `Bearer ${supabaseKey()}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ feed_kind: kind || null, max_rows: 50 }),
+    body: JSON.stringify({ feed_kind: kind || null, max_rows: 50, ...(repo ? { feed_repo: repo } : {}) }),
     signal: AbortSignal.timeout(10_000),
   });
   if (response.status === 404) return []; // feed migration not applied yet
@@ -45,12 +48,31 @@ async function scoreCards(tokens) {
   return cards;
 }
 
+// A help request must point at a finding from the member's own saved report for a public repository,
+// so Issues in the Feed always link to real code and never expose private repositories.
+async function verifiedFinding(user, body) {
+  const repoUrl = String(body.repoUrl || "");
+  if (!REPO_PATTERN.test(repoUrl)) throw badRequest("Choose a GitHub repository.");
+  const report = await readSavedEvaluation(user);
+  const target = (report.targets || []).find((item) => item.url === repoUrl);
+  if (!target) throw badRequest("Score this repository in Code Evaluation before asking for help.");
+  const evaluation = (target.evaluations || []).find((item) => item.id === body.agentId);
+  const fix = (evaluation?.fixes || []).find((item) => item.title === body.findingTitle && (item.location || "") === (body.findingLocation || ""));
+  if (!fix) throw badRequest("That finding is not in your latest report. Re-score the repository and try again.");
+  await assertPublicRepositories([repoUrl]);
+  return {
+    repoUrl,
+    finding: { agentId: evaluation.id, agent: evaluation.label, title: fix.title, location: fix.location || "", detail: fix.detail || "", score: evaluation.score ?? null },
+  };
+}
+
 export async function GET(request) {
   try {
     const params = new URL(request.url).searchParams;
-    const kind = KINDS.has(params.get("kind")) ? params.get("kind") : null;
+    const kind = FILTERS.has(params.get("kind")) ? params.get("kind") : null;
+    const repo = REPO_PATTERN.test(params.get("repo") || "") ? params.get("repo") : null;
     const user = await optionalUser(request);
-    const rows = await publicFeed(kind);
+    const rows = await publicFeed(kind, repo);
     const cards = await scoreCards(rows.map((row) => row.share_token));
 
     let mine = new Map();
@@ -88,6 +110,7 @@ export async function GET(request) {
     const posts = rows.map((row) => ({
       id: row.id, kind: row.kind, title: row.title, body: row.body, location: row.location, closed: row.closed, createdAt: row.created_at,
       teamLinked: Boolean(row.team_id), interestCount: row.interest_count,
+      repoUrl: row.repo_url || null, finding: row.finding || null,
       author: { id: row.author_id, name: row.author_name, login: row.author_login || "", avatar: row.author_avatar || "", headline: row.author_headline || "" },
       score: row.share_token ? cards.get(row.share_token) || null : null,
       isMine: Boolean(user && row.author_id === user.id),
@@ -117,6 +140,8 @@ export async function POST(request) {
       if (title.length < 3 || title.length > 120) throw badRequest("Titles must be 3 to 120 characters.");
       if (text.length > 2000) throw badRequest("Keep posts under 2,000 characters.");
       if (body.kind === "showcase" && !TOKEN_PATTERN.test(body.shareToken || "")) throw badRequest("Pick a shared report to showcase. Share a repository from Code Evaluation first.");
+      let issue = null;
+      if (body.kind === "issue") issue = await verifiedFinding(user, body);
       const recent = await supabaseRest(user, `coval_posts?select=id&author_id=eq.${encodeURIComponent(user.id)}&created_at=gt.${encodeURIComponent(new Date(Date.now() - 86_400_000).toISOString())}`);
       if (recent.length >= 10) throw Object.assign(new Error("You can publish up to 10 posts a day."), { status: 429 });
       const [post] = await supabaseRest(user, "coval_posts", {
@@ -127,6 +152,8 @@ export async function POST(request) {
           share_token: TOKEN_PATTERN.test(body.shareToken || "") ? body.shareToken : null,
           team_id: body.kind === "team" && uuidPattern.test(body.teamId || "") ? body.teamId : null,
           location: body.location ? String(body.location).trim().slice(0, 80) : null,
+          repo_url: issue?.repoUrl || null,
+          finding: issue?.finding || null,
         }),
       });
       return Response.json({ post });

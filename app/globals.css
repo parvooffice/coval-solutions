@@ -1270,3 +1270,40 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
   .guest-pill span { display: none; }
   .feed-note { flex-direction: column; }
 }
+
+/* Feed: two-part board (Jobs & teams | Issues to solve) */
+.feed-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.feed-board .feed-list { max-width: none; }
+.feed-column { display: grid; gap: 10px; min-width: 0; }
+.feed-column-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 2px; border-bottom: 2px solid var(--border); }
+.feed-column-head span { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 750; }
+.feed-column-head small { min-width: 24px; padding: 1px 8px; border-radius: 99px; background: var(--surface-3); color: var(--muted); font-size: 12px; font-weight: 700; text-align: center; }
+.feed-column-empty { margin: 0; padding: 16px; border: 1px dashed var(--border-strong); border-radius: 12px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.feed-kind.is-issue { background: color-mix(in srgb, #c46a7d 15%, transparent); color: #a8485c; }
+.feed-issue { display: grid; gap: 5px; padding: 12px; border: 1px solid var(--border); border-left: 3px solid #c46a7d; border-radius: 10px; background: var(--surface-2); font-size: 13px; }
+.feed-issue-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+.feed-issue-head a { color: var(--muted); font-family: var(--font-mono); text-decoration: none; }
+.feed-issue-agent { padding: 2px 8px; border-radius: 99px; background: var(--surface-3); font-weight: 700; }
+.feed-issue small { color: var(--muted); }
+.feed-issue-location { display: inline-flex; width: fit-content; align-items: center; gap: 4px; color: var(--text); text-decoration: none; }
+.feed-issue-location code { padding: 1px 6px; border-radius: 5px; background: var(--surface-3); font-family: var(--font-mono); font-size: 11.5px; overflow-wrap: anywhere; }
+.feed-issue-github { display: inline-flex; width: fit-content; align-items: center; gap: 5px; color: var(--accent); font-size: 12px; font-weight: 700; text-decoration: none; }
+@media (max-width: 1000px) { .feed-board { grid-template-columns: minmax(0, 1fr); } }
+
+/* Ask for help from a finding */
+.eval-help-badge { border-color: color-mix(in srgb, #c46a7d 45%, var(--border)) !important; color: #a8485c !important; }
+.eval-ask-help { display: grid; gap: 6px; margin-top: 6px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+.eval-ask-help small { color: var(--muted); font-size: 11.5px; line-height: 1.5; }
+.eval-ask-help textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; font-size: 12.5px; resize: vertical; }
+.eval-ask-help > div { display: flex; justify-content: flex-end; gap: 6px; }
+.eval-ask-help button { padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
+.eval-ask-help button.is-primary { border-color: var(--text); background: var(--text); color: var(--page); }
+
+/* Report page: help wanted */
+.shared-report-help { display: grid; gap: 12px; padding: 18px 20px; }
+.shared-report-help h2 { margin: 4px 0 2px; font-size: 18px; }
+.shared-report-help p { margin: 0; color: var(--muted); font-size: 13px; }
+.shared-report-help ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.shared-report-help li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); }
+.shared-report-help li > span { display: grid; gap: 2px; min-width: 0; font-size: 13.5px; }
+.shared-report-help small { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }

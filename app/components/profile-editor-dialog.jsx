@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Icon from "./dashboard-icon";
+import { DEFAULT_PORTFOLIO, PORTFOLIO_ACCENTS, PORTFOLIO_SECTIONS, PORTFOLIO_STATUSES, normalizePortfolio } from "../lib/portfolio";
 
 const visibilityOptions = [
   ["contributions", "Contribution activity", "Show contribution totals and activity summary."],
@@ -23,8 +24,10 @@ export default function ProfileEditorDialog({ profile, repositories, onClose, on
       company: profile.company || "",
       profileVisibility: Object.fromEntries(visibilityOptions.map(([key]) => [key, visibility[key] !== false])),
       featuredRepositories: profile.featuredRepositories || repositories.map(repositoryKey),
+      portfolio: normalizePortfolio(profile.portfolio || DEFAULT_PORTFOLIO),
     };
   });
+  const [skillDraft, setSkillDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [bannerFile, setBannerFile] = useState(null);
@@ -42,12 +45,34 @@ export default function ProfileEditorDialog({ profile, repositories, onClose, on
       : [...current.featuredRepositories, key],
   }));
 
+  const setPortfolio = (changes) => setForm((current) => ({ ...current, portfolio: { ...current.portfolio, ...changes } }));
+  function addSkills(text) {
+    const additions = text.split(",").map((skill) => skill.trim()).filter(Boolean);
+    if (!additions.length) return;
+    setPortfolio({ skills: [...new Set([...form.portfolio.skills, ...additions])].slice(0, 15) });
+    setSkillDraft("");
+  }
+  const setLink = (index, key, value) => setPortfolio({ links: form.portfolio.links.map((link, position) => (position === index ? { ...link, [key]: value } : link)) });
+  function moveSection(index, step) {
+    const order = [...form.portfolio.sectionOrder];
+    const target = index + step;
+    if (target < 0 || target >= order.length) return;
+    [order[index], order[target]] = [order[target], order[index]];
+    setPortfolio({ sectionOrder: order });
+  }
+
   async function submit(event) {
     event.preventDefault();
     setSaving(true);
     setError("");
     try {
-      await onSave(form, { bannerFile, removeBanner });
+      const pendingSkills = skillDraft.split(",").map((skill) => skill.trim()).filter(Boolean);
+      const portfolio = {
+        ...form.portfolio,
+        skills: [...new Set([...form.portfolio.skills, ...pendingSkills])].slice(0, 15),
+        links: form.portfolio.links.filter((link) => link.url.trim() || link.label.trim()),
+      };
+      await onSave({ ...form, portfolio }, { bannerFile, removeBanner });
       onClose();
     } catch (cause) {
       setError(cause.message || "Your profile could not be saved.");
@@ -77,6 +102,35 @@ export default function ProfileEditorDialog({ profile, repositories, onClose, on
             </div>
           </div>
         </div>
+        <fieldset className="profile-editor-section portfolio-editor"><legend>Portfolio style</legend>
+          <div className="portfolio-row">
+            <span className="profile-editor-label">Accent color</span>
+            <div className="accent-swatches" role="radiogroup" aria-label="Accent color">{Object.entries(PORTFOLIO_ACCENTS).map(([key, accent]) => <button type="button" key={key} role="radio" aria-checked={form.portfolio.accent === key} aria-label={accent.label} title={accent.label} className={`accent-swatch${form.portfolio.accent === key ? " is-selected" : ""}`} style={{ "--swatch": accent.color }} onClick={() => setPortfolio({ accent: key })} />)}</div>
+          </div>
+          <label className="portfolio-row">Status badge<select value={form.portfolio.status} onChange={(event) => setPortfolio({ status: event.target.value })}>{Object.entries(PORTFOLIO_STATUSES).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
+          <div className="portfolio-row">
+            <span className="profile-editor-label">Skills <small>{form.portfolio.skills.length}/15</small></span>
+            <div className="skill-editor">
+              {form.portfolio.skills.map((skill) => <span className="skill-chip" key={skill}>{skill}<button type="button" aria-label={`Remove ${skill}`} onClick={() => setPortfolio({ skills: form.portfolio.skills.filter((item) => item !== skill) })}><Icon name="x" size={11} /></button></span>)}
+              {form.portfolio.skills.length < 15 && <input value={skillDraft} maxLength={120} placeholder={form.portfolio.skills.length ? "Add more…" : "React, Python, system design…"} aria-label="Add skills" onChange={(event) => { const value = event.target.value; if (value.endsWith(",")) addSkills(value); else setSkillDraft(value); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addSkills(skillDraft); } if (event.key === "Backspace" && !skillDraft && form.portfolio.skills.length) setPortfolio({ skills: form.portfolio.skills.slice(0, -1) }); }} onBlur={() => addSkills(skillDraft)} />}
+            </div>
+          </div>
+          <div className="portfolio-row">
+            <span className="profile-editor-label">Links <small>{form.portfolio.links.length}/5</small></span>
+            <div className="link-editor">
+              {form.portfolio.links.map((link, index) => <div className="link-editor-row" key={index}>
+                <input value={link.label} maxLength={30} placeholder="Label (e.g. Website)" aria-label={`Link ${index + 1} label`} onChange={(event) => setLink(index, "label", event.target.value)} />
+                <input value={link.url} maxLength={200} placeholder="https://" aria-label={`Link ${index + 1} address`} inputMode="url" onChange={(event) => setLink(index, "url", event.target.value)} />
+                <button type="button" className="icon-button" aria-label={`Remove link ${index + 1}`} onClick={() => setPortfolio({ links: form.portfolio.links.filter((_, position) => position !== index) })}><Icon name="x" size={14} /></button>
+              </div>)}
+              {form.portfolio.links.length < 5 && <button type="button" className="button button-quiet" onClick={() => setPortfolio({ links: [...form.portfolio.links, { label: "", url: "" }] })}><Icon name="plus" size={14} /> Add a link</button>}
+            </div>
+          </div>
+          <div className="portfolio-row">
+            <span className="profile-editor-label">Section order</span>
+            <ol className="section-order">{form.portfolio.sectionOrder.map((key, index) => <li key={key}><span>{PORTFOLIO_SECTIONS[key]}</span><button type="button" className="icon-button" aria-label={`Move ${PORTFOLIO_SECTIONS[key]} up`} disabled={index === 0} onClick={() => moveSection(index, -1)}><Icon name="chevronDown" size={14} className="icon-flip" /></button><button type="button" className="icon-button" aria-label={`Move ${PORTFOLIO_SECTIONS[key]} down`} disabled={index === form.portfolio.sectionOrder.length - 1} onClick={() => moveSection(index, 1)}><Icon name="chevronDown" size={14} /></button></li>)}</ol>
+          </div>
+        </fieldset>
         <fieldset className="profile-editor-section"><legend>What appears on your profile</legend>{visibilityOptions.map(([key, title, description]) => <label className="profile-editor-toggle" key={key}><input type="checkbox" checked={form.profileVisibility[key]} onChange={() => toggleVisibility(key)} /><span><strong>{title}</strong><small>{description}</small></span></label>)}</fieldset>
         {form.profileVisibility.repositories && <fieldset className="profile-editor-section"><legend>Choose repositories to feature</legend>{repositories.length ? <div className="profile-repository-picker">{repositories.map((repository) => {
           const key = repositoryKey(repository);

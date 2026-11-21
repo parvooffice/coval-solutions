@@ -7,9 +7,27 @@
     <meta name="description" content="Engineering intelligence for connected teams." />
     <link rel="icon" href="/coval-logo-light.png" />
     <title>COVAL — Engineering Intelligence</title>
+    <script>
+      // Apply the saved theme before the first paint, so dark mode never flashes white.
+      try {
+        const dashboard = location.pathname.startsWith("/dashboard");
+        const dark = localStorage.getItem("coval-theme") === "dark";
+        if (dashboard && dark) document.documentElement.dataset.theme = "dark";
+        // The sign-in page is always dark; the dashboard follows the saved theme.
+        document.documentElement.dataset.boot = !dashboard || dark ? "dark" : "light";
+      } catch (error) { /* storage blocked */ }
+    </script>
+    <style>
+      /* Shown until the app's code arrives. */
+      html[data-boot="light"] { background: #fafafb; } html[data-boot="dark"] { background: #09090b; }
+      .boot-screen { display: grid; place-items: center; min-height: 100vh; }
+      .boot-screen img { width: 40px; height: 40px; border-radius: 10px; animation: boot-pulse 1.2s ease-in-out infinite; }
+      @keyframes boot-pulse { 50% { opacity: .45; transform: scale(.94); } }
+      @media (prefers-reduced-motion: reduce) { .boot-screen img { animation: none; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot-screen"><img src="/coval-logo-light.png" alt="" width="40" height="40"></div></div>
     <script type="module" src="/main.jsx"></script>
   </body>
 </html>

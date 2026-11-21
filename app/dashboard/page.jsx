@@ -1,25 +1,49 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import DashboardShell from "../components/dashboard-shell";
 import AuthGate from "./auth-gate";
 import OverviewPage from "../components/overview-page";
-import PeoplePage from "../components/people-page";
-import ProjectsPage from "../components/projects-page";
-import NetworkPage from "../components/network-page";
-import TeamsPage from "../components/teams-page";
-import BillingPage from "../components/billing-page";
-import FeedPage from "../components/feed-page";
-import ActivityPage from "../components/activity-page";
-import MessagesPage from "../components/messages-page";
-import ProfilePage from "../components/profile-page";
-import CodeEvaluationPage from "../components/code-evaluation-page";
+
+import { PAGE_LOADERS, prefetchRoute } from "./page-loaders";
+
+const PeoplePage = lazy(PAGE_LOADERS.engineering);
+const ProjectsPage = lazy(PAGE_LOADERS.projects);
+const NetworkPage = lazy(PAGE_LOADERS.network);
+const TeamsPage = lazy(PAGE_LOADERS.teams);
+const BillingPage = lazy(PAGE_LOADERS.billing);
+const FeedPage = lazy(PAGE_LOADERS.feed);
+const ActivityPage = lazy(PAGE_LOADERS.activity);
+const MessagesPage = lazy(PAGE_LOADERS.chat);
+const ProfilePage = lazy(PAGE_LOADERS.profile);
+const CodeEvaluationPage = lazy(PAGE_LOADERS["code-evaluation"]);
+
+function PageSkeleton() {
+  return <div className="page-skeleton" aria-busy="true" aria-label="Loading">
+    <span className="skeleton skeleton-eyebrow" />
+    <span className="skeleton skeleton-title" />
+    <span className="skeleton skeleton-line" />
+    <div className="page-skeleton-grid">{[0, 1, 2].map((item) => <span key={item} className="skeleton skeleton-card" />)}</div>
+  </div>;
+}
 import { DashboardDataProvider, useDashboardData } from "./dashboard-data-provider";
 
 const routes = ["overview", "code-evaluation", "engineering", "projects", "network", "teams", "feed", "billing", "activity", "chat", "profile"];
+
+const LAST_ROUTE_KEY = "coval-last-route";
 
 function getRouteFromHash() {
   const route = window.location.hash.replace(/^#/, "").split("/")[0];
   return routes.includes(route) ? route : "overview";
 }
+
+// Opening /dashboard with no section returns to the section used last time.
+function restoreLastRoute() {
+  if (window.location.hash) return;
+  try {
+    const last = window.localStorage.getItem(LAST_ROUTE_KEY) || "";
+    if (routes.includes(last) && last !== "profile") window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${last}`);
+  } catch { /* storage blocked */ }
+}
+if (typeof window !== "undefined") restoreLastRoute();
 
 function subscribeToHashChange(callback) {
   window.addEventListener("hashchange", callback);
@@ -99,8 +123,28 @@ function DashboardContent() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
+    // Cross-fade colors when the theme changes (see .theme-changing in motion.css).
+    const root = document.documentElement;
+    const changing = Boolean(root.dataset.theme) && root.dataset.theme !== theme;
+    if (changing) root.classList.add("theme-changing");
+    root.dataset.theme = theme;
+    if (!changing) return undefined;
+    const timer = window.setTimeout(() => root.classList.remove("theme-changing"), 400);
+    return () => window.clearTimeout(timer);
   }, [theme]);
+
+  // New section: start at the top, and remember it for next time.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+    try { window.localStorage.setItem(LAST_ROUTE_KEY, route); } catch { /* storage blocked */ }
+  }, [route, profileId]);
+
+  // Warm up the other sections once the first screen has settled.
+  useEffect(() => {
+    const warm = () => Object.keys(PAGE_LOADERS).forEach(prefetchRoute);
+    const id = "requestIdleCallback" in window ? window.requestIdleCallback(warm, { timeout: 4000 }) : window.setTimeout(warm, 2500);
+    return () => ("cancelIdleCallback" in window ? window.cancelIdleCallback(id) : window.clearTimeout(id));
+  }, []);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -172,7 +216,9 @@ function DashboardContent() {
         }
       }}
     >
-      {page}
+      <Suspense fallback={<PageSkeleton />}>
+        <div className="route-view" key={route === "profile" ? `profile-${profileId}` : route}>{page}</div>
+      </Suspense>
     </DashboardShell>
   );
 }

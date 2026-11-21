@@ -1,6 +1,7 @@
 import { apiError, requireUser, supabaseRest } from "../../lib/server/auth.js";
 import { hasValidPublicSignature } from "../../lib/server/evaluation-sharing.js";
 import { getGitHubErrorStatus, getGitHubProfile } from "../../lib/server/github.js";
+import { normalizePortfolio } from "../../lib/portfolio.js";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const defaultVisibility = { contributions: true, repositories: true, activity: true, evaluations: true };
@@ -16,7 +17,19 @@ function profileSettings(member = {}) {
     bannerUrl: member.profile_banner_path ? `/api/profile/banner/${member.profile_banner_path}` : "",
     profileVisibility: Object.fromEntries(Object.keys(defaultVisibility).map((key) => [key, visibility[key] !== false])),
     featuredRepositories: Array.isArray(member.featured_repositories) ? member.featured_repositories : null,
+    portfolio: normalizePortfolio(member.profile_portfolio),
   };
+}
+
+// Reads profile rows with the portfolio column, or without it if the portfolio migration
+// (202611220002_coval_profile_portfolio.sql) hasn't been run yet.
+async function selectProfiles(user, columns, filter) {
+  try {
+    return await supabaseRest(user, `coval_profiles?select=${columns},profile_portfolio&${filter}`);
+  } catch (error) {
+    if (!/profile_portfolio/.test(error.message || "")) throw error;
+    return supabaseRest(user, `coval_profiles?select=${columns}&${filter}`);
+  }
 }
 
 async function publicCodeEvaluations(user, memberId, visibility) {
@@ -59,7 +72,7 @@ export async function GET(request) {
     const memberId = searchParams.get("memberId");
     if (memberId) {
       if (!uuidPattern.test(memberId)) return Response.json({ error: "Choose a valid COVAL member." }, { status: 400 });
-      const [member] = await supabaseRest(user, `coval_profiles?select=user_id,github_login,display_name,avatar_url,created_at,last_seen_at,profile_name,profile_headline,profile_bio,profile_location,profile_company,profile_banner_path,profile_visibility,featured_repositories&user_id=eq.${encodeURIComponent(memberId)}&limit=1`);
+      const [member] = await selectProfiles(user, "user_id,github_login,display_name,avatar_url,created_at,last_seen_at,profile_name,profile_headline,profile_bio,profile_location,profile_company,profile_banner_path,profile_visibility,featured_repositories", `user_id=eq.${encodeURIComponent(memberId)}&limit=1`);
       if (!member) return Response.json({ error: "COVAL member not found." }, { status: 404 });
       const settings = profileSettings(member);
       const codeEvaluations = await publicCodeEvaluations(user, member.user_id, settings.profileVisibility);
@@ -93,17 +106,17 @@ export async function GET(request) {
       const isOwnMember = member.user_id === user.id && user.githubConnected;
       const githubProfile = await getGitHubProfile(member.github_login, isOwnMember ? user.githubToken : "", isOwnMember);
       const profile = applyRepositoryVisibility(githubProfile, settings);
-      return Response.json({ ...profile, name: settings.profileName || githubProfile.name, bio: settings.bio, location: settings.location, company: settings.company, role: settings.headline || "COVAL member", codeEvaluations, covalUserId: member.user_id, createdAt: member.created_at }, { headers: { "Cache-Control": "private, no-store" } });
+      return Response.json({ ...profile, portfolio: settings.portfolio, name: settings.profileName || githubProfile.name, bio: settings.bio, location: settings.location, company: settings.company, role: settings.headline || "COVAL member", codeEvaluations, covalUserId: member.user_id, createdAt: member.created_at }, { headers: { "Cache-Control": "private, no-store" } });
     }
     const login = searchParams.get("login");
     if (!/^[A-Za-z0-9-]{1,39}$/.test(login || "")) return Response.json({ error: "Enter a valid GitHub username." }, { status: 400 });
-    const [covalMember] = await supabaseRest(user, `coval_profiles?select=user_id,profile_name,profile_headline,profile_bio,profile_location,profile_company,profile_banner_path,profile_visibility,featured_repositories&github_login=ilike.${encodeURIComponent(login || "")}&limit=1`);
+    const [covalMember] = await selectProfiles(user, "user_id,profile_name,profile_headline,profile_bio,profile_location,profile_company,profile_banner_path,profile_visibility,featured_repositories", `github_login=ilike.${encodeURIComponent(login || "")}&limit=1`);
     const isOwnGitHubProfile = user.githubConnected && user.login?.toLowerCase() === login?.toLowerCase();
     const profile = await getGitHubProfile(login, isOwnGitHubProfile ? user.githubToken : "", isOwnGitHubProfile);
     const settings = profileSettings(covalMember);
     const codeEvaluations = covalMember ? await publicCodeEvaluations(user, covalMember.user_id, settings.profileVisibility) : [];
     const visibleProfile = applyRepositoryVisibility(profile, settings);
-    return Response.json({ ...visibleProfile, name: settings.profileName || profile.name, bio: settings.bio, location: settings.location, company: settings.company, role: settings.headline || "COVAL member", codeEvaluations, covalUserId: covalMember?.user_id || "" }, { headers: { "Cache-Control": "private, no-store" } });
+    return Response.json({ ...visibleProfile, portfolio: settings.portfolio, name: settings.profileName || profile.name, bio: settings.bio, location: settings.location, company: settings.company, role: settings.headline || "COVAL member", codeEvaluations, covalUserId: covalMember?.user_id || "" }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     if (!error.status) error.status = getGitHubErrorStatus(error);
     return apiError(error);
@@ -136,13 +149,25 @@ export async function PUT(request) {
       featured_repositories: [...new Set(body.featuredRepositories.map((item) => item.trim()).filter(Boolean))],
       updated_at: new Date().toISOString(),
     };
-    const updated = await supabaseRest(user, `coval_profiles?user_id=eq.${encodeURIComponent(user.id)}`, {
+    if (body.portfolio !== undefined) values.profile_portfolio = normalizePortfolio(body.portfolio, { strict: true });
+    const save = (fields) => supabaseRest(user, `coval_profiles?user_id=eq.${encodeURIComponent(user.id)}`, {
       method: "PATCH",
       headers: { Prefer: "return=representation" },
-      body: JSON.stringify(values),
+      body: JSON.stringify(fields),
     });
+    let updated;
+    let warning = "";
+    try {
+      updated = await save(values);
+    } catch (error) {
+      if (!values.profile_portfolio || !/profile_portfolio/.test(error.message || "")) throw error;
+      // The portfolio migration hasn't been run: save everything else.
+      const { profile_portfolio: _skipped, ...rest } = values;
+      updated = await save(rest);
+      warning = "Your profile was saved, but portfolio style needs a one-time database update (202611220002_coval_profile_portfolio.sql).";
+    }
     if (!updated?.length) return Response.json({ error: "Your COVAL profile was not found." }, { status: 404 });
-    return Response.json({ profile: profileSettings(updated[0]) }, { headers: { "Cache-Control": "private, no-store" } });
+    return Response.json({ profile: profileSettings(updated[0]), warning }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
     return apiError(error);
   }

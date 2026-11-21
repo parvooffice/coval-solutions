@@ -5,6 +5,7 @@ import SettingsDialog from "./settings-dialog";
 import { Avatar } from "./ui";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { apiRequest } from "../lib/client-api";
+import { prefetchRoute } from "../dashboard/page-loaders";
 import { announceNotifications, getDesktop, notificationRoute, notificationText } from "../lib/desktop";
 
 const navItems = [
@@ -179,6 +180,8 @@ export default function DashboardShell({
                   className={`nav-link${activeRoute === item.id ? " active" : ""}`}
                   aria-current={activeRoute === item.id ? "page" : undefined}
                   onClick={(event) => { event.preventDefault(); navigateFromSidebar(item.id); }}
+                  onPointerEnter={() => prefetchRoute(item.id)}
+                  onFocus={() => prefetchRoute(item.id)}
                 >
                   <Icon name={item.icon} size={19} />
                   <span>{item.label}</span>

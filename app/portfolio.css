@@ -1,0 +1,49 @@
+/* Member portfolio: each profile uses its own accent color (Edit profile → Portfolio style).
+   Setting --accent here recolors the cover, tabs, language bars, and badges on that profile. */
+.developer-profile[style*="--profile-accent"] {
+  --accent: var(--profile-accent);
+  --accent-soft: color-mix(in srgb, var(--profile-accent) 13%, var(--surface));
+}
+.developer-profile .profile-cover:not(.has-banner) {
+  background-image: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%), linear-gradient(115deg, transparent, color-mix(in srgb, var(--accent-soft) 28%, var(--surface)));
+}
+.developer-profile .developer-profile-hero .avatar-xl { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px color-mix(in srgb, var(--accent) 55%, transparent); }
+
+/* Status badge next to the name */
+.portfolio-status { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border)); border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.portfolio-status > i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 22%, transparent); }
+.portfolio-status-open_to_work > i { animation: status-pulse 2.4s ease-in-out infinite; }
+
+/* Skills and links under the bio */
+.portfolio-extras { display: grid; gap: 10px; margin-top: 2px; }
+.portfolio-skills, .portfolio-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.skill-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); color: var(--text); font-size: 12px; font-weight: 600; }
+.developer-profile .skill-chip { border-color: color-mix(in srgb, var(--accent) 28%, var(--border)); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.skill-chip > button { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-right: -4px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--muted); cursor: pointer; }
+.skill-chip > button:hover { background: var(--surface-3); color: var(--text); }
+.portfolio-link { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 11px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12.5px; font-weight: 600; text-decoration: none; transition: border-color var(--motion-fast, .14s) ease, color var(--motion-fast, .14s) ease, transform var(--motion-fast, .14s) ease; }
+.portfolio-link:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+
+/* Editor controls */
+.portfolio-editor { gap: 14px; }
+.portfolio-row { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 650; }
+.portfolio-row .profile-editor-label { margin-bottom: 0; }
+.portfolio-row small { color: var(--subtle); font-weight: 500; }
+.portfolio-row select { min-height: 38px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-weight: 500; }
+.accent-swatches { display: flex; flex-wrap: wrap; gap: 9px; }
+.accent-swatch { width: 30px; height: 30px; padding: 0; border: 2px solid var(--surface); border-radius: 50%; background: var(--swatch); box-shadow: 0 0 0 1px var(--border); cursor: pointer; transition: transform .15s var(--ease-spring, ease), box-shadow .15s ease; }
+.accent-swatch:hover { transform: scale(1.08); }
+.accent-swatch.is-selected { box-shadow: 0 0 0 2px var(--swatch); transform: scale(1.08); }
+.skill-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 40px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.skill-editor:focus-within { border-color: var(--accent); }
+.skill-editor input { min-width: 140px; flex: 1; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; font-weight: 500; }
+.link-editor { display: grid; gap: 7px; justify-items: start; }
+.link-editor-row { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 7px; }
+.link-editor-row input { min-height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-weight: 500; }
+.section-order { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; counter-reset: section; }
+.section-order li { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-weight: 600; counter-increment: section; }
+.section-order li::before { content: counter(section); color: var(--subtle); font-family: var(--font-mono); font-size: 11px; }
+.section-order li > span { flex: 1; }
+.section-order .icon-button { width: 28px; height: 28px; }
+.icon-flip { transform: rotate(180deg); }
+@media (max-width: 560px) { .link-editor-row { grid-template-columns: minmax(0, 1fr) auto; } .link-editor-row input:first-child { grid-column: 1 / -1; } }

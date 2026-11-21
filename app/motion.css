@@ -1,0 +1,68 @@
+/* Motion for the whole app, in one place: pages fade in, dialogs and popovers ease in, cards
+   lift on hover, buttons respond to presses, and loading shows a skeleton. Everything turns off
+   for people who ask their system to reduce motion. Loaded after globals.css. */
+:root { --ease-out: cubic-bezier(.2, .8, .2, 1); --ease-spring: cubic-bezier(.34, 1.4, .64, 1); --motion-fast: 140ms; --motion: 220ms; --motion-slow: 360ms; }
+
+@keyframes page-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { from { opacity: 0; transform: translateY(6px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sheet-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Page changes */
+.route-view { animation: page-in var(--motion-slow) var(--ease-out) both; }
+
+/* Lists arrive in a quick stagger (first few items only, so long lists stay snappy). */
+.evaluation-score-grid > *, .feed-post, .person-card, .project-card, .profile-project-card, .overview-project-card, .metric-card, .profile-evaluation-card { animation: rise-in var(--motion-slow) var(--ease-out) both; }
+:is(.evaluation-score-grid, .profile-project-grid, .overview-projects-grid, .summary-grid, .people-grid, .projects-grid) > :nth-child(2) { animation-delay: 40ms; }
+:is(.evaluation-score-grid, .profile-project-grid, .overview-projects-grid, .summary-grid, .people-grid, .projects-grid) > :nth-child(3) { animation-delay: 80ms; }
+:is(.evaluation-score-grid, .profile-project-grid, .overview-projects-grid, .summary-grid, .people-grid, .projects-grid) > :nth-child(4) { animation-delay: 120ms; }
+:is(.evaluation-score-grid, .profile-project-grid, .overview-projects-grid, .summary-grid, .people-grid, .projects-grid) > :nth-child(n + 5) { animation-delay: 160ms; }
+
+/* Dialogs, popovers, and their backdrops */
+.modal-backdrop, .settings-backdrop, .search-backdrop { animation: fade-in var(--motion) ease both; }
+.settings-dialog, .person-dialog, .project-dialog, .search-dialog, .profile-editor-dialog, .guest-dialog { animation: pop-in var(--motion) var(--ease-out) both; }
+.notifications-popover, .eval-import-menu-list { animation: pop-in var(--motion-fast) var(--ease-out) both; transform-origin: top right; }
+@media (max-width: 720px) { .settings-dialog { animation-name: sheet-in; } }
+
+/* Buttons and links: smooth color changes and a small press */
+.button, .icon-button, .menu-button, .text-button, .nav-link, .search-result, .notification-item, .filter-pill, .profile-tab, .repository-chip, .settings-switch {
+  transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease, color var(--motion-fast) ease, box-shadow var(--motion) ease, transform var(--motion-fast) var(--ease-out), opacity var(--motion-fast) ease;
+}
+.button:active:not(:disabled), .icon-button:active:not(:disabled), .menu-button:active, .filter-pill:active, .profile-tab:active, .repository-chip:active { transform: scale(.97); }
+.button-primary:hover:not(:disabled) { box-shadow: 0 6px 18px color-mix(in srgb, var(--text) 18%, transparent); }
+:is(.button, .icon-button, .nav-link, .text-button, .filter-pill, .profile-tab, .search-result, .notification-item):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.nav-link > svg { transition: transform var(--motion) var(--ease-spring); }
+.nav-link:hover > svg { transform: translateX(2px); }
+
+/* Cards that open something lift slightly on hover */
+.person-card, .project-card, .overview-project-card, .profile-project-card, .feed-post, .profile-collaborator, .evaluation-score-card, .metric-card {
+  transition: transform var(--motion) var(--ease-out), box-shadow var(--motion) ease, border-color var(--motion) ease;
+}
+@media (hover: hover) {
+  .person-card:hover, .project-card:hover, .overview-project-card:hover, .profile-project-card:hover, .profile-collaborator:hover { transform: translateY(-2px); border-color: var(--border-strong); box-shadow: 0 10px 28px rgb(9 9 11 / 9%); }
+  .feed-post:hover, .evaluation-score-card:hover { border-color: var(--border-strong); }
+}
+
+/* Inputs */
+input, textarea, select { transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, background-color var(--motion-fast) ease; }
+
+/* Toasts slide up from the corner */
+.toast-message { animation: toast-in var(--motion) var(--ease-spring) both; }
+
+/* Theme switch: colors cross-fade instead of snapping */
+.theme-changing, .theme-changing *, .theme-changing *::before, .theme-changing *::after { transition: background-color var(--motion-slow) ease, border-color var(--motion-slow) ease, color var(--motion-slow) ease, fill var(--motion-slow) ease !important; }
+
+/* Loading skeletons */
+.skeleton { display: block; border-radius: 8px; background: linear-gradient(90deg, color-mix(in srgb, var(--text) 6%, var(--surface)) 25%, color-mix(in srgb, var(--text) 11%, var(--surface)) 50%, color-mix(in srgb, var(--text) 6%, var(--surface)) 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+.page-skeleton { display: grid; gap: 12px; padding: 6px 0; animation: fade-in var(--motion) ease .12s both; }
+.skeleton-eyebrow { width: 120px; height: 11px; }
+.skeleton-title { width: min(320px, 70%); height: 30px; }
+.skeleton-line { width: min(520px, 90%); height: 13px; }
+.page-skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 12px; }
+.skeleton-card { height: 150px; border-radius: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+}

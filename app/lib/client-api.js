@@ -1,7 +1,15 @@
+import { isGuest, isPublicGet, requestSignIn } from "./guest";
+
 export async function apiRequest(path, options = {}) {
   const headers = new Headers(options.headers || {});
   const client = typeof window !== "undefined" ? window.covalSupabase : null;
   const session = client ? (await client.auth.getSession()).data?.session : null;
+  // Guest preview: private reads come back empty instead of erroring; changes ask the visitor to sign in.
+  if (!session && isGuest() && !isPublicGet(path, options.method || "GET")) {
+    if ((options.method || "GET").toUpperCase() === "GET") return {};
+    requestSignIn();
+    throw Object.assign(new Error("Sign in to do that. This is a guest preview."), { status: 401 });
+  }
   if (session?.access_token) headers.set("Authorization", `Bearer ${session.access_token}`);
   const hasGitHubIdentity = session?.user?.identities?.some((identity) => identity.provider === "github")
     || session?.user?.app_metadata?.providers?.includes("github");

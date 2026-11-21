@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { apiRequest } from "../lib/client-api";
+import { isGuest, SAMPLE_REPORT_URL } from "../lib/guest";
 
 const emptyDashboard = {
   configured: false,
@@ -24,6 +25,12 @@ export function DashboardDataProvider({ children }) {
 
   const updateCodeEvaluation = useCallback((report) => setCodeEvaluation(report), []);
   const loadCodeEvaluation = useCallback(async () => {
+    const session = window.covalSupabase ? (await window.covalSupabase.auth.getSession()).data?.session : null;
+    if (!session && isGuest()) {
+      // Guests explore a real report: COVAL's sample evaluation of pallets/flask.
+      const sample = await fetch(SAMPLE_REPORT_URL).then((response) => response.json());
+      return { schemaVersion: 1, generatedAt: sample.generatedAt, urlFile: "sample report", targets: [{ ...sample, input: sample.url, source: "github" }], publicEvaluations: [] };
+    }
     return apiRequest("/api/code-evaluation");
   }, []);
 
@@ -42,7 +49,7 @@ export function DashboardDataProvider({ children }) {
       githubLogin: githubIdentity?.identity_data?.user_name || githubIdentity?.identity_data?.login || authUser.user_metadata?.user_name || "",
       githubConnected: Boolean(githubIdentity || authUser.app_metadata?.providers?.includes("github")),
     } : null;
-    return { result, user };
+    return { result: { ...emptyDashboard, ...(result || {}), ...(!authUser && isGuest() ? { workspaceName: "Guest preview" } : {}) }, user };
   }, []);
 
   const refresh = useCallback(async () => {

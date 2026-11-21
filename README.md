@@ -38,6 +38,7 @@ In the Supabase SQL Editor, apply these migrations in filename order:
 - [`202610260001_coval_public_profiles.sql`](./supabase/migrations/202610260001_coval_public_profiles.sql) — editable profile details, featured repositories, and section visibility.
 - [`202610260002_coval_profile_banners.sql`](./supabase/migrations/202610260002_coval_profile_banners.sql) — the Supabase Storage bucket and scoped banner upload policies.
 - [`202611200001_coval_teams.sql`](./supabase/migrations/202611200001_coval_teams.sql) — teams, admin invites, team-admin access to member evaluations, and team-wide agent averages.
+- [`202611210001_coval_feed.sql`](./supabase/migrations/202611210001_coval_feed.sql) — the Feed: score showcases, job openings, and team-formation posts with an "Interested" queue (accepting a team post sends a team invite).
 - [`202611200004_coval_early_access.sql`](./supabase/migrations/202611200004_coval_early_access.sql) — early access: every member gets Pro features until you switch the paywall on (instructions at the top of the file).
 - [`202611200003_coval_shared_reports.sql`](./supabase/migrations/202611200003_coval_shared_reports.sql) — public share links and README badges for public repositories.
 - [`202611200002_coval_billing.sql`](./supabase/migrations/202611200002_coval_billing.sql) — Free and Pro plans, monthly usage limits, and signed plan updates. After applying it, store your `COVAL_BILLING_SIGNING_SECRET` with the `insert` shown at the top of the file.
@@ -71,6 +72,12 @@ Free accounts get 5 evaluation runs and 10 report-assistant questions per month 
 4. In Razorpay **Webhooks**, add `https://<web-domain>/api/billing/webhook` with the webhook secret and the `subscription.authenticated`, `activated`, `charged`, `pending`, `halted`, `cancelled`, and `completed` events.
 
 The app has no Supabase service-role key, so the server signs every plan change and the database verifies the signature before storing it. Use Razorpay test mode keys until you are ready to charge.
+
+## Guest preview and Feed
+
+Visitors can choose **Explore without signing in** on the landing page (`/dashboard?guest=1`). The guest preview shows the Flask sample report, sample Teams and Network views, and the public Feed. Reads of private data return empty results, any action that needs an account opens a sign-in prompt, a prompt also appears after a minute (dismissable once), and a final prompt after two more minutes requires signing in.
+
+The **Feed** lets members post a verified score (from a shared report), a job opening, or a team-formation request. Others tap **Interested** (with an optional note) to join the author's queue; the author can accept, decline, or message them, and accepting a team post linked to a team sends a team invite. `GET /api/feed` is public; posting and responding use `POST /api/feed`.
 
 ## CLI and pull request reviews
 

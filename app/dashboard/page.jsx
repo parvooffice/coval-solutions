@@ -7,13 +7,14 @@ import ProjectsPage from "../components/projects-page";
 import NetworkPage from "../components/network-page";
 import TeamsPage from "../components/teams-page";
 import BillingPage from "../components/billing-page";
+import FeedPage from "../components/feed-page";
 import ActivityPage from "../components/activity-page";
 import MessagesPage from "../components/messages-page";
 import ProfilePage from "../components/profile-page";
 import CodeEvaluationPage from "../components/code-evaluation-page";
 import { DashboardDataProvider, useDashboardData } from "./dashboard-data-provider";
 
-const routes = ["overview", "code-evaluation", "engineering", "projects", "network", "teams", "billing", "activity", "chat", "profile"];
+const routes = ["overview", "code-evaluation", "engineering", "projects", "network", "teams", "feed", "billing", "activity", "chat", "profile"];
 
 function getRouteFromHash() {
   const route = window.location.hash.replace(/^#/, "").split("/")[0];
@@ -127,6 +128,8 @@ function DashboardContent() {
         return <NetworkPage navigate={navigate} notify={notify} />;
       case "teams":
         return <TeamsPage navigate={navigate} notify={notify} />;
+      case "feed":
+        return <FeedPage navigate={navigate} notify={notify} />;
       case "billing":
         return <BillingPage notify={notify} />;
       case "activity":

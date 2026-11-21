@@ -3,6 +3,7 @@ import Icon from "./dashboard-icon";
 import { Avatar, PageHeading } from "./ui";
 import { AGENTS, formatScore, gradeFor } from "./evaluation-report";
 import { apiRequest } from "../lib/client-api";
+import { isGuest } from "../lib/guest";
 
 function initials(name = "COVAL member") {
   return name.trim().split(/[\s-]+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "CV";
@@ -131,7 +132,7 @@ export default function TeamsPage({ navigate, notify }) {
     {creating && <section className="surface-card team-create-card"><span className="eyebrow">NEW TEAM</span>{createForm}<button type="button" className="text-button" onClick={() => setCreating(false)}>Cancel</button></section>}
 
     {loading && !data ? <div className="empty-state"><Icon name="briefcase" size={22} /><strong>Loading your teams…</strong></div>
-      : !data?.signedIn ? <div className="empty-state"><Icon name="briefcase" size={22} /><strong>Sign in to use teams</strong><p>Teams use your COVAL account to share evaluation results.</p>{import.meta.env.DEV && <div className="team-preview-actions"><button type="button" className="button button-quiet" onClick={() => setSample("admin")}>Preview admin view</button><button type="button" className="button button-quiet" onClick={() => setSample("member")}>Preview member view</button></div>}</div>
+      : !data?.signedIn ? <div className="empty-state"><Icon name="briefcase" size={22} /><strong>Sign in to use teams</strong><p>Teams use your COVAL account to share evaluation results.</p>{(import.meta.env.DEV || isGuest()) && <div className="team-preview-actions"><button type="button" className="button button-quiet" onClick={() => setSample("admin")}>Preview admin view</button><button type="button" className="button button-quiet" onClick={() => setSample("member")}>Preview member view</button></div>}</div>
       : !data.teams.length ? <section className="empty-state surface-card team-empty"><Icon name="briefcase" size={22} /><strong>You're not in a team yet</strong><p>Create one and invite COVAL members, or accept an invite above.</p>{createForm}</section>
       : <>
         {data.teams.length > 1 && <div className="nt-segmented team-switcher" role="tablist" aria-label="Your teams">{data.teams.map((item) => <button key={item.id} type="button" role="tab" aria-selected={item.id === team?.id} className={item.id === team?.id ? "is-active" : ""} onClick={() => { setTeamId(item.id); load(item.id); }}>{item.name}</button>)}</div>}

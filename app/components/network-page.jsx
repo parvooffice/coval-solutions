@@ -3,6 +3,7 @@ import Icon from "./dashboard-icon";
 import { Avatar, PageHeading } from "./ui";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { apiRequest } from "../lib/client-api";
+import { isGuest } from "../lib/guest";
 import { GROUP_MODES, buildGroups, fitView, layoutTree } from "./network-layout";
 
 const MIN_ZOOM = 0.3;
@@ -388,7 +389,7 @@ export default function NetworkPage({ navigate, notify }) {
             <button type="button" onClick={fit} aria-label="Fit tree to view" title="Fit to view (0)"><Icon name="expand" size={15} /></button>
             <span className="nt-zoom-level">{Math.round(view.k * 100)}%</span>
           </div>
-        </div> : <div className="nt-viewport nt-viewport-empty"><div className="empty-state"><Icon name="network" size={22} /><strong>Sign in to build your network</strong><p>Your COVAL connections appear here.</p>{import.meta.env.DEV && <button type="button" className="button button-quiet" onClick={() => setSample(samplePeople())}>Preview with sample data</button>}</div></div>}
+        </div> : <div className="nt-viewport nt-viewport-empty"><div className="empty-state"><Icon name="network" size={22} /><strong>Sign in to build your network</strong><p>Your COVAL connections appear here.</p>{(import.meta.env.DEV || isGuest()) && <button type="button" className="button button-quiet" onClick={() => setSample(samplePeople())}>Preview with sample data</button>}</div></div>}
 
         <aside className="nt-panel" aria-live="polite">
           {selectedNode && <button type="button" className="nt-panel-back" onClick={() => setSelectedId("")}><Icon name="arrowRight" size={13} /> Back to summary</button>}

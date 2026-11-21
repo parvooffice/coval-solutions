@@ -94,13 +94,14 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
 .notifications-wrap { position: relative; display: flex; align-items: center; }
 .notifications-popover { position: absolute; z-index: 60; top: calc(100% + 10px); right: -48px; width: min(360px, calc(100vw - 28px)); overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
 .notifications-popover-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
-.notifications-popover-heading > span, .notification-item > span { display: grid; min-width: 0; gap: 4px; text-align: left; }
+.notifications-popover-heading > span, .notification-item > span:not(.avatar) { display: grid; min-width: 0; gap: 4px; text-align: left; }
 .notifications-popover-heading b { color: var(--text); font-size: 13px; }
 .notifications-popover-heading small, .notification-item small, .notification-item time { color: var(--muted); font-size: 11px; }
 .notifications-list { max-height: min(360px, 65vh); overflow-y: auto; }
 .notification-item { display: flex; width: 100%; align-items: center; gap: 10px; padding: 12px 15px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
 .notification-item:hover, .notification-item:not(.is-read) { background: var(--surface-2); }
-.notification-item > span { flex: 1; }
+.notification-item > span:not(.avatar) { flex: 1; }
+.notification-item > .avatar { flex: 0 0 auto; }
 .notification-item strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .notification-item time { font-size: 10.5px; }
 .notification-item > i { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--accent); }
@@ -1314,3 +1315,11 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
 .desktop-handoff h1 { margin: 8px 0 0; font-size: 26px; letter-spacing: -.02em; }
 .desktop-handoff p { max-width: 440px; margin: 0 0 12px; color: #a1a1aa; }
 .desktop-handoff a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 20px; border-radius: 9px; background: #fafafa; color: #09090b; font-weight: 650; text-decoration: none; }
+
+/* On/off switch in Settings → Notifications. */
+.settings-switch { position: relative; flex: 0 0 auto; width: 40px; height: 22px; padding: 0; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-3); cursor: pointer; transition: background .15s ease, border-color .15s ease; }
+.settings-switch > i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: transform .15s ease, background .15s ease; }
+.settings-switch.is-on { border-color: var(--accent); background: var(--accent); }
+.settings-switch.is-on > i { transform: translateX(18px); background: #fff; }
+.settings-switch:disabled { cursor: default; opacity: .55; }
+.settings-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

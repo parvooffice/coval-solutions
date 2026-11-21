@@ -76,17 +76,20 @@ export default function DashboardShell({
     }
     let active = true;
     const refreshNotifications = () => apiRequest("/api/notifications")
-      .then(({ notifications: next = [] }) => {
+      .then(({ notifications: next = [], settings = {} }) => {
         if (!active) return;
         setNotifications(next);
-        announceNotifications(next);
+        window.covalNotificationSettings = settings;
+        announceNotifications(next, settings);
       })
       .catch(() => {});
     refreshNotifications();
     const timer = window.setInterval(refreshNotifications, 30_000);
+    window.addEventListener("coval-notification-settings", refreshNotifications);
     return () => {
       active = false;
       window.clearInterval(timer);
+      window.removeEventListener("coval-notification-settings", refreshNotifications);
     };
   }, [currentUser?.id]);
   // COVAL for Windows: clicking a Windows notification opens the matching page.

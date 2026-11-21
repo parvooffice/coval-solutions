@@ -4,6 +4,7 @@ import { PageHeading } from "./ui";
 import { EvaluationTarget, RunProgress } from "./evaluation-report";
 import ReportChat from "./report-chat";
 import LocalScanCard from "./local-scan-card";
+import { announceScores } from "../lib/desktop";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { apiRequest } from "../lib/client-api";
 
@@ -129,6 +130,7 @@ export default function CodeEvaluationPage() {
       const result = await apiRequest("/api/code-evaluation", { method: "POST", body: JSON.stringify({ urls, isPublic: shareScores }) });
       updateCodeEvaluation(result.report);
       setUrlText(urls.join("\n"));
+      announceScores(result.report.targets, window.covalNotificationSettings);
       setRunMessage(`Evaluation complete for ${result.report.targets.length} ${result.report.targets.length === 1 ? "repository" : "repositories"}.${shareScores ? " Scores are now shared with signed-in COVAL members." : " Scores are saved privately to your account."}`);
     } catch (error) {
       setRunError(error.message || "The analyzers could not finish this run.");

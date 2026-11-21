@@ -1,6 +1,64 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "./dashboard-icon";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
+import { apiRequest } from "../lib/client-api";
+import { getDesktop } from "../lib/desktop";
+
+const NOTIFICATION_OPTIONS = [
+  { key: "messages", label: "Messages", detail: "Someone sends you a message." },
+  { key: "jobs", label: "Jobs & teams", detail: "New job listings and team-formation posts in the Feed." },
+  { key: "scores", label: "Scores", detail: "People share a score card, and your own scoring runs finish." },
+  { key: "issues", label: "Issues to solve", detail: "New help requests for repository issues in the Feed." },
+  { key: "post_activity", label: "Activity on your posts", detail: "Someone is interested in your post, or accepts your interest." },
+  { key: "social", label: "Connections & team invites", detail: "New connections and invitations to join a team." },
+];
+
+function NotificationSettings({ signedIn }) {
+  const [settings, setSettings] = useState(null);
+  const [available, setAvailable] = useState(true);
+  const [message, setMessage] = useState("");
+  const desktop = getDesktop();
+
+  useEffect(() => {
+    if (!signedIn) return undefined;
+    let active = true;
+    apiRequest("/api/notifications")
+      .then((result) => {
+        if (!active) return;
+        setSettings(result.settings || {});
+        setAvailable(result.settingsAvailable !== false);
+      })
+      .catch(() => { if (active) setMessage("Notification settings couldn't load. Try again in a moment."); });
+    return () => { active = false; };
+  }, [signedIn]);
+
+  async function toggle(key) {
+    const next = !(settings?.[key] !== false);
+    setSettings((current) => ({ ...current, [key]: next }));
+    setMessage("");
+    try {
+      await apiRequest("/api/notifications", { method: "PATCH", body: JSON.stringify({ settings: { [key]: next } }) });
+      window.dispatchEvent(new Event("coval-notification-settings"));
+    } catch (error) {
+      setSettings((current) => ({ ...current, [key]: !next }));
+      setMessage(error.message || "That setting couldn't be saved.");
+    }
+  }
+
+  if (!signedIn) return <p className="settings-connect-message">Sign in to choose your notifications.</p>;
+  const options = desktop ? [...NOTIFICATION_OPTIONS, { key: "desktop_popups", label: "Windows pop-ups", detail: "Show these as Windows notifications, even when COVAL is in the tray." }] : NOTIFICATION_OPTIONS;
+  return <>
+    {options.map((option) => {
+      const on = settings?.[option.key] !== false;
+      return <div className="settings-option" key={option.key}>
+        <div><strong>{option.label}</strong><p>{option.detail}</p></div>
+        <button type="button" role="switch" aria-checked={on} aria-label={option.label} className={`settings-switch${on ? " is-on" : ""}`} disabled={!settings || !available} onClick={() => toggle(option.key)}><i /></button>
+      </div>;
+    })}
+    {!available && <p className="settings-connect-message">Notification settings need a one-time database update. Every notification stays on until then.</p>}
+    {message && <p className="settings-connect-message" role="alert">{message}</p>}
+  </>;
+}
 
 export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClose }) {
   const { dashboard, people, currentUser } = useDashboardData();
@@ -97,6 +155,11 @@ export default function SettingsDialog({ theme, onThemeChange, onNavigate, onClo
             <div><strong>GitHub profile</strong><p>{profile ? `${profile.name} (@${profile.login})` : "Connect GitHub to view your personal profile"}</p></div>
             <button type="button" className="button" disabled={!login} onClick={() => { onNavigate(`profile/${login}`); onClose(); }}>View profile <Icon name="arrowUpRight" size={15} /></button>
           </div>
+        </section>
+
+        <section className="settings-group" aria-labelledby="settings-notifications">
+          <h3 id="settings-notifications">NOTIFICATIONS</h3>
+          <NotificationSettings signedIn={Boolean(currentUser?.id)} />
         </section>
 
         <section className="settings-group" aria-labelledby="settings-shortcuts">

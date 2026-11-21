@@ -1,7 +1,7 @@
 {
   "name": "coval-desktop",
   "productName": "COVAL",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "COVAL for Windows: code review scores, notifications, and local scans.",
   "author": "COVAL Solutions",
   "license": "UNLICENSED",

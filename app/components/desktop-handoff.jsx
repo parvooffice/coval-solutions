@@ -1,4 +1,5 @@
-import { SUPABASE_URL } from "../lib/supabase-client";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "../lib/supabase-client";
+import { useEffect, useState } from "react";
 
 // Sign-in for COVAL for Windows happens in the user's browser:
 // 1. The app opens /dashboard?desktop_handoff=<state>&next=<Supabase authorize URL>.
@@ -54,13 +55,71 @@ export function desktopHandoff() {
   if (!pending || !isProviderResponse) return null;
 
   try { window.localStorage.removeItem(KEY); } catch { /* already gone */ }
-  window.history.replaceState(null, "", "/dashboard");
-  const appUrl = `coval://auth?state=${encodeURIComponent(pending.state)}&return=${encodeURIComponent(response)}`;
+  // Windows browsers won't open app links longer than about 2,000 characters, and the full
+  // response (with the access token) is longer. So send only the short refresh token and the
+  // GitHub token; the app exchanges the refresh token for a fresh session itself.
+  const values = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  for (const [key, value] of params) if (!values.has(key)) values.set(key, value);
+  window.history.replaceState(null, "", "/dashboard"); // keep tokens out of the browser's address bar
+  const link = new URLSearchParams({ state: pending.state });
+  const refreshToken = values.get("refresh_token");
+  if (refreshToken) {
+    link.set("rt", refreshToken);
+    if (values.get("provider_token")) link.set("pt", values.get("provider_token"));
+    if (values.get("provider_refresh_token")) link.set("prt", values.get("provider_refresh_token"));
+  } else {
+    link.set("error", (values.get("error_description") || values.get("error") || "Sign-in was cancelled.").slice(0, 200));
+  }
+  const appUrl = `coval://auth?${link}`;
   window.location.href = appUrl;
-  return { kind: "return", appUrl, failed: /error/.test(response) && !/access_token=/.test(response) };
+  return { kind: "return", appUrl, failed: !refreshToken };
+}
+
+// In COVAL for Windows: the app opened /dashboard#desktop_rt=… after the browser sign-in.
+// Exchange the refresh token for a session, then hand it to Supabase the usual way (URL hash),
+// keeping the GitHub token so private repositories keep working.
+export function finishDesktopSignIn() {
+  if (typeof window === "undefined" || !window.covalDesktop) return null;
+  const values = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const refreshToken = values.get("desktop_rt");
+  if (!refreshToken) return null;
+  window.history.replaceState(null, "", "/dashboard");
+  const finished = fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_PUBLISHABLE_KEY },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  }).then(async (result) => {
+    const session = await result.json().catch(() => ({}));
+    if (!result.ok || !session.access_token) throw new Error(session.error_description || session.msg || "Sign-in could not be completed.");
+    const hash = new URLSearchParams({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      expires_in: String(session.expires_in),
+      expires_at: String(session.expires_at || Math.floor(Date.now() / 1000) + Number(session.expires_in || 3600)),
+      token_type: session.token_type || "bearer",
+      type: "signin",
+    });
+    if (values.get("desktop_pt")) hash.set("provider_token", values.get("desktop_pt"));
+    if (values.get("desktop_prt")) hash.set("provider_refresh_token", values.get("desktop_prt"));
+    window.history.replaceState(null, "", `/dashboard#${hash}`);
+    window.location.reload();
+  });
+  return { kind: "finishing", finished };
 }
 
 export default function DesktopHandoffPage({ handoff }) {
+  const [failure, setFailure] = useState("");
+  useEffect(() => {
+    handoff.finished?.catch((error) => setFailure(error.message || "Sign-in could not be completed."));
+  }, [handoff]);
+  if (handoff.kind === "finishing") {
+    return <main className="desktop-handoff">
+      <img src="/coval-logo-dark.png" alt="" width="56" height="56" />
+      <h1>{failure ? "Sign-in didn't finish" : "Signing you in…"}</h1>
+      <p>{failure || "Just a moment."}</p>
+      {failure && <a href="/">Sign in again</a>}
+    </main>;
+  }
   const title = handoff.kind === "redirecting" ? "Opening sign-in…"
     : handoff.kind === "error" ? "Something went wrong"
       : handoff.failed ? "Sign-in was cancelled" : "You're signed in";

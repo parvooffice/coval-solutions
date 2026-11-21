@@ -91,7 +91,6 @@ function handleDeepLink(link) {
   const state = target.searchParams.get("state") || "";
   if (finishedSignIns.has(state)) return; // already signed in with this link; show() brought COVAL forward
   const expires = pendingSignIns.get(state);
-  const response = target.searchParams.get("return") || "";
   if (!expires || expires < Date.now()) {
     win.loadFile(path.join(__dirname, "signin.html"), { query: { failed: "1", back: `${APP_URL}/` } });
     return;
@@ -99,9 +98,22 @@ function handleDeepLink(link) {
   pendingSignIns.delete(state);
   finishedSignIns.add(state);
   savePendingSignIns();
-  // Hand the provider's response to the web app, which finishes sign-in (tokens in the #hash).
-  if (!/^[?#]/.test(response)) return;
-  win.loadURL(`${APP_URL}/dashboard${response}`);
+  // The link carries only short tokens (Windows browsers drop app links over ~2,000 characters).
+  // The web app exchanges the refresh token for a session (see app/components/desktop-handoff.jsx).
+  const token = (name) => {
+    const value = target.searchParams.get(name) || "";
+    return /^[A-Za-z0-9._~-]{1,1024}$/.test(value) ? value : "";
+  };
+  const refreshToken = token("rt");
+  if (!refreshToken) {
+    const reason = (target.searchParams.get("error") || "Sign-in was cancelled.").slice(0, 200);
+    win.loadURL(`${APP_URL}/?error=${encodeURIComponent(reason)}`);
+    return;
+  }
+  const hash = new URLSearchParams({ desktop_rt: refreshToken });
+  if (token("pt")) hash.set("desktop_pt", token("pt"));
+  if (token("prt")) hash.set("desktop_prt", token("prt"));
+  win.loadURL(`${APP_URL}/dashboard?desktop_signin=1#${hash}`); // the query forces a full page load
 }
 
 // Pages outside the dashboard (pricing, downloads, shared reports) get a "Back to COVAL" button.

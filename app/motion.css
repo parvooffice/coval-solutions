@@ -66,3 +66,10 @@ input, textarea, select { transition: border-color var(--motion-fast) ease, box-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
 }
+
+/* Sidebar "Download app" link, next to Settings */
+.sidebar-download { text-decoration: none; }
+.sidebar-download small { margin-left: auto; padding: 2px 6px; border-radius: 5px; background: var(--surface-3); color: var(--subtle); font-size: 10px; font-weight: 600; white-space: nowrap; }
+.sidebar-download:hover { color: var(--text); }
+.sidebar-actions { flex-direction: column; gap: 2px; }
+.sidebar-action:hover { background: var(--surface-2); color: var(--text); }

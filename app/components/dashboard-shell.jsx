@@ -203,6 +203,8 @@ export default function DashboardShell({
         <div className="sidebar-bottom">
           <div className="sidebar-actions">
             <button type="button" className="sidebar-action" onClick={() => { onSettingsOpen(); onDrawerClose(); setDesktopSidebarOpen(false); setDesktopOverlayOpen(false); }}><Icon name="settings" size={17} /> Settings</button>
+            {/* Always visible at the bottom of the sidebar: the Windows app, VS Code extension, and CLI. */}
+            <a className="sidebar-action sidebar-download" href="/download.html"><Icon name="arrowDown" size={17} /> Download app <small>Windows · VS Code</small></a>
           </div>
           <button type="button" className="profile-chip" onClick={() => profileTarget && navigateFromSidebar(profileTarget)} disabled={!profileTarget}>
             <Avatar initials={profilePerson?.initials || accountName.slice(0, 2).toUpperCase()} name={profilePerson?.name || accountName} color={profilePerson?.color || "mint"} size="sm" src={profilePerson?.avatar || currentUser?.avatarUrl} />

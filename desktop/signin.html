@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>COVAL</title>
+  <style>
+    body { display: grid; place-items: center; min-height: 100vh; margin: 0; background: #09090b; color: #fafafa; font: 15px/1.6 "Segoe UI", sans-serif; text-align: center; }
+    main { display: grid; justify-items: center; gap: 4px; max-width: 440px; padding: 24px; }
+    img { width: 56px; height: 56px; margin-bottom: 12px; border-radius: 14px; }
+    h1 { margin: 0; font-size: 24px; letter-spacing: -.01em; }
+    p { margin: 4px 0 18px; color: #a1a1aa; }
+    .spinner { width: 22px; height: 22px; margin: 4px 0 14px; border: 3px solid #27272a; border-top-color: #91b99a; border-radius: 50%; animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    a { display: inline-flex; align-items: center; min-height: 38px; padding: 0 16px; border: 1px solid #3f3f46; border-radius: 9px; color: #fafafa; font-weight: 600; text-decoration: none; }
+    a.primary { border-color: #fafafa; background: #fafafa; color: #09090b; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="build/icon.png" alt="">
+    <h1>Finish signing in in your browser</h1>
+    <p id="lead">We opened your web browser. Sign in there, allow it to open COVAL, and you'll come right back here.</p>
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="actions">
+      <a class="primary" id="again" href="#">Open the browser again</a>
+      <a id="back" href="#">Cancel</a>
+    </div>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const browser = params.get("browser") || "";
+    const back = params.get("back") || "";
+    const provider = params.get("provider") || "";
+    const names = { github: "GitHub", google: "Google" };
+    if (names[provider]) document.getElementById("lead").textContent = `We opened your web browser. Sign in with ${names[provider]} there, allow it to open COVAL, and you'll come right back here.`;
+    // Both links are https pages of the COVAL site: the app opens the first in the browser
+    // and loads the second (the sign-in page) in this window.
+    if (browser.startsWith("https://") || browser.startsWith("http://localhost")) document.getElementById("again").href = browser;
+    if (back.startsWith("https://") || back.startsWith("http://localhost")) document.getElementById("back").href = back;
+  </script>
+</body>
+</html>

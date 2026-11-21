@@ -1,7 +1,7 @@
 {
   "name": "coval-desktop",
   "productName": "COVAL",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "COVAL for Windows: code review scores, notifications, and local scans.",
   "author": "COVAL Solutions",
   "license": "UNLICENSED",
@@ -24,6 +24,7 @@
     "appId": "com.coval.desktop",
     "productName": "COVAL",
     "electronLanguages": ["en-US"],
+    "protocols": [{ "name": "COVAL", "schemes": ["coval"] }],
     "copyright": "© COVAL Solutions",
     "directories": {
       "output": "dist",
@@ -33,6 +34,7 @@
       "main.js",
       "preload.js",
       "offline.html",
+      "signin.html",
       "lib/**",
       "build/icon.png",
       "build/tray.png",

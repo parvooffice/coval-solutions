@@ -1307,3 +1307,10 @@ kbd { padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; bac
 .shared-report-help li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); }
 .shared-report-help li > span { display: grid; gap: 2px; min-width: 0; font-size: 13.5px; }
 .shared-report-help small { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+
+/* Browser page shown while signing in for COVAL for Windows. */
+.desktop-handoff { display: grid; place-items: center; align-content: center; gap: 8px; min-height: 100vh; padding: 24px; background: #09090b; color: #fafafa; text-align: center; }
+.desktop-handoff img { border-radius: 14px; }
+.desktop-handoff h1 { margin: 8px 0 0; font-size: 26px; letter-spacing: -.02em; }
+.desktop-handoff p { max-width: 440px; margin: 0 0 12px; color: #a1a1aa; }
+.desktop-handoff a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 20px; border-radius: 9px; background: #fafafa; color: #09090b; font-weight: 650; text-decoration: none; }

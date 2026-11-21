@@ -38,6 +38,7 @@ In the Supabase SQL Editor, apply these migrations in filename order:
 - [`202610260001_coval_public_profiles.sql`](./supabase/migrations/202610260001_coval_public_profiles.sql) — editable profile details, featured repositories, and section visibility.
 - [`202610260002_coval_profile_banners.sql`](./supabase/migrations/202610260002_coval_profile_banners.sql) — the Supabase Storage bucket and scoped banner upload policies.
 - [`202611200001_coval_teams.sql`](./supabase/migrations/202611200001_coval_teams.sql) — teams, admin invites, team-admin access to member evaluations, and team-wide agent averages.
+- [`202611210002_coval_feed_issues.sql`](./supabase/migrations/202611210002_coval_feed_issues.sql) — "Issues to solve": help requests created from agent findings, linked to the repository and the exact code (apply after the Feed migration).
 - [`202611210001_coval_feed.sql`](./supabase/migrations/202611210001_coval_feed.sql) — the Feed: score showcases, job openings, and team-formation posts with an "Interested" queue (accepting a team post sends a team invite).
 - [`202611200004_coval_early_access.sql`](./supabase/migrations/202611200004_coval_early_access.sql) — early access: every member gets Pro features until you switch the paywall on (instructions at the top of the file).
 - [`202611200003_coval_shared_reports.sql`](./supabase/migrations/202611200003_coval_shared_reports.sql) — public share links and README badges for public repositories.
@@ -77,7 +78,7 @@ The app has no Supabase service-role key, so the server signs every plan change 
 
 Visitors can choose **Explore without signing in** on the landing page (`/dashboard?guest=1`). The guest preview shows the Flask sample report, sample Teams and Network views, and the public Feed. Reads of private data return empty results, any action that needs an account opens a sign-in prompt, a prompt also appears after a minute (dismissable once), and a final prompt after two more minutes requires signing in.
 
-The **Feed** lets members post a verified score (from a shared report), a job opening, or a team-formation request. Others tap **Interested** (with an optional note) to join the author's queue; the author can accept, decline, or message them, and accepting a team post linked to a team sends a team invite. `GET /api/feed` is public; posting and responding use `POST /api/feed`.
+The **Feed** has two parts: **Jobs & teams** and **Issues to solve**. On any finding in Code Evaluation, **Ask for help** posts it to Issues to solve with the repository, agent, and file and line (public repositories only, and only findings from your own latest report). Helpers tap **Offer to help**, and the repository's public report lists its open help requests. Members can also post a verified score (from a shared report), a job opening, or a team-formation request. Others tap **Interested** (with an optional note) to join the author's queue; the author can accept, decline, or message them, and accepting a team post linked to a team sends a team invite. `GET /api/feed` is public; posting and responding use `POST /api/feed`.
 
 ## CLI and pull request reviews
 

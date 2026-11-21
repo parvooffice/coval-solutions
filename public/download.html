@@ -4,54 +4,69 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>COVAL Downloads</title>
-  <meta name="description" content="Download the COVAL VS Code extension and the coval CLI. Review code and pull requests on your own computer.">
+  <meta name="description" content="Download COVAL for Windows and the COVAL VS Code extension. Score code on your own computer, get notifications, and review pull requests.">
   <link rel="icon" href="/coval-logo-light.png">
   <link rel="stylesheet" href="/site.css">
 </head>
 <body>
   <header class="bar"><a class="brand" href="/"><img src="/coval-logo-dark.png" alt="" width="26" height="26"> COVAL</a><nav><a href="/report/sample">Sample report</a><a href="/pricing.html">Pricing</a><a class="cta" href="/">Sign in</a></nav></header>
   <main>
-    <p class="eyebrow">DOWNLOADS · VERSION 0.1.0</p>
+    <p class="eyebrow">DOWNLOADS · VERSION 0.2.0</p>
     <h1>Review code where you work.</h1>
-    <p class="lead">The VS Code extension and the <code>coval</code> CLI run COVAL's review agents on your own computer — your code never leaves it. Both give the same scores and pull request reviews as the COVAL GitHub App. They're free.</p>
+    <p class="lead">Everything comes in one file and needs nothing else installed. Scoring runs on your computer, so your code never leaves it. COVAL uses the internet only for your account, notifications, and AI explanations.</p>
 
     <section class="plans">
       <article class="plan featured">
-        <h2>VS Code extension</h2>
-        <p class="tagline">Inline warnings on the exact line, a COVAL scores panel, and your overall score in the status bar.</p>
-        <a class="button primary" href="/downloads/coval-code-review-0.1.0.vsix" download>Download for VS Code (.vsix, 37 KB)</a>
+        <h2>COVAL for Windows</h2>
+        <p class="tagline">Your COVAL dashboard as an app, with Windows notifications for team invites and Feed replies, scoring for any folder on this computer, and the <code>coval</code> command for your terminal. Updates install themselves.</p>
+        <a class="button primary" id="desktop-download" href="https://github.com/parvooffice/coval-releases/releases/latest/download/COVAL-Setup.exe">Download for Windows</a>
         <ol class="steps">
-          <li>Open VS Code and go to <strong>Extensions</strong> (Ctrl+Shift+X).</li>
-          <li>Click <strong>⋯</strong> at the top of the panel, then <strong>Install from VSIX…</strong></li>
-          <li>Choose the downloaded <code>coval-code-review-0.1.0.vsix</code>.</li>
-          <li>Open a project folder, click the <strong>COVAL</strong> icon in the sidebar, then <strong>Score workspace</strong>.</li>
+          <li>Open <strong>COVAL-Setup.exe</strong>. It installs and opens COVAL, with no options to choose.</li>
+          <li>Sign in with GitHub, and you're done.</li>
         </ol>
-        <p class="note">Or from a terminal: <code>code --install-extension coval-code-review-0.1.0.vsix</code></p>
+        <p class="note">Windows 10 or 11, 64-bit. If Windows shows “Windows protected your PC”, click <strong>More info</strong> → <strong>Run anyway</strong> (we're getting the app signed). After installing, open a new terminal and run <code>coval scan</code>.</p>
       </article>
 
       <article class="plan">
-        <h2>coval CLI</h2>
-        <p class="tagline">Score any folder and review a branch like a pull request. Post the review on GitHub and block merges when scores drop.</p>
-        <a class="button" href="/downloads/coval-cli-0.1.0.tgz" download>Download the CLI (.tgz, 30 KB)</a>
-        <p class="note">Or install straight from this site:</p>
-        <pre><code id="cli-install">npm install -g https://coval-solutions-w92u.vercel.app/downloads/coval-cli-0.1.0.tgz</code></pre>
-        <pre><code>coval scan              # score the current folder
-coval review            # compare your branch with main
-coval review --comment  # post the review on the pull request</code></pre>
+        <h2>VS Code extension</h2>
+        <p class="tagline">Inline warnings on the exact line, a COVAL scores panel, and your overall score in the status bar.</p>
+        <a class="button primary" id="vscode-marketplace" href="vscode:extension/coval.coval-code-review" hidden>Install in VS Code</a>
+        <a class="button" id="vscode-vsix" href="/downloads/coval-code-review-win32-x64-0.2.0.vsix" download>Download for VS Code (Windows, 9 MB)</a>
+        <ol class="steps" id="vsix-steps">
+          <li>In VS Code, open <strong>Extensions</strong> (Ctrl+Shift+X), click <strong>⋯</strong> → <strong>Install from VSIX…</strong></li>
+          <li>Choose the downloaded file, then click the <strong>COVAL</strong> icon in the sidebar → <strong>Score workspace</strong>.</li>
+        </ol>
+        <p class="note">No Python needed: the extension includes the COVAL engine.</p>
       </article>
     </section>
 
     <section class="faq">
-      <h2>Requirements</h2>
-      <details open><summary>What do I need installed?</summary><p>Python 3.10 or newer for the agents. The CLI also needs Node.js 20 or newer. If VS Code says Python was not found, open Settings (Ctrl+,), search <strong>COVAL Python Path</strong>, and set it to <code>python</code>, <code>python3</code>, or <code>py</code>.</p></details>
-      <details><summary>How is this different from the web app?</summary><p>The extension and CLI run six agents locally (Readability, Test coverage, Performance, Maintainability, Scalability, Standards compliance). The web app runs all ten, adds AI fix explanations, score history, sharing, teams, and the Feed.</p></details>
-      <details><summary>Can I skip folders?</summary><p>Yes. Add a <code>.coval.yml</code> file with an <code>ignore:</code> list to your repository; the extension, CLI, and web app all respect it.</p></details>
+      <h2>Other ways to install</h2>
+      <details><summary>Just the coval command (any operating system)</summary>
+        <p>COVAL for Windows already includes it. On macOS or Linux, or without the app, install it with Node.js 20+ (this version runs the agents with Python 3.10+):</p>
+        <pre><code id="cli-install">npm install -g https://coval-solutions-w92u.vercel.app/downloads/coval-cli-0.2.0.tgz</code></pre>
+        <pre><code>coval scan              # score the current folder
+coval review            # compare your branch with main
+coval review --comment  # post the review on the pull request</code></pre>
+      </details>
+      <details><summary>How is the app different from the website?</summary><p>It's the same COVAL, plus notifications while it runs in the system tray, scoring folders on this computer, and the <code>coval</code> command. To start it with Windows, right-click the COVAL tray icon → <strong>Start with Windows</strong>.</p></details>
+      <details><summary>Which agents run on my computer?</summary><p>Six of them: Readability, Test coverage, Performance, Maintainability, Scalability, and Standards compliance. The web app runs all ten on GitHub repositories and adds AI fix explanations, score history, sharing, teams, and the Feed.</p></details>
+      <details><summary>Can I skip folders?</summary><p>Yes. Add a <code>.coval.yml</code> file with an <code>ignore:</code> list to your repository; the app, the extension, the CLI, and the web app all respect it.</p></details>
+      <details><summary>How do I uninstall?</summary><p>Windows Settings → Apps → Installed apps → COVAL → Uninstall. It also removes the <code>coval</code> command.</p></details>
     </section>
   </main>
   <footer><a href="/pricing.html">Pricing</a> · <a href="/privacy.html">Privacy</a> · <a href="/report/sample">Sample report</a> · © COVAL Solutions</footer>
   <script>
+    // Set to true once the extension is published on the VS Code Marketplace:
+    // the page then shows a one-click "Install in VS Code" button.
+    const MARKETPLACE_PUBLISHED = false;
+    if (MARKETPLACE_PUBLISHED) {
+      document.getElementById("vscode-marketplace").hidden = false;
+      document.getElementById("vsix-steps").hidden = true;
+      document.getElementById("vscode-vsix").textContent = "Or download the .vsix file";
+    }
     // Show the install command for whichever domain this page is served from.
-    document.getElementById("cli-install").textContent = `npm install -g ${location.origin}/downloads/coval-cli-0.1.0.tgz`;
+    document.getElementById("cli-install").textContent = `npm install -g ${location.origin}/downloads/coval-cli-0.2.0.tgz`;
   </script>
 </body>
 </html>

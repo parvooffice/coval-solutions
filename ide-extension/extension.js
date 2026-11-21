@@ -2,7 +2,7 @@
 
 const path = require("node:path");
 const vscode = require("vscode");
-const { agentsRoot, scanWorkspace } = require("./lib/agents");
+const { agentsRoot, findEngine, scanWorkspace } = require("./lib/agents");
 
 const SCAN_ON_SAVE_INTERVAL_MS = 60_000;
 
@@ -82,6 +82,8 @@ class ScoresProvider {
 
 function activate(context) {
   const root = agentsRoot(context.extensionPath);
+  // The Windows build ships coval-engine.exe, so no Python install is needed.
+  const engine = findEngine(context.extensionPath);
   const diagnostics = vscode.languages.createDiagnosticCollection("coval");
   const provider = new ScoresProvider();
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
@@ -132,6 +134,7 @@ function activate(context) {
       const scans = await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Window, title: "COVAL: scoring workspace" },
         () => Promise.all(folders.filter((folder) => folder.uri.scheme === "file").map((folder) => scanWorkspace({
+          engine: config.get("useBundledEngine") === false ? null : engine,
           python: config.get("pythonPath") || "python",
           root,
           workspace: folder.uri.fsPath,

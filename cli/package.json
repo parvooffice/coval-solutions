@@ -1,6 +1,6 @@
 {
   "name": "coval-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "COVAL code review in your terminal: score a repository and review pull requests with the same agents as the VS Code extension and the COVAL GitHub App.",
   "license": "UNLICENSED",
   "type": "module",

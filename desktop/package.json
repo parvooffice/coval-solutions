@@ -1,0 +1,88 @@
+{
+  "name": "coval-desktop",
+  "productName": "COVAL",
+  "version": "0.2.0",
+  "description": "COVAL for Windows: code review scores, notifications, and local scans.",
+  "author": "COVAL Solutions",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "prepare-app": "node scripts/prepare.mjs",
+    "start": "npm run prepare-app && electron .",
+    "dist": "npm run prepare-app && electron-builder --win --x64 --publish never",
+    "release": "npm run prepare-app && electron-builder --win --x64 --publish always"
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "electron": "^38.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.coval.desktop",
+    "productName": "COVAL",
+    "electronLanguages": ["en-US"],
+    "copyright": "© COVAL Solutions",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html",
+      "lib/**",
+      "build/icon.png",
+      "build/tray.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/bin",
+        "to": "bin"
+      },
+      {
+        "from": "resources/cli",
+        "to": "cli"
+      },
+      {
+        "from": "build/coval.cmd",
+        "to": "coval.cmd"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "COVAL-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "COVAL",
+      "include": "build/installer.nsh"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "parvooffice",
+        "repo": "coval-releases",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "allowScripts": {
+    "electron@38.8.6": true
+  }
+}

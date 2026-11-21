@@ -85,15 +85,48 @@ function runAgent({ python, root, agent, workspace, timeoutMs = 180_000 }) {
       const reason = error?.code === "ENOENT"
         ? `Python was not found at "${python}". Set "coval.pythonPath" in settings.`
         : (stderr || error?.message || "The agent did not produce a report.").trim().split("\n").slice(-3).join(" ");
-      resolve({ id: agent.id, label: agent.label, score: null, grade: "", summary: "", categories: [], findings: [], error: reason });
+      resolve(failedResult(agent, reason));
     });
   });
 }
 
-async function scanWorkspace({ python, root, workspace, enabled }) {
-  const agents = AGENTS.filter((agent) => !enabled?.length || enabled.includes(agent.id));
-  const results = await Promise.all(agents.map((agent) => runAgent({ python, root, agent, workspace })));
-  return { workspace, results, overall: overall(results), scannedAt: new Date().toISOString() };
+// The packaged engine (coval-engine.exe) bundles Python and the agents in one file.
+// Look for it in <base>/bin, or use COVAL_ENGINE; without it, fall back to Python.
+function findEngine(...baseDirs) {
+  const name = process.platform === "win32" ? "coval-engine.exe" : "coval-engine";
+  const candidates = [process.env.COVAL_ENGINE, ...baseDirs.filter(Boolean).map((dir) => path.join(dir, "bin", name))];
+  return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || null;
 }
 
-module.exports = { AGENTS, agentsRoot, grade, parseLocation, findingsFrom, summarize, overall, runAgent, scanWorkspace };
+function failedResult(agent, reason) {
+  return { id: agent.id, label: agent.label, score: null, grade: "", summary: "", categories: [], findings: [], error: reason };
+}
+
+function runEngine({ engine, agents, workspace, timeoutMs = 300_000 }) {
+  const output = path.join(os.tmpdir(), `coval-engine-${process.pid}-${Date.now()}.json`);
+  const args = ["scan", workspace, "--agents", agents.map((agent) => agent.id).join(","), "--output", output];
+  return new Promise((resolve) => {
+    execFile(engine, args, { timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, windowsHide: true }, (error, _stdout, stderr) => {
+      let payload = null;
+      try { payload = JSON.parse(fs.readFileSync(output, "utf8")); } catch { /* reported below */ }
+      fs.rm(output, { force: true }, () => {});
+      if (!payload) {
+        const reason = (stderr || error?.message || "The COVAL engine did not produce a result.").trim().split("\n").slice(-3).join(" ");
+        return resolve(agents.map((agent) => failedResult(agent, reason)));
+      }
+      resolve(agents.map((agent) => (payload.reports?.[agent.id]
+        ? summarize(agent, payload.reports[agent.id])
+        : failedResult(agent, payload.errors?.[agent.id] || "The agent did not produce a report."))));
+    });
+  });
+}
+
+async function scanWorkspace({ engine, python, root, workspace, enabled }) {
+  const agents = AGENTS.filter((agent) => !enabled?.length || enabled.includes(agent.id));
+  const results = engine
+    ? await runEngine({ engine, agents, workspace })
+    : await Promise.all(agents.map((agent) => runAgent({ python, root, agent, workspace })));
+  return { workspace, results, overall: overall(results), scannedAt: new Date().toISOString(), runner: engine ? "engine" : "python" };
+}
+
+module.exports = { AGENTS, agentsRoot, findEngine, grade, parseLocation, findingsFrom, summarize, overall, runAgent, runEngine, scanWorkspace };

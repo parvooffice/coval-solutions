@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import globals from "globals";
 
 export default [
-  { ignores: ["node_modules/**", "app/dist/**", ".next/**", "coverage/**", "cli/lib/**", "cli/agents/**", "ide-extension/agents/**"] },
+  { ignores: ["node_modules/**", "app/dist/**", ".next/**", "coverage/**", "cli/lib/**", "cli/agents/**", "ide-extension/agents/**", "desktop/dist/**", "desktop/resources/**", "desktop/lib/**", "desktop/node_modules/**", "engine/build/**"] },
   js.configs.recommended,
   {
     files: ["**/*.js", "**/*.jsx", "**/*.mjs"],

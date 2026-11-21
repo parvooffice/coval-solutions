@@ -5,6 +5,7 @@ import SettingsDialog from "./settings-dialog";
 import { Avatar } from "./ui";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { apiRequest } from "../lib/client-api";
+import { announceNotifications, getDesktop, notificationRoute, notificationText } from "../lib/desktop";
 
 const navItems = [
   { id: "overview", label: "Overview", icon: "grid", shortcut: "⌘1" },
@@ -75,7 +76,11 @@ export default function DashboardShell({
     }
     let active = true;
     const refreshNotifications = () => apiRequest("/api/notifications")
-      .then(({ notifications: next = [] }) => { if (active) setNotifications(next); })
+      .then(({ notifications: next = [] }) => {
+        if (!active) return;
+        setNotifications(next);
+        announceNotifications(next);
+      })
       .catch(() => {});
     refreshNotifications();
     const timer = window.setInterval(refreshNotifications, 30_000);
@@ -84,6 +89,8 @@ export default function DashboardShell({
       window.clearInterval(timer);
     };
   }, [currentUser?.id]);
+  // COVAL for Windows: clicking a Windows notification opens the matching page.
+  useEffect(() => getDesktop()?.onNavigate((target) => onNavigate(target)), [onNavigate]);
   useEffect(() => {
     if (!notificationsOpen) return undefined;
     const closeOutside = (event) => {
@@ -141,6 +148,7 @@ export default function DashboardShell({
         await apiRequest("/api/notifications", { method: "PATCH", body: JSON.stringify({ all: true }) });
         const readAt = new Date().toISOString();
         setNotifications(next.map((notification) => ({ ...notification, readAt: notification.readAt || readAt })));
+        getDesktop()?.setUnread(0);
       }
     } catch {}
   }
@@ -217,7 +225,7 @@ export default function DashboardShell({
             <span className={`system-status ${dataError ? "is-error" : dataLoading ? "is-syncing" : ""}`} title={dataError ? "GitHub data could not be loaded" : dataLoading ? "Loading the latest data" : "Data is up to date"}><i /> {dataError ? "NOT CONNECTED" : dataLoading ? "SYNCING" : "LIVE"}</span>
             <div className="notifications-wrap" ref={notificationRef}>
               <button type="button" className="icon-button notifications-button" aria-label={`Notifications${unreadNotifications ? `, ${unreadNotifications} unread` : ""}`} title="Notifications" aria-expanded={notificationsOpen} onClick={toggleNotifications}><Icon name="bell" size={19} />{unreadNotifications > 0 && <i className="notification-indicator" />}</button>
-              {notificationsOpen && <section className="notifications-popover" role="dialog" aria-label="Notifications"><div className="notifications-popover-heading"><span><b>Notifications</b><small>{unreadNotifications ? `${unreadNotifications} new` : "You're all caught up"}</small></span><button type="button" className="text-button" onClick={() => { setNotificationsOpen(false); onNavigate("engineering"); }}>PEOPLE</button></div>{notifications.length ? <div className="notifications-list">{notifications.map((notification) => <button key={notification.id} type="button" className={`notification-item${notification.readAt ? " is-read" : ""}`} onClick={() => { setNotificationsOpen(false); onNavigate(notification.kind === "team_invite" ? "teams" : notification.kind === "post_interest" || notification.kind === "interest_accepted" ? "feed" : `profile/member-${notification.actor.covalUserId}`); }}><Avatar initials={notification.actor.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()} name={notification.actor.name} size="sm" src={notification.actor.avatar} /><span><strong>{notification.actor.name}</strong><small>{notification.kind === "team_invite" ? `invited you to join ${notification.team?.name || "a team"}` : notification.kind === "post_interest" ? "is interested in your post" : notification.kind === "interest_accepted" ? "accepted your interest" : "connected with you"}</small><time>{new Date(notification.createdAt).toLocaleString()}</time></span><i /></button>)}</div> : <p className="notifications-empty">Connection updates and team invites will appear here.</p>}</section>}
+              {notificationsOpen && <section className="notifications-popover" role="dialog" aria-label="Notifications"><div className="notifications-popover-heading"><span><b>Notifications</b><small>{unreadNotifications ? `${unreadNotifications} new` : "You're all caught up"}</small></span><button type="button" className="text-button" onClick={() => { setNotificationsOpen(false); onNavigate("engineering"); }}>PEOPLE</button></div>{notifications.length ? <div className="notifications-list">{notifications.map((notification) => <button key={notification.id} type="button" className={`notification-item${notification.readAt ? " is-read" : ""}`} onClick={() => { setNotificationsOpen(false); onNavigate(notificationRoute(notification)); }}><Avatar initials={notification.actor.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase()} name={notification.actor.name} size="sm" src={notification.actor.avatar} /><span><strong>{notification.actor.name}</strong><small>{notificationText(notification)}</small><time>{new Date(notification.createdAt).toLocaleString()}</time></span><i /></button>)}</div> : <p className="notifications-empty">Connection updates and team invites will appear here.</p>}</section>}
             </div>
             <button type="button" className="icon-button theme-button" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title="Toggle theme" onClick={onThemeToggle}><Icon name={theme === "dark" ? "sun" : "moon"} size={19} /></button>
             <span className="top-divider" aria-hidden="true" />

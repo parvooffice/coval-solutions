@@ -88,7 +88,27 @@ Releases: pushing a tag such as `v0.1.0` runs `.github/workflows/release.yml`, w
 
 ## VS Code extension
 
-[`ide-extension/`](./ide-extension/README.md) runs six of the agents (Readability, Test coverage, Performance, Maintainability, Scalability, Standards compliance) locally on the open folder and shows each fix as an inline warning, in the Problems panel, and in a COVAL scores view. Code never leaves the machine. Build it with `cd ide-extension && npm run package`, then install the `.vsix` from the Extensions view.
+[`ide-extension/`](./ide-extension/README.md) runs six of the agents (Readability, Test coverage, Performance, Maintainability, Scalability, Standards compliance) locally on the open folder and shows each fix as an inline warning, in the Problems panel, and in a COVAL scores view. Code never leaves the machine. Build it with `cd ide-extension && npm run package` (needs Python on the user's computer) or `npm run package:win` (Windows, engine included), then install the `.vsix` from the Extensions view.
+
+## Windows app, engine, and one-click installs
+
+- **Engine** ([`engine/`](./engine/coval_engine.py)): the six local agents and Python packed into one `coval-engine.exe` (about 9 MB) with PyInstaller. Build it with `python -m pip install pyinstaller` and `node engine/build.mjs`. The extension, the CLI, and the desktop app use it when it's there, so users don't need Python; otherwise they fall back to Python.
+- **VS Code extension, Windows build**: `cd ide-extension && npm run package:win` makes `coval-code-review-win32-x64-<version>.vsix` with the engine inside. For the one-click **Install in VS Code** button, create a publisher named `coval` at [marketplace.visualstudio.com/manage](https://marketplace.visualstudio.com/manage), sign in with `npx @vscode/vsce login coval`, run `npm run publish:win`, then set `MARKETPLACE_PUBLISHED = true` in [`public/download.html`](./public/download.html).
+- **COVAL for Windows** ([`desktop/`](./desktop/main.js)): an Electron app that opens the COVAL dashboard in its own window and adds:
+  - Windows notifications for new notifications, which keep arriving while it runs in the system tray
+  - **Score a folder on this computer**, both in the tray menu and on the Code evaluation page
+  - Start with Windows
+  - automatic updates
+  - the `coval` command, which uses the app's built-in Node.js and the engine and is added to the user's PATH on install
+
+  To try it from the repository, run `cd desktop && npm install && npm start`; set `COVAL_URL=http://localhost:3000` to use the local dev server. `npm run dist` builds the installer as `desktop/dist/COVAL-Setup.exe`, a one-click per-user install that needs no admin rights.
+- **Publishing updates**:
+  1. Installers are about 100 MB, too big for the website, so they're published to a public, binaries-only repository, `parvooffice/coval-releases`.
+  2. Add a `COVAL_RELEASES_TOKEN` secret to this repository: a fine-grained token with Contents read and write on that repository.
+  3. Bump `version` in `desktop/package.json`, then push a tag (for example `v0.3.0`). The Windows job in `release.yml` builds and publishes `COVAL-Setup.exe` and `latest.yml`.
+  4. Installed apps check every 6 hours, download the update, and show a "ready to install" notification.
+  5. The download page links to `releases/latest/download/COVAL-Setup.exe`, so it always points to the newest version.
+- **Code signing**: unsigned installers show "Windows protected your PC". To remove that warning, sign them, for example with Azure Trusted Signing (add `win.azureSignOptions` in `desktop/package.json`) or a code-signing certificate (`CSC_LINK` / `CSC_KEY_PASSWORD`).
 
 ## GitHub App (private repositories and pull request comments)
 

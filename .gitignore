@@ -56,3 +56,12 @@ cli/agents/
 cli/lib/
 *.tgz
 !public/downloads/*.tgz
+
+# Built engine, desktop app, and platform builds of the extension
+engine/build/
+engine/dist/
+ide-extension/bin/
+desktop/node_modules/
+desktop/dist/
+desktop/resources/
+desktop/lib/

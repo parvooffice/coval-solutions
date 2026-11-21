@@ -3,6 +3,7 @@ import Icon from "./dashboard-icon";
 import { PageHeading } from "./ui";
 import { EvaluationTarget, RunProgress } from "./evaluation-report";
 import ReportChat from "./report-chat";
+import LocalScanCard from "./local-scan-card";
 import { useDashboardData } from "../dashboard/dashboard-data-provider";
 import { apiRequest } from "../lib/client-api";
 
@@ -239,6 +240,8 @@ export default function CodeEvaluationPage() {
       description="Score repositories you can access. Shared results appear in the COVAL community and on your profile."
       action={<button type="button" className="button button-quiet" onClick={downloadScores} disabled={!codeEvaluation?.targets?.length}><Icon name="arrowDown" size={15} /> Download JSON</button>}
     />
+
+    <LocalScanCard />
 
     <form className="evaluation-import-card surface-card" onSubmit={runEvaluation}>
       <div className="evaluation-import-heading"><div><span className="eyebrow">GITHUB WORKSPACE / REPOSITORY INPUT</span><h2>Choose projects to score</h2><p>Paste one GitHub repository URL per line, or import a .txt/.csv URL list. Up to {MAX_TARGETS} projects per run.</p></div></div>

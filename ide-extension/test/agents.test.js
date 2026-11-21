@@ -38,3 +38,14 @@ test("reports a missing Python clearly", async () => {
   const result = await scanWorkspace({ python: "definitely-not-python", root, workspace: root, enabled: ["performance"] });
   assert.match(result.results[0].error, /Python was not found/);
 });
+
+test("scans with the packaged engine when it is built", { timeout: 240_000 }, async (t) => {
+  const { findEngine } = require("../lib/agents");
+  const engine = findEngine(path.resolve(__dirname, ".."));
+  if (!engine) return t.skip("coval-engine is not in ./bin (npm run package:win)");
+  const workspace = path.resolve(__dirname, "..", "..", "agent-kit");
+  const result = await scanWorkspace({ engine, workspace, enabled: ["readability", "standards"] });
+  assert.equal(result.runner, "engine");
+  assert.equal(result.results.length, 2);
+  for (const item of result.results) assert.equal(typeof item.score, "number", item.error);
+});

@@ -38,7 +38,8 @@ Usage:
       --fail-under / --fail-on-drop exit with code 2 to block a merge.
 
 Options:
-  --python <cmd>   Python 3.10+ to run the agents (default: COVAL_PYTHON or python)
+  --python <cmd>   Run the agents with this Python 3.10+ instead of the bundled
+                   COVAL engine (default when no engine: COVAL_PYTHON or python)
   --version, --help
 
 The CLI, the VS Code extension, and the COVAL GitHub App share the same agents and
@@ -72,7 +73,9 @@ function git(cwd, args) {
 async function scan(agents, workspace, options) {
   const root = agents.agentsRoot(cliRoot);
   const enabled = options.agents ? String(options.agents).split(",").map((item) => item.trim()) : [];
-  const result = await agents.scanWorkspace({ python: options.python || process.env.COVAL_PYTHON || "python", root, workspace, enabled });
+  // Prefer the packaged engine (bundled by the COVAL desktop app, or COVAL_ENGINE); --python forces Python.
+  const engine = options.python ? null : agents.findEngine(cliRoot, process.env.COVAL_HOME);
+  const result = await agents.scanWorkspace({ engine, python: options.python || process.env.COVAL_PYTHON || "python", root, workspace, enabled });
   const failures = result.results.filter((item) => item.error);
   if (failures.length === result.results.length) fail(failures[0].error);
   for (const item of failures) process.stderr.write(color(33, `warning: ${item.label} did not run: ${item.error}\n`));

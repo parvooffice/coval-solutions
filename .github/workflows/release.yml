@@ -49,3 +49,46 @@ jobs:
             **CLI:** download `coval-cli-*.tgz`, then run `npm install -g ./coval-cli-*.tgz` and `coval --help`.
 
             Both need Python 3.10+ and run COVAL's agents locally; your code never leaves your computer.
+
+  # Windows: the single-file engine, the VS Code extension with the engine inside, and the
+  # COVAL desktop installer. The installer and its update feed (latest.yml) go to the public
+  # parvooffice/coval-releases repository, which installed apps check for updates.
+  # Needs a COVAL_RELEASES_TOKEN secret: a fine-grained token with "Contents: read and write"
+  # on parvooffice/coval-releases. Without it this job builds but skips publishing.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build the engine
+        run: |
+          python -m pip install pyinstaller
+          node engine/build.mjs
+
+      - name: Build the Windows VS Code extension
+        run: |
+          cd ide-extension
+          npm run package:win
+          npm test
+
+      - name: Build and publish the desktop app
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.COVAL_RELEASES_TOKEN }}
+        run: |
+          cd desktop
+          npm ci
+          if [ -n "$GH_TOKEN" ]; then npm run release; else npm run dist; fi
+
+      - name: Attach to this repository's release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ide-extension/*win32-x64*.vsix
+            desktop/dist/COVAL-Setup.exe

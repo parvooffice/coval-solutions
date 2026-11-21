@@ -2,10 +2,14 @@
   "name": "coval-code-review",
   "displayName": "COVAL Code Review",
   "description": "Run COVAL's code-review agents on your workspace and see scores and fixes right in VS Code.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "coval",
   "license": "UNLICENSED",
   "private": true,
+  "icon": "media/icon.png",
+  "homepage": "https://coval-solutions-w92u.vercel.app/download.html",
+  "galleryBanner": { "color": "#09090b", "theme": "dark" },
+  "keywords": ["code review", "code quality", "pull request", "static analysis", "score"],
   "engines": { "vscode": "^1.85.0", "node": ">=20" },
   "categories": ["Linters", "Other"],
   "main": "./extension.js",
@@ -34,7 +38,8 @@
     "configuration": {
       "title": "COVAL",
       "properties": {
-        "coval.pythonPath": { "type": "string", "default": "python", "description": "Python 3.10+ used to run the agents (for example python3 or a full path)." },
+        "coval.useBundledEngine": { "type": "boolean", "default": true, "description": "Use the COVAL engine that comes with the extension (Windows), so Python is not needed." },
+        "coval.pythonPath": { "type": "string", "default": "python", "description": "Python 3.10+ used to run the agents when the bundled engine is off or not included (for example python3 or a full path)." },
         "coval.agents": {
           "type": "array",
           "default": [],
@@ -49,6 +54,8 @@
   "scripts": {
     "test": "node --test test/agents.test.js",
     "bundle-agents": "node scripts/bundle-agents.js",
-    "package": "npm run bundle-agents && npx --yes @vscode/vsce@3.2.1 package --no-dependencies --allow-missing-repository"
+    "package": "npm run bundle-agents && npx --yes @vscode/vsce@3.2.1 package --no-dependencies --allow-missing-repository",
+    "package:win": "npm run bundle-agents && node scripts/copy-engine.js && npx --yes @vscode/vsce@3.2.1 package --no-dependencies --allow-missing-repository --target win32-x64",
+    "publish:win": "npx --yes @vscode/vsce@3.2.1 publish --no-dependencies --allow-missing-repository --target win32-x64 --packagePath coval-code-review-win32-x64-0.2.0.vsix"
   }
 }
